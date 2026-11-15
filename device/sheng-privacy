@@ -1,0 +1,3 @@
+#!/bin/sh
+# Control-centre entry point; the guard needs root for chmod and the marker.
+exec sudo -n /usr/libexec/piano-privacy "$@"

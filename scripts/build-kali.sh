@@ -166,6 +166,11 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 EOF
+install -Dm 0755 "$PROJECT/device/piano-privacy" "$ROOTFS/usr/libexec/piano-privacy"
+install -Dm 0755 "$PROJECT/device/sheng-privacy" "$ROOTFS/usr/bin/sheng-privacy"
+install -Dm 0440 "$PROJECT/device/50-piano-privacy.sudoers" "$ROOTFS/etc/sudoers.d/50-piano-privacy"
+printf '#!/bin/sh\nexit 0\n' > "$ROOTFS/usr/libexec/sheng-privacy-bpf"
+chmod 0755 "$ROOTFS/usr/libexec/sheng-privacy-bpf"
 install -Dm 0755 "$PROJECT/device/piano-ipados" "$ROOTFS/usr/sbin/piano-ipados"
 install -Dm 0644 "$PROJECT/device/90-piano-ipados.rules" "$ROOTFS/etc/udev/rules.d/90-piano-ipados.rules"
 install -Dm 0755 "$PROJECT/vendor/extract-thp-calibration.py" "$ROOTFS/usr/lib/piano/extract-thp-calibration.py"
