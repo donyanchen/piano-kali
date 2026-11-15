@@ -1,0 +1,7 @@
+{
+  "upstream": "https://github.com/LuKeyC-NetSEC/sheng-kali-linux",
+  "commit": "5e21371617b5e982ee561b3e369a38e44d5d6431",
+  "tag": null,
+  "fetched": "2026-11-16",
+  "policy": "clone at commit, never copy author HOME or secrets"
+}

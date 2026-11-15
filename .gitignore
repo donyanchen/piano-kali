@@ -1,3 +1,4 @@
 .work/
 out/
 *.deb
+vendor/sheng-kali/
