@@ -43,6 +43,9 @@ jobs:
           THP_BOE_B64: ${{ secrets.THP_BOE_B64 }}
         run: sudo --preserve-env=KALI_PASSWORD,THP_CSOT_B64,THP_BOE_B64 bash scripts/build-kali.sh
 
+      - name: Fix output ownership
+        run: sudo chown -R "$(id -u):$(id -g)" out
+
       - name: Package release assets
         run: bash scripts/package-release.sh
 
