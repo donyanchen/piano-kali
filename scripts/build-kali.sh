@@ -215,6 +215,26 @@ for panel in csot boe; do
     fi
 done
 
+step "on-screen keyboard (optional)"
+if [[ "${WITH_OSK:-1}" == 1 ]]; then
+    if ! WITH_OSK_WORK="$PROJECT/.work/osk" bash "$PROJECT/scripts/build-osk.sh" "$ROOTFS" > "$OUT_DIR/osk.log" 2>&1; then
+        echo "WARN: OSK stage failed; image keeps plasma-keyboard (see osk.log)"
+    else
+        echo "OSK installed"
+    fi
+    tail -n 5 "$OUT_DIR/osk.log" || true
+fi
+
+step "patched Mesa (optional)"
+if [[ "${WITH_PIANO_MESA:-1}" == 1 ]]; then
+    if ! WORK="$PROJECT/.work/mesa" bash "$PROJECT/scripts/build-mesa.sh" "$ROOTFS" > "$OUT_DIR/mesa.log" 2>&1; then
+        echo "WARN: Mesa stage failed; image keeps Kali Mesa (see mesa.log)"
+    else
+        echo "patched Mesa installed"
+    fi
+    tail -n 5 "$OUT_DIR/mesa.log" || true
+fi
+
 step "finalise root filesystem"
 chroot "$ROOTFS" apt-get clean
 rm -f "$ROOTFS/etc/resolv.conf" "$ROOTFS/usr/sbin/policy-rc.d"

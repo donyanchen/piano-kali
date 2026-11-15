@@ -1,0 +1,272 @@
+--- a/fcitx5-osk/src/layout.rs
++++ b/fcitx5-osk/src/layout.rs
+@@ -37,7 +37,7 @@
+ 
+ use crate::{
+     app::{KeyboardNotification, Message},
+-    config::{IndicatorDisplay, QuickActionBarState},
++    config::QuickActionBarState,
+     dbus::server::ImPanelEvent,
+     font,
+     state::{
+@@ -754,6 +754,7 @@
+             .into()
+     }
+ 
++    // Sheng tablet UI: a compact toolbar, visible drag grip and native mode toggle.
+     fn toolbar_element<'a, 'b>(
+         &'a self,
+         params: &'a ToElementCommonParams<'b>,
+@@ -761,114 +762,54 @@
+         font_size: KLength,
+     ) -> Element<'b, Message> {
+         let state = params.state;
+-        let mut row = Row::new()
+-            .height(Length::Fill)
+-            .align_y(Vertical::Center)
+-            .spacing(unit * 2);
+-
+-        let indicator_message: Option<Message> = match state.indicator_display() {
+-            IndicatorDisplay::Auto => Some(WindowManagerEvent::OpenIndicator.into()),
+-            IndicatorDisplay::AlwaysOn => {
+-                Some(WindowManagerEvent::CloseKeyboard(CloseOpSource::UserAction).into())
+-            }
+-            IndicatorDisplay::AlwaysOff => {
+-                if state.window_manager_mode() == WindowManagerMode::KwinLockScreen {
+-                    Some(ImPanelEvent::NewVisibleRequest(false).into())
+-                } else {
+-                    Some(WindowManagerEvent::CloseKeyboard(CloseOpSource::UserAction).into())
+-                }
+-            }
++        let control = |label: &'static str, message: Message| {
++            custom_action_button(label, None, KLength(font_size.val() * 0.78), Some(Shaping::Advanced))
++                .padding(Padding::from([4.0, 8.0]))
++                .on_release_with(Some(move || message.clone()))
+         };
+-        if let Some(message) = indicator_message {
+-            row = row.push(nerd_btn_container(
+-                nerd_btn('󰁄', font_size, unit).on_release_with(Some(move || message.clone())),
+-                font_size,
+-                unit,
+-            ));
+-        }
+-
+-        // padding
++        let mut row = Row::new().height(Length::Fill)
++            .align_y(Vertical::Center).spacing(unit);
++        row = row.push(Text::new("水杉").size(KLength(font_size.val() * 0.85))
++            .shaping(Shaping::Advanced));
++        if state.window_manager_mode() == WindowManagerMode::Normal {
++            let chinese = state.im().im_name().map(|s| s.as_str()) == Some("msime");
++            row = row.push(control(if chinese { "中 · EN" } else { "EN · 中" },
++                ImEvent::SelectIm(if chinese { "keyboard-us" } else { "msime" }.to_string()).into()));
++        }
+         let window_id = params.window_id;
+         let movable = state.movable(window_id);
+-        row = row.push(
+-            Toggle::new(
+-                Movable::new(
+-                    Column::new()
+-                        .width(Length::Fill)
+-                        .height(Length::Fill)
+-                        .push(Text::new(" ")),
+-                    move |delta| {
+-                        state
+-                            .new_position_message(window_id, delta)
+-                            .unwrap_or(Message::Nothing)
+-                    },
+-                    movable,
+-                )
++        let grip = Container::new(
++            Container::new(Space::new().width(36).height(4))
++                .style(|theme: &Theme| ContainerStyle {
++                    background: Some(theme.palette().text.scale_alpha(0.28).into()),
++                    border: iced::border::rounded(2),
++                    ..Default::default()
++                }))
++            .width(Length::Fill).height(Length::Fill)
++            .align_x(Horizontal::Center).align_y(Vertical::Center);
++        row = row.push(Toggle::new(
++            Movable::new(grip, move |delta| {
++                state.new_position_message(window_id, delta).unwrap_or(Message::Nothing)
++            }, movable)
+                 .on_move_end(WindowEvent::SetMovable(window_id, false).into()),
+-                ToggleCondition::LongPress(Duration::from_millis(1000)),
+-            )
+-            .on_toggle(WindowEvent::SetMovable(window_id, !movable).into()),
+-        );
+-
+-        row = row.push(
+-            Row::new()
+-                .align_y(Vertical::Center)
+-                .spacing(unit)
+-                .push(nerd_icon('󰏪', font_size))
+-                .push(
+-                    PickList::new(state.im().im_names(), state.im().im_name(), |im| {
+-                        ImEvent::SelectIm(im).into()
+-                    })
+-                    .all_size(font_size),
+-                ),
+-        );
+-        row = row.push(
+-            Row::new()
+-                .align_y(Vertical::Center)
+-                .spacing(unit)
+-                .push(nerd_icon('󰏘', font_size))
+-                .push(
+-                    PickList::new(
+-                        state.store().theme_names(),
+-                        Some(state.config().theme()),
+-                        |theme| UpdateConfigEvent::Theme(theme).into(),
+-                    )
+-                    .all_size(font_size),
+-                ),
+-        );
+-
+-        let mut tray = Row::new();
+-        if self.quick_action_bar_state == QuickActionBarState::Toggle {
+-            let shown = self.quick_action_bar_shown;
+-            tray = tray.push(
+-                nerd_btn_container(
+-                    nerd_btn('', font_size, unit)
+-                        .on_release_with(Some(|| LayoutEvent::ToggleQuickActionBar.into())),
+-                    font_size,
+-                    unit,
+-                )
+-                .style(move |theme: &Theme| {
+-                    let mut style = ContainerStyle::default();
+-                    if shown {
+-                        style.background =
+-                            Some(theme.extended_palette().background.weak.color.into());
+-                    }
+-                    style
+-                }),
+-            );
+-        }
+-        tray = tray.push(nerd_btn_container(
+-            nerd_btn('󰘮', font_size, unit)
+-                .on_release_with(Some(|| LayoutEvent::ToggleSetting.into())),
+-            font_size,
+-            unit,
+-        ));
+-        row = row.push(tray);
+-        Container::new(row)
+-            .width(Length::Fill)
+-            .height(Length::Fill)
+-            .align_x(Horizontal::Right)
+-            .into()
++            ToggleCondition::LongPress(Duration::from_millis(1000)))
++            .on_toggle(WindowEvent::SetMovable(window_id, !movable).into()));
++        if state.window_manager_mode() == WindowManagerMode::Normal {
++            let floating = state.placement() == crate::config::Placement::Float;
++            row = row.push(control(if floating { "停靠" } else { "悬浮" },
++                WindowManagerEvent::UpdatePlacement(if floating {
++                    crate::config::Placement::Dock
++                } else { crate::config::Placement::Float }).into()));
++        }
++        row = row.push(control("设置", LayoutEvent::ToggleSetting.into()));
++        let hide: Message = if state.window_manager_mode() == WindowManagerMode::KwinLockScreen {
++            ImPanelEvent::NewVisibleRequest(false).into()
++        } else {
++            WindowManagerEvent::CloseKeyboard(CloseOpSource::UserAction).into()
++        };
++        row = row.push(control("收起", hide));
++        Container::new(row).padding(Padding::from([0.0, unit.val()]))
++            .height(Length::Fill).width(Length::Fill).into()
+     }
+ 
+     fn quick_action_bar_element<'a, 'b>(
+--- a/fcitx5-osk/src/state/keyboard.rs
++++ b/fcitx5-osk/src/state/keyboard.rs
+@@ -378,6 +378,9 @@
+         size: (KLength, KLength),
+     ) -> Element<'_, Message> {
+         let (width, height) = size;
++        let enter_key = key_name.ends_with("k_enter");
++        let utility_key = ["k_left_shift", "k_right_shift", "k_backspace", "k_tab", "k_space"]
++            .iter().any(|name| key_name.ends_with(name));
+         let (inner_width, inner_height) = (
+             width - TEXT_PADDING_LENGTH * 2,
+             height - TEXT_PADDING_LENGTH * 2,
+@@ -410,12 +413,18 @@
+             let middle = Text::new(primary.symbol())
+                 .shaping(Shaping::Advanced)
+                 .font(primary.font().unwrap_or(self.font));
++            let middle = if enter_key { middle.color(iced::Color::WHITE) } else { middle };
+             let mut top = Row::new().spacing(unit / 2.);
+             let mut has_secondary = false;
+             for secondary in secondary
+                 .into_iter()
+                 .chain(secondary_key_values.iter().skip(1))
+             {
++                // Shift case remains available without duplicating every letter's label.
++                if primary.symbol().chars().all(|c| c.is_ascii_alphabetic())
++                    && primary.symbol().eq_ignore_ascii_case(secondary.symbol()) {
++                    continue;
++                }
+                 has_secondary = true;
+                 let text = Text::new(secondary.symbol())
+                     .font(secondary.font().unwrap_or(self.font))
+@@ -478,6 +487,32 @@
+             .padding(Padding::new(TEXT_PADDING_LENGTH as f32))
+             .width(width)
+             .height(height)
++            .style(move |theme, status| {
++                let dark = theme.extended_palette().is_dark;
++                let pressed = matches!(status, iced::widget::button::Status::Pressed);
++                let color = if enter_key {
++                    iced::Color::from_rgb8(52, 120, 246)
++                } else if pressed {
++                    if dark { iced::Color::from_rgb8(80, 85, 99) }
++                    else { iced::Color::from_rgb8(205, 217, 239) }
++                } else if utility_key {
++                    if dark { iced::Color::from_rgb8(43, 46, 55) }
++                    else { iced::Color::from_rgb8(222, 226, 235) }
++                } else if dark {
++                    iced::Color::from_rgb8(58, 61, 70)
++                } else { iced::Color::WHITE };
++                iced::widget::button::Style {
++                    background: Some(color.into()),
++                    text_color: if enter_key { iced::Color::WHITE } else { theme.palette().text },
++                    border: iced::border::rounded(9),
++                    shadow: iced::Shadow {
++                        color: iced::Color::BLACK.scale_alpha(if dark { 0.12 } else { 0.07 }),
++                        offset: iced::Vector::new(0.0, 1.0),
++                        blur_radius: 1.5,
++                    },
++                    ..Default::default()
++                }
++            })
+             .into()
+     }
+ 
+--- a/fcitx5-osk/src/state/layout.rs
++++ b/fcitx5-osk/src/state/layout.rs
+@@ -169,7 +169,15 @@
+         } else {
+             keyboard.push(self.key_area_layout.to_element(self.unit, params.state))
+         };
+-        keyboard.into()
++        Container::new(keyboard).style(|theme: &iced::Theme| {
++            iced::widget::container::Style {
++                background: Some(theme.palette().background.into()),
++                text_color: Some(theme.palette().text),
++                border: iced::border::rounded(22).width(0.7)
++                    .color(theme.palette().text.scale_alpha(0.10)),
++                ..Default::default()
++            }
++        }).into()
+     }
+ 
+     /// Return if layout is changed
+--- a/fcitx5-osk/src/app.rs
++++ b/fcitx5-osk/src/app.rs
+@@ -549,7 +549,7 @@
+         if theme.name() == Self::TRANSPARENT_THEME_NAME {
+             style.background_color = Color::TRANSPARENT;
+         } else {
+-            style.background_color = theme.extended_palette().background.strong.color;
++            style.background_color = Color::TRANSPARENT;
+         }
+         style
+     }

@@ -33,4 +33,16 @@ while read -r name sha; do
     echo "$sha  $name" | sha256sum -c -
 done < assets.list
 
+# Metasequoia (msime) input engine for the Fcitx5 OSK
+MSIME=msime-linux_0.16.1_arm64.deb
+MSIME_SHA=1f2542ed775e9bbf74b86aa0a901ce02af8f3f3652ef8aee54392b2b62fa853c
+if [[ -f "$MSIME" ]] && echo "$MSIME_SHA  $MSIME" | sha256sum -c --status -; then
+    echo "cached $MSIME"
+else
+    echo "downloading $MSIME"
+    curl --fail --location --retry 3 -o "$MSIME" \
+        "https://github.com/metasequoiaime/msime/releases/download/linux-v0.16.1/$MSIME"
+    echo "$MSIME_SHA  $MSIME" | sha256sum -c -
+fi
+
 echo "all pinned assets verified in $ASSET_DIR"

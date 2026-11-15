@@ -1,0 +1,76 @@
+# Sheng tablet touch layout, MIT.
+name = "sheng-hyperos-landscape"
+primary_text_size = 3
+secondary_text_size = 1
+min_toolbar_height = 6
+spacing = 1
+
+[[elements]]
+height = 7
+spacing = 1
+elements = ["k_one", "k_two", "k_three", "k_four", "k_five", "k_six", "k_seven", "k_eight", "k_nine", "k_zero"]
+
+[[elements]]
+height = 7
+spacing = 1
+elements = ["k_q", "k_w", "k_e", "k_r", "k_t", "k_y", "k_u", "k_i", "k_o", "k_p"]
+
+[[elements]]
+height = 7
+spacing = 1
+elements = ["p:4", "k_a", "k_s", "k_d", "k_f", "k_g", "k_h", "k_j", "k_k", "k_l", "p:4"]
+
+[[elements]]
+height = 7
+spacing = 1
+elements = ["k_left_shift:12", "k_z", "k_x", "k_c", "k_v", "k_b", "k_n", "k_m", "k_backspace:13"]
+
+[[elements]]
+height = 7
+spacing = 1
+elements = ["k_tab:12", "k_comma:8", "k_space:41", "k_dot:8", "k_enter:16"]
+
+[key_mappings]
+k_a = "sheng-hyperos:k_a"
+k_b = "sheng-hyperos:k_b"
+k_backspace = "sheng-hyperos:k_backspace"
+k_c = "sheng-hyperos:k_c"
+k_comma = "sheng-hyperos:k_comma"
+k_d = "sheng-hyperos:k_d"
+k_dot = "sheng-hyperos:k_dot"
+k_e = "sheng-hyperos:k_e"
+k_eight = "sheng-hyperos:k_eight"
+k_enter = "sheng-hyperos:k_enter"
+k_f = "sheng-hyperos:k_f"
+k_five = "sheng-hyperos:k_five"
+k_four = "sheng-hyperos:k_four"
+k_g = "sheng-hyperos:k_g"
+k_h = "sheng-hyperos:k_h"
+k_i = "sheng-hyperos:k_i"
+k_j = "sheng-hyperos:k_j"
+k_k = "sheng-hyperos:k_k"
+k_l = "sheng-hyperos:k_l"
+k_left_shift = "sheng-hyperos:k_left_shift"
+k_m = "sheng-hyperos:k_m"
+k_n = "sheng-hyperos:k_n"
+k_nine = "sheng-hyperos:k_nine"
+k_o = "sheng-hyperos:k_o"
+k_one = "sheng-hyperos:k_one"
+k_p = "sheng-hyperos:k_p"
+k_q = "sheng-hyperos:k_q"
+k_r = "sheng-hyperos:k_r"
+k_s = "sheng-hyperos:k_s"
+k_seven = "sheng-hyperos:k_seven"
+k_six = "sheng-hyperos:k_six"
+k_space = "sheng-hyperos:k_space"
+k_t = "sheng-hyperos:k_t"
+k_tab = "sheng-hyperos:k_tab"
+k_three = "sheng-hyperos:k_three"
+k_two = "sheng-hyperos:k_two"
+k_u = "sheng-hyperos:k_u"
+k_v = "sheng-hyperos:k_v"
+k_w = "sheng-hyperos:k_w"
+k_x = "sheng-hyperos:k_x"
+k_y = "sheng-hyperos:k_y"
+k_z = "sheng-hyperos:k_z"
+k_zero = "sheng-hyperos:k_zero"
