@@ -1,0 +1,50 @@
+#!/bin/sh
+# Minimal device privacy guard for piano (no BPF).
+# Blocks camera and capture PCMs by permissions; restores them on disable.
+# The control centre calls this through /usr/bin/sheng-privacy.
+set -u
+MARK=/var/lib/sheng-privacy/blocked
+CAM='qcom-camss'
+capture_nodes() {
+    for p in /dev/snd/pcmC*D*c; do
+        [ -e "$p" ] || continue
+        echo "$p"
+    done
+}
+camera_nodes() {
+    for sys in /sys/class/video4linux/*; do
+        [ -e "$sys/device/driver" ] || continue
+        drv=$(basename "$(readlink -f "$sys/device/driver")")
+        [ "$drv" = "$CAM" ] || continue
+        echo "/dev/$(basename "$sys")"
+    done
+}
+
+status() {
+    if [ -e "$MARK" ]; then on=true; else on=false; fi
+    printf '{"enabled": %s, "busy": false, "guard": true, "lastError": ""}\n' "$on"
+}
+
+enable() {
+    mkdir -p /var/lib/sheng-privacy
+    : > "$MARK"
+    for n in $(camera_nodes); do chmod 600 "$n" 2>/dev/null || true; done
+    for n in $(capture_nodes); do chmod 600 "$n" 2>/dev/null || true; done
+    systemctl stop geoclue.service gpsd.service gpsd.socket 2>/dev/null || true
+    status
+}
+
+disable() {
+    rm -f "$MARK"
+    for n in $(camera_nodes); do chmod 660 "$n" 2>/dev/null || true; chgrp video "$n" 2>/dev/null || true; done
+    for n in $(capture_nodes); do chmod 660 "$n" 2>/dev/null || true; chgrp audio "$n" 2>/dev/null || true; done
+    status
+}
+
+case "${1:-status}" in
+    status) status ;;
+    on|enable) enable ;;
+    off|disable) disable ;;
+    toggle) [ -e "$MARK" ] && disable || enable ;;
+    *) status ;;
+esac

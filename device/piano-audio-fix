@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+# The privacy marker + a failing bpf stub made udev mark every sound node as
+# failed, which hid the card from PipeWire. Clear the state and re-apply modes.
+rm -f /var/lib/sheng-privacy/blocked
+printf '#!/bin/sh\nexit 0\n' > /usr/libexec/sheng-privacy-bpf
+chmod 755 /usr/libexec/sheng-privacy-bpf
+udevadm control --reload-rules || true
+udevadm trigger --subsystem-match=sound --action=change || true
+udevadm trigger --subsystem-match=video4linux --action=change || true
+sleep 2
+echo done

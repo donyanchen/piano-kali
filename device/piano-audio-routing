@@ -1,0 +1,17 @@
+#!/bin/sh
+# Apply the piano speaker/mic routing directly, without ALSA UCM.
+# Used because UCM verb enumeration is broken on this install; WirePlumber then
+# talks to the raw hw PCMs.
+set -eu
+C=${1:-0}
+
+cset() {
+    amixer -c "$C" cset name="$1" "$2" >/dev/null 2>&1 || true
+}
+
+cset 'SECONDARY_TDM_RX_0 Audio Mixer MultiMedia1' 1
+cset 'MultiMedia3 Mixer VA_CODEC_DMA_TX_0' 1
+cset 'Top Left Amp Volume' 231
+cset 'Top Right Amp Volume' 231
+cset 'Bottom Left Amp Volume' 231
+cset 'Bottom Right Amp Volume' 231
