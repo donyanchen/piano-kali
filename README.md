@@ -62,6 +62,15 @@ bash flash-piano.sh --serial <SERIAL> --dir . --yes
 - USB：`sudo piano-devmode on` 打开开发者模式的 USB 网络 + SSH（上游工具）。
 - 回 Android：没有 Android 了。回 Fastboot：`sudo piano-reboot-bootloader` 或长按电源 + 音量下。
 
+## 已知差异：HyperOS 版本与 A/B 槽
+
+上游 v1.3.1 的适配基线是 **OS3.0.303.0.WPYCNXM（Android 15 原厂，A 槽）**。实测本机是 **OS4.0.5.0.XPYCNXM（2026-10-21 构建，B 槽）**，所以：
+
+- 内核、DTB、initramfs 都来自上游预编译产物，**不依赖你的 vendor/system**，能启动；真正的风险在固件层（ADSP 音频、充电 mcs/mca、摄像头 ISP、WLAN/BT blob 是按 OS3 版本锁定）——出问题看 `dmesg`，不会刷不进去。
+- **槽位**：`/proc/bootconfig` 的真值是 `slot_suffix = _b`。`flash-piano.sh` 会读 `fastboot getvar current-slot` 并显式写对应槽，不再假设 A 槽。不要 `--set-active` 切槽。
+- `getprop ro.boot.flash.locked / verifiedbootstate` 会被 Play Integrity 类模块伪造成 `1/green`；真值看 `/proc/bootconfig` 的 `androidboot.vbmeta.device_state`（橙色/orange = 已解锁）。
+- **触摸标定**：`odm` 在 OS4 上是 `super` 里的逻辑分区，没有 `/dev/disk/by-partlabel/odm`。镜像里放 CSOT/BOE 两份私有标定（构建时由 `THP_CSOT_B64` / `THP_BOE_B64` 注入），首启按内核上报的 `panel_vendor` 选一份装到 `/etc/piano/thp-calibration.json`。
+
 ## 当前限制
 
 - 手写笔、指纹：上游主线适配暂不支持。

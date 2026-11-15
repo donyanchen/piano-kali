@@ -189,6 +189,19 @@ chroot "$ROOTFS" /bin/bash -ec '
 ' | tee "$OUT_DIR/validation.txt"
 chroot "$ROOTFS" dpkg-query -W -f='${binary:Package}\t${Version}\t${Architecture}\n' > "$OUT_DIR/packages.tsv"
 
+step "inject private touch calibration"
+mkdir -p "$ROOTFS/usr/share/piano"
+for panel in csot boe; do
+    upper=$(echo "$panel" | tr '[:lower:]' '[:upper:]')
+    var="THP_${upper}_B64"
+    value=${!var:-}
+    if [[ -n "$value" ]]; then
+        printf '%s' "$value" | base64 -d > "$ROOTFS/usr/share/piano/thp-$panel.json"
+        chmod 600 "$ROOTFS/usr/share/piano/thp-$panel.json"
+        echo "installed private $panel touch calibration"
+    fi
+done
+
 step "finalise root filesystem"
 chroot "$ROOTFS" apt-get clean
 rm -f "$ROOTFS/etc/resolv.conf" "$ROOTFS/usr/sbin/policy-rc.d" "$ROOTFS/usr/bin/qemu-aarch64-static"

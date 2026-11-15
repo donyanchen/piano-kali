@@ -40,7 +40,9 @@ jobs:
       - name: Build Kali ARM64 KDE image
         env:
           KALI_PASSWORD: ${{ inputs.kali_password != '' && inputs.kali_password || secrets.KALI_PASSWORD }}
-        run: sudo --preserve-env=KALI_PASSWORD bash scripts/build-kali.sh
+          THP_CSOT_B64: ${{ secrets.THP_CSOT_B64 }}
+          THP_BOE_B64: ${{ secrets.THP_BOE_B64 }}
+        run: sudo --preserve-env=KALI_PASSWORD,THP_CSOT_B64,THP_BOE_B64 bash scripts/build-kali.sh
 
       - name: Package release assets
         run: bash scripts/package-release.sh
