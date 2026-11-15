@@ -1,0 +1,11 @@
+{
+  "KPlugin": {
+    "Id": "@SHENG_TOUCH_GUARD_ID@",
+    "Name": "Sheng desktop touch gestures",
+    "Name[zh_CN]": "桌面触屏手势与防框选",
+    "Description": "Desktop-only touch routing; mouse selection and application touch input are preserved",
+    "Version": "1.1.0",
+    "License": "GPL-3.0-or-later",
+    "EnabledByDefault": false
+  }
+}

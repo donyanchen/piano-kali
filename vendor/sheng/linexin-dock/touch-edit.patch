@@ -1,0 +1,139 @@
+--- a/contents/ui/DashboardRepresentation.qml
++++ b/contents/ui/DashboardRepresentation.qml
+@@ -518,6 +518,55 @@
+         id: rootItem
+ 
+         anchors.fill: parent
++        Item {
++            anchors.fill: parent
++            z: 1000000
++            PointHandler {
++                id: fullDrawerSwipe
++                acceptedDevices: PointerDevice.TouchScreen
++                property bool browse: false
++                property bool moved: false
++                property real dx: 0
++                property real dy: 0
++                onActiveChanged: {
++                    if (active) { dashboardView.touchEditing = false; browse = true; moved = false; dx = dy = 0; }
++                    else if (browse && !dashboardView.visible && !dashboardView.touchEditing && !dashboardGrid.dragActive && !folderGrid.dragActive) {
++                        if (dy > 72 && dy > Math.abs(dx) * 1.25) root.closeWithAnimation();
++                        else if (Math.abs(dx) > 64 && Math.abs(dx) > Math.abs(dy) * 1.25 && dashboardView.visible) dashboardView.stepPage(dx < 0 ? 1 : -1);
++                    }
++                }
++                onPointChanged: if (active) {
++                    dx = point.position.x - point.pressPosition.x;
++                    dy = point.position.y - point.pressPosition.y;
++                    if (Math.hypot(dx, dy) > 12) moved = true;
++                    if (dashboardView.touchEditing || dashboardGrid.dragActive || folderGrid.dragActive) browse = false;
++                }
++                onCanceled: browse = false
++            }
++            // Claim navigation before a synthesized click dismisses the drawer.
++            DragHandler {
++                id: drawerNavigation
++                target: null
++                acceptedDevices: PointerDevice.TouchScreen
++                enabled: dashboardView.visible && !dashboardView.touchEditing && !dashboardGrid.dragActive && !folderGrid.dragActive
++                dragThreshold: 12
++                property real dx: 0
++                property real dy: 0
++                property bool cancelled: false
++                onActiveChanged: {
++                    if (active) { dx = dy = 0; cancelled = false; }
++                    else if (!cancelled && !dashboardView.touchEditing) {
++                        if (dy > 72 && dy > Math.abs(dx) * 1.25) root.closeWithAnimation();
++                        else if (Math.abs(dx) > 64 && Math.abs(dx) > Math.abs(dy) * 1.25) dashboardView.stepPage(dx < 0 ? 1 : -1);
++                    }
++                }
++                onActiveTranslationChanged: if (active) { dx = activeTranslation.x; dy = activeTranslation.y; }
++                onCanceled: cancelled = true
++            }
++            Connections { target: dashboardView; function onTouchEditingChanged() { if (dashboardView.touchEditing) fullDrawerSwipe.browse = false; } }
++            Connections { target: dashboardGrid; function onDragActiveChanged() { if (dashboardGrid.dragActive) fullDrawerSwipe.browse = false; } }
++            Connections { target: folderGrid; function onDragActiveChanged() { if (folderGrid.dragActive) fullDrawerSwipe.browse = false; } }
++        }
+ 
+         opacity: 0
+ 
+@@ -557,7 +606,7 @@
+             anchors.fill: parent
+             z: -1
+             acceptedButtons: Qt.LeftButton
+-            onClicked: closeWithAnimation()
++            onClicked: mouse => { if (mouse.source === Qt.MouseEventNotSynthesized || !fullDrawerSwipe.moved) closeWithAnimation(); }
+         }
+ 
+         LayoutMirroring.enabled: Qt.application.layoutDirection === Qt.RightToLeft
+@@ -3612,6 +3661,7 @@
+                 NumberAnimation { duration: root.animDuration * 0.8; easing.type: Easing.OutCubic }
+             }
+ 
++            property bool touchEditing: false
+             property int currentPage: 0
+             property int pageCount: Math.max(1, Math.ceil(dashboardModel.count / root.itemsPerPage))
+ 
+@@ -4489,15 +4539,22 @@
+                         id: dashMA
+                         anchors.fill: parent
+                         hoverEnabled: true
+-                        preventStealing: true
++                        preventStealing: !touchPress || touchDragArmed
+                         cursorShape: Qt.PointingHandCursor
+                         acceptedButtons: Qt.LeftButton | Qt.RightButton
+ 
+                         property int pressX: -1
+                         property int pressY: -1
+                         property bool dragging: false
++                        property bool touchPress: false
++                        property bool touchDragArmed: false
++                        property bool touchBrowse: false
++                        pressAndHoldInterval: 550
+ 
+                         onPressed: mouse => {
++                            touchPress = mouse.source !== Qt.MouseEventNotSynthesized;
++                            touchDragArmed = !touchPress;
++                            touchBrowse = false;
+                             if (mouse.button === Qt.RightButton) {
+                                 dashDelegate.openContextMenu(mouse.x, mouse.y);
+                             } else {
+@@ -4506,7 +4563,26 @@
+                             }
+                         }
+ 
++                        onCanceled: {
++                            pressX = pressY = -1;
++                            touchBrowse = true;
++                            touchDragArmed = false;
++                            dashboardView.touchEditing = false;
++                        }
++                        onPressAndHold: mouse => {
++                            if (touchPress && !touchBrowse && pressX !== -1) {
++                                touchDragArmed = true;
++                                dashboardView.touchEditing = true;
++                                dashDelegate.forceActiveFocus();
++                            }
++                        }
+                         onReleased: mouse => {
++                            if (touchPress && touchBrowse && !dragging) {
++                                pressX = pressY = -1;
++                                dashboardView.touchEditing = false;
++                                return;
++                            }
++                            dashboardView.touchEditing = false;
+                             folderMergeTimer.stop();
+                             // Reset up front: the merge below rebuilds the grid and
+                             // destroys this delegate along with the MouseArea running
+@@ -4566,7 +4642,11 @@
+                             if (pressX !== -1 && !dragging) {
+                                 var dx = mouse.x - pressX;
+                                 var dy = mouse.y - pressY;
+-                                if (dx*dx + dy*dy > 400) {
++                                if (touchPress && !touchDragArmed) {
++                                    if (dx*dx + dy*dy > 144) touchBrowse = true;
++                                    return;
++                                }
++                                if (touchDragArmed && dx*dx + dy*dy > 400) {
+                                     dragging = true;
+                                     dashboardGrid.dragFromIndex = dashDelegate.itemIndex;
+                                     dashboardGrid.dragStartIndex = dashDelegate.itemIndex;
