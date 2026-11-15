@@ -209,7 +209,34 @@ WantedBy=multi-user.target
 EOF
 printf 'vm.swappiness=100\n' > "$ROOTFS/etc/sysctl.d/80-piano-zram.conf"
 printf '[zram0]\nzram-size = min(ram / 2, 6144)\ncompression-algorithm = zstd\n' > "$ROOTFS/etc/systemd/zram-generator.conf"
-chroot "$ROOTFS" systemctl enable NetworkManager ssh sddm systemd-timesyncd bluetooth kali-ssh-keys piano-grow piano-thp-calibrate piano-powerkey
+chroot "$ROOTFS" systemctl enable NetworkManager ssh sddm systemd-timesyncd bluetooth kali-ssh-keys piano-grow piano-thp-calibrate
+install -d "$ROOTFS/home/kali/.config"
+cat > "$ROOTFS/home/kali/.config/powerdevilrc" <<'EOF'
+[AC][SuspendAndShutdown]
+PowerButtonAction=32
+PowerDownAction=8
+
+[AC][Display]
+TurnOffDisplayWhenIdle=true
+TurnOffDisplayIdleTimeoutWhenLockedSec=0
+LockBeforeTurnOffDisplay=true
+
+[BATT][SuspendAndShutdown]
+PowerButtonAction=32
+PowerDownAction=8
+
+[BATT][Display]
+TurnOffDisplayWhenIdle=true
+TurnOffDisplayIdleTimeoutWhenLockedSec=0
+LockBeforeTurnOffDisplay=true
+EOF
+cat > "$ROOTFS/home/kali/.config/kscreenlockerrc" <<'EOF'
+[Daemon]
+Autolock=true
+Timeout=60
+LockGrace=0
+EOF
+chroot "$ROOTFS" chown -R kali:kali /home/kali/.config
 chroot "$ROOTFS" systemctl set-default graphical.target
 
 step "validate image contents"
