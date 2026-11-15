@@ -37,8 +37,13 @@ fi
 for tool in debootstrap img2simg mkfs.ext4 e2fsck python3 curl unzip; do
     command -v "$tool" >/dev/null || { echo "Missing build dependency: $tool" >&2; exit 1; }
 done
-QEMU=$(command -v qemu-aarch64-static || command -v qemu-aarch64)
-[[ -n "$QEMU" ]] || { echo 'qemu-aarch64-static is required' >&2; exit 1; }
+NATIVE=0
+[[ "$(uname -m)" == aarch64 ]] && NATIVE=1
+QEMU=''
+if (( ! NATIVE )); then
+    QEMU=$(command -v qemu-aarch64-static || command -v qemu-aarch64)
+    [[ -n "$QEMU" ]] || { echo 'qemu-aarch64-static is required on non-ARM64 builders' >&2; exit 1; }
+fi
 
 mkdir -p "$BUILD_DIR" "$ROOTFS" "$ASSET_DIR" "$OUT_DIR"
 cleanup() {
@@ -64,11 +69,17 @@ truncate -s "$IMAGE_SIZE" "$ROOT_IMG"
 mkfs.ext4 -F -L kali-piano -O '^metadata_csum_seed,^orphan_file' "$ROOT_IMG"
 mount -o loop "$ROOT_IMG" "$ROOTFS"
 [[ -f /usr/share/debootstrap/scripts/kali-rolling ]] || ln -s sid /usr/share/debootstrap/scripts/kali-rolling
-debootstrap --foreign --arch=arm64 --keyring="$KEYRING" \
-    --components=main,contrib,non-free,non-free-firmware \
-    kali-rolling "$ROOTFS" "$KALI_MIRROR"
-install -m 0755 "$QEMU" "$ROOTFS/usr/bin/qemu-aarch64-static"
-chroot "$ROOTFS" /debootstrap/debootstrap --second-stage
+if (( NATIVE )); then
+    debootstrap --arch=arm64 --keyring="$KEYRING" \
+        --components=main,contrib,non-free,non-free-firmware \
+        kali-rolling "$ROOTFS" "$KALI_MIRROR"
+else
+    debootstrap --foreign --arch=arm64 --keyring="$KEYRING" \
+        --components=main,contrib,non-free,non-free-firmware \
+        kali-rolling "$ROOTFS" "$KALI_MIRROR"
+    install -m 0755 "$QEMU" "$ROOTFS/usr/bin/qemu-aarch64-static"
+    chroot "$ROOTFS" /debootstrap/debootstrap --second-stage
+fi
 
 mount --bind /dev "$ROOTFS/dev"
 mount -t devpts devpts "$ROOTFS/dev/pts"
@@ -206,7 +217,8 @@ done
 
 step "finalise root filesystem"
 chroot "$ROOTFS" apt-get clean
-rm -f "$ROOTFS/etc/resolv.conf" "$ROOTFS/usr/sbin/policy-rc.d" "$ROOTFS/usr/bin/qemu-aarch64-static"
+rm -f "$ROOTFS/etc/resolv.conf" "$ROOTFS/usr/sbin/policy-rc.d"
+[[ -e "$ROOTFS/usr/bin/qemu-aarch64-static" ]] && rm -f "$ROOTFS/usr/bin/qemu-aarch64-static" || true
 rm -rf "$ROOTFS/tmp/piano-debs" "$ROOTFS/tmp/install-piano-debs.sh"
 ln -sf /run/NetworkManager/resolv.conf "$ROOTFS/etc/resolv.conf"
 truncate -s 0 "$ROOTFS/etc/machine-id"

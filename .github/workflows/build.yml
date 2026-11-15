@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
@@ -31,11 +31,10 @@ jobs:
       - name: Install build tools and ARM64 emulation
         run: |
           sudo apt-get update
-          sudo apt-get install -y debootstrap qemu-user-static binfmt-support \
+          sudo apt-get install -y debootstrap \
             android-sdk-libsparse-utils e2fsprogs zstd zip unzip curl \
             ca-certificates gnupg python3
-          sudo update-binfmts --enable qemu-aarch64
-          qemu-aarch64-static --version
+          uname -m
 
       - name: Build Kali ARM64 KDE image
         env:
