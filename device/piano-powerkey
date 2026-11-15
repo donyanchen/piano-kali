@@ -52,27 +52,12 @@ def short_press():
 
 
 def long_press():
+    """Long press shows the lock screen with its power actions."""
     if os.path.exists(STATE):
         dpms(True)
         os.remove(STATE)
-    cmd = ['runuser', '-u', 'kali', '--', 'env'] + ENV + [
-        'kdialog', '--title', '电源选项', '--menu', '请选择操作',
-        'poweroff', '关机', 'reboot', '重启', 'logout', '注销', 'lock', '锁屏'
-    ]
-    try:
-        choice = subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL).strip()
-    except subprocess.CalledProcessError:
-        return
-    if choice == 'poweroff':
-        subprocess.run(['systemctl', 'poweroff'], check=False)
-    elif choice == 'reboot':
-        subprocess.run(['systemctl', 'reboot'], check=False)
-    elif choice == 'logout':
-        subprocess.run(['runuser', '-u', 'kali', '--', 'env'] + ENV +
-                       ['qdbus6', 'org.kde.Shutdown', '/Shutdown',
-                        'org.kde.Shutdown.logout'], check=False)
-    elif choice == 'lock':
-        subprocess.run(['loginctl', 'lock-sessions'], check=False)
+    subprocess.run(['loginctl', 'lock-sessions'], check=False)
+
 
 
 def main():
