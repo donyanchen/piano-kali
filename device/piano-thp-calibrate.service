@@ -1,0 +1,12 @@
+[Unit]
+Description=Extract the piano touchscreen calibration from the stock ODM partition
+After=local-fs.target
+ConditionPathExists=!/etc/piano/thp-calibration.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/piano/piano-thp-calibrate
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

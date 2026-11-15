@@ -1,0 +1,14 @@
+#!/bin/sh
+# Grow the Kali root filesystem to the full userdata partition on first boot.
+# 198.9 GiB partition, 20 GiB image: resize2fs is online and cheap.
+set -eu
+root=/dev/disk/by-partlabel/userdata
+[ -e "$root" ] || exit 0
+current=$(dumpe2fs -h "$root" 2>/dev/null | sed -n 's/^Block count:[[:space:]]*//p')
+total=$(blockdev --getsize64 "$root" 2>/dev/null || echo 0)
+block=$(dumpe2fs -h "$root" 2>/dev/null | sed -n 's/^Block size:[[:space:]]*//p')
+[ -n "$current" ] && [ -n "$block" ] && [ "${block:-0}" -gt 0 ] || exit 0
+if [ "$((current * block))" -lt "$total" ]; then
+    echo "piano-grow: growing root filesystem to $total bytes"
+    resize2fs "$root"
+fi

@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "device": {
+    "codename": "piano",
+    "model": "25091RP04C",
+    "name": "Xiaomi Pad 8 Pro",
+    "soc": "SM8750P"
+  },
+  "upstream": {
+    "repository": "yzddmr6/xiaomipad-8pro-mainline",
+    "release": "v1.3.1",
+    "license": "GPL-2.0-only",
+    "kernel_release": "7.4.0-rc2-piano88",
+    "assets": {
+      "piano-ubuntu-v1.3.1-boot.zip": "a194001d70946352ff07e1b54f15e262b31c17cf15acb032399331ca0d708b05",
+      "piano-ubuntu-v1.3.1-packages.zip": "06a6109ef10c260157705bd84f9de5144ffb3cf985b1784d2f25630b92e46d1f",
+      "piano-ubuntu-v1.3.1-tools.zip": "674efc235559ec237a89d3ee509bada4e9a5921f6dac8ad03cf814ce940d54da"
+    }
+  },
+  "layout": {
+    "root_partlabel": "linux_rootfs",
+    "data_partlabel": "linux_data",
+    "root_fstype": "ext4",
+    "data_fstype": "ext4"
+  },
+  "kali": {
+    "suite": "kali-rolling",
+    "mirror": "https://kali.download/kali",
+    "default_user": "kali",
+    "hostname": "kali-piano"
+  },
+  "images": {
+    "root_size": "20G",
+    "data_size": "32G"
+  }
+}

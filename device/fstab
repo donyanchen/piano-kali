@@ -1,0 +1,4 @@
+# /etc/fstab for Kali on the Xiaomi Pad 8 Pro (piano).
+# The Kali root filesystem lives on the existing `userdata` partition; Android
+# is not kept. The `ipados` partition used by UniXNU is never referenced here.
+PARTLABEL=userdata / ext4 defaults,noatime 0 1

@@ -1,0 +1,247 @@
+#!/bin/bash
+# Build a Kali Linux ARM64 (KDE Plasma) root filesystem for the Xiaomi Pad 8 Pro
+# (piano, SM8750P), using the kernel, firmware and device packages released by
+# the xiaomipad-8pro-mainline project.
+#
+# The device port is not modified here: this script only installs its released
+# binaries into a Kali userland and rewrites the boot image command line so the
+# root filesystem lives on the existing `userdata` partition (Kali-only device,
+# Android is intentionally discarded, the `ipados` partition used by UniXNU is
+# never touched).
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
+export LC_ALL=C.UTF-8 LANG=C.UTF-8
+
+PROJECT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+CONFIG="$PROJECT/configs/piano.json"
+BUILD_DIR=${BUILD_DIR:-"$PROJECT/.work/build"}
+ASSET_DIR=${ASSET_DIR:-"$PROJECT/.work/assets"}
+OUT_DIR=${OUT_DIR:-"$PROJECT/out"}
+IMAGE_SIZE=${IMAGE_SIZE:-20G}
+KALI_MIRROR=${KALI_MIRROR:-https://kali.download/kali}
+KALI_PASSWORD=${KALI_PASSWORD:-kali}
+ROOTFS="$BUILD_DIR/rootfs"
+ROOT_IMG="$BUILD_DIR/root.img"
+
+cfg() { python3 -c "import json;d=json.load(open('$CONFIG'));print($1)"; }
+DEVICE_KERNEL=$(cfg "d['upstream']['kernel_release']")
+RELEASE=$(cfg "d['upstream']['release']")
+HOSTNAME=$(cfg "d['kali']['hostname']")
+
+step() { echo; echo "===== $* ====="; }
+
+if (( EUID != 0 )); then
+    echo 'Run this script as root on Linux.' >&2
+    exit 1
+fi
+for tool in debootstrap img2simg mkfs.ext4 e2fsck python3 curl unzip; do
+    command -v "$tool" >/dev/null || { echo "Missing build dependency: $tool" >&2; exit 1; }
+done
+QEMU=$(command -v qemu-aarch64-static || command -v qemu-aarch64)
+[[ -n "$QEMU" ]] || { echo 'qemu-aarch64-static is required' >&2; exit 1; }
+
+mkdir -p "$BUILD_DIR" "$ROOTFS" "$ASSET_DIR" "$OUT_DIR"
+cleanup() {
+    for target in dev/pts dev proc sys ''; do
+        if mountpoint -q "$ROOTFS${target:+/$target}"; then
+            umount "$ROOTFS${target:+/$target}" || true
+        fi
+    done
+}
+trap cleanup EXIT
+
+step "fetch pinned piano release assets"
+ASSET_DIR="$ASSET_DIR" bash "$PROJECT/scripts/fetch-assets.sh"
+
+step "create Kali root filesystem image ($IMAGE_SIZE)"
+KEYRING=/usr/share/keyrings/kali-archive-keyring.gpg
+if [[ ! -s "$KEYRING" ]]; then
+    KEYRING="$ASSET_DIR/kali-archive-keyring.gpg"
+    curl --fail --location --retry 3 https://archive.kali.org/archive-keyring.gpg -o "$KEYRING"
+fi
+[[ -e "$ROOT_IMG" ]] && { echo "$ROOT_IMG exists; remove $BUILD_DIR first" >&2; exit 1; }
+truncate -s "$IMAGE_SIZE" "$ROOT_IMG"
+mkfs.ext4 -F -L kali-piano -O '^metadata_csum_seed,^orphan_file' "$ROOT_IMG"
+mount -o loop "$ROOT_IMG" "$ROOTFS"
+[[ -f /usr/share/debootstrap/scripts/kali-rolling ]] || ln -s sid /usr/share/debootstrap/scripts/kali-rolling
+debootstrap --foreign --arch=arm64 --keyring="$KEYRING" \
+    --components=main,contrib,non-free,non-free-firmware \
+    kali-rolling "$ROOTFS" "$KALI_MIRROR"
+install -m 0755 "$QEMU" "$ROOTFS/usr/bin/qemu-aarch64-static"
+chroot "$ROOTFS" /debootstrap/debootstrap --second-stage
+
+mount --bind /dev "$ROOTFS/dev"
+mount -t devpts devpts "$ROOTFS/dev/pts"
+mount -t proc proc "$ROOTFS/proc"
+mount -t sysfs sysfs "$ROOTFS/sys"
+rm -f "$ROOTFS/etc/resolv.conf"
+cp -L /etc/resolv.conf "$ROOTFS/etc/resolv.conf"
+install -Dm 0644 "$KEYRING" "$ROOTFS/usr/share/keyrings/kali-archive-keyring.gpg"
+printf 'deb [signed-by=/usr/share/keyrings/kali-archive-keyring.gpg] %s kali-rolling main contrib non-free non-free-firmware\n' \
+    "$KALI_MIRROR" > "$ROOTFS/etc/apt/sources.list"
+printf '#!/bin/sh\nexit 101\n' > "$ROOTFS/usr/sbin/policy-rc.d"
+chmod 0755 "$ROOTFS/usr/sbin/policy-rc.d"
+
+step "install Kali desktop and tools"
+chroot "$ROOTFS" apt-get update
+chroot "$ROOTFS" apt-get install -y --no-install-recommends \
+    kali-archive-keyring kali-defaults kali-desktop-kde kali-tools-top10 \
+    systemd-sysv sudo locales tzdata ca-certificates openssh-server \
+    network-manager plasma-nm bluedevil wpasupplicant wireless-regdb iw rfkill \
+    sddm plasma-keyboard qt6-virtualkeyboard-plugin konsole dolphin \
+    pipewire-audio pulseaudio-utils playerctl brightnessctl brightness-udev wl-clipboard \
+    libgl1-mesa-dri mesa-vulkan-drivers xserver-xorg-input-libinput \
+    fonts-noto-cjk fonts-noto-color-emoji firefox-esr \
+    dbus-user-session python3-dbus python3-gi python3-pyudev polkitd pkexec usbutils pciutils dnsmasq-base \
+    e2fsprogs kmod qrtr-tools rmtfs tqftpserv bluez libkscreen-bin \
+    systemd-timesyncd util-linux-extra zstd systemd-zram-generator \
+    alsa-utils alsa-ucm-conf rtkit powerdevil plasma-pa hostapd kdialog \
+    device-tree-compiler dracut initramfs-tools libpam-modules openssl
+
+step "extract piano packages"
+mkdir -p "$BUILD_DIR/debs"
+unzip -o -j "$ASSET_DIR/piano-ubuntu-$RELEASE-packages.zip" 'debs/*' -d "$BUILD_DIR/debs" >/dev/null
+ls "$BUILD_DIR/debs" | sed -n '1,20p'
+DEB="$BUILD_DIR/debs"
+
+step "install piano kernel, firmware and device packages"
+install -m 0755 "$PROJECT/device/install-piano-debs.sh" "$ROOTFS/tmp/install-piano-debs.sh"
+mkdir -p "$ROOTFS/tmp/piano-debs"
+cp "$DEB"/*.deb "$ROOTFS/tmp/piano-debs/"
+set +e
+chroot "$ROOTFS" /bin/sh /tmp/install-piano-debs.sh > "$OUT_DIR/piano-debs.log" 2>&1
+DEB_STATUS=$?
+set -e
+tail -n 25 "$OUT_DIR/piano-debs.log"
+echo "package installer exit=$DEB_STATUS"
+
+step "configure Kali for piano"
+ln -sf /usr/share/zoneinfo/Asia/Shanghai "$ROOTFS/etc/localtime"
+printf 'Asia/Shanghai\n' > "$ROOTFS/etc/timezone"
+printf 'en_US.UTF-8 UTF-8\nzh_CN.UTF-8 UTF-8\n' > "$ROOTFS/etc/locale.gen"
+chroot "$ROOTFS" locale-gen
+printf 'LANG=zh_CN.UTF-8\n' > "$ROOTFS/etc/default/locale"
+printf '%s\n' "$HOSTNAME" > "$ROOTFS/etc/hostname"
+printf '127.0.0.1 localhost\n127.0.1.1 %s\n::1 localhost ip6-localhost ip6-loopback\n' "$HOSTNAME" > "$ROOTFS/etc/hosts"
+install -m 0644 "$PROJECT/device/fstab" "$ROOTFS/etc/fstab"
+install -Dm 0755 "$PROJECT/device/piano-grow" "$ROOTFS/usr/libexec/piano/piano-grow"
+install -Dm 0644 "$PROJECT/device/piano-grow.service" "$ROOTFS/etc/systemd/system/piano-grow.service"
+install -Dm 0755 "$PROJECT/device/piano-thp-calibrate" "$ROOTFS/usr/libexec/piano/piano-thp-calibrate"
+install -Dm 0644 "$PROJECT/device/piano-thp-calibrate.service" "$ROOTFS/etc/systemd/system/piano-thp-calibrate.service"
+install -Dm 0755 "$PROJECT/vendor/extract-thp-calibration.py" "$ROOTFS/usr/lib/piano/extract-thp-calibration.py"
+install -d "$ROOTFS/etc/piano"
+printf 'THP calibration is unit specific. piano-thp-calibrate extracts it from the stock odm partition\non first boot; if that fails, copy the JSON from the Android side to /etc/piano/thp-calibration.json.\n' \
+    > "$ROOTFS/etc/piano/README"
+
+if [[ -f "$ROOTFS/usr/share/wayland-sessions/plasma.desktop" ]]; then
+    SESSION=plasma.desktop
+elif [[ -f "$ROOTFS/usr/share/wayland-sessions/plasmawayland.desktop" ]]; then
+    SESSION=plasmawayland.desktop
+else
+    echo 'Plasma Wayland session was not installed.' >&2
+    exit 1
+fi
+install -d "$ROOTFS/etc/sddm.conf.d"
+printf '[Autologin]\nUser=kali\nSession=%s\nRelogin=false\n\n[General]\nDisplayServer=wayland\n' "$SESSION" \
+    > "$ROOTFS/etc/sddm.conf.d/10-kali-piano.conf"
+install -d "$ROOTFS/home/kali/.config"
+cat > "$ROOTFS/home/kali/.config/kwinrc" <<'EOF'
+[Wayland]
+InputMethod=/usr/share/applications/org.kde.plasma.keyboard.desktop
+VirtualKeyboardEnabled=true
+[Xwayland]
+Scale=2
+EOF
+if ! chroot "$ROOTFS" id kali >/dev/null 2>&1; then
+    chroot "$ROOTFS" useradd -m -s /bin/bash -G sudo,adm,audio,video,plugdev,netdev,dialout kali
+fi
+printf 'kali:%s\n' "$KALI_PASSWORD" | chroot "$ROOTFS" chpasswd
+chroot "$ROOTFS" passwd -l root
+chroot "$ROOTFS" chown -R kali:kali /home/kali
+install -d "$ROOTFS/etc/ssh/sshd_config.d"
+printf 'PermitRootLogin no\n' > "$ROOTFS/etc/ssh/sshd_config.d/10-kali-piano.conf"
+rm -f "$ROOTFS"/etc/ssh/ssh_host_*
+cat > "$ROOTFS/etc/systemd/system/kali-ssh-keys.service" <<'EOF'
+[Unit]
+Description=Generate unique SSH host keys
+Before=ssh.service
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ssh-keygen -A
+[Install]
+WantedBy=multi-user.target
+EOF
+printf 'vm.swappiness=100\n' > "$ROOTFS/etc/sysctl.d/80-piano-zram.conf"
+printf '[zram0]\nzram-size = min(ram / 2, 6144)\ncompression-algorithm = zstd\n' > "$ROOTFS/etc/systemd/zram-generator.conf"
+chroot "$ROOTFS" systemctl enable NetworkManager ssh sddm systemd-timesyncd bluetooth kali-ssh-keys piano-grow piano-thp-calibrate
+chroot "$ROOTFS" systemctl set-default graphical.target
+
+step "validate image contents"
+chroot "$ROOTFS" /bin/bash -ec '
+    test "$(dpkg --print-architecture)" = arm64
+    . /etc/os-release
+    test "$ID" = kali
+    test -d /lib/modules/'"$DEVICE_KERNEL"'
+    test -e /usr/share/wayland-sessions/plasma.desktop -o -e /usr/share/wayland-sessions/plasmawayland.desktop
+    test -d /lib/firmware/qcom
+    test -x /usr/libexec/piano/piano-thp-live
+    dpkg-query -W linux-image-'"$DEVICE_KERNEL"' piano-device-support piano-local-firmware
+' | tee "$OUT_DIR/validation.txt"
+chroot "$ROOTFS" dpkg-query -W -f='${binary:Package}\t${Version}\t${Architecture}\n' > "$OUT_DIR/packages.tsv"
+
+step "finalise root filesystem"
+chroot "$ROOTFS" apt-get clean
+rm -f "$ROOTFS/etc/resolv.conf" "$ROOTFS/usr/sbin/policy-rc.d" "$ROOTFS/usr/bin/qemu-aarch64-static"
+rm -rf "$ROOTFS/tmp/piano-debs" "$ROOTFS/tmp/install-piano-debs.sh"
+ln -sf /run/NetworkManager/resolv.conf "$ROOTFS/etc/resolv.conf"
+truncate -s 0 "$ROOTFS/etc/machine-id"
+rm -f "$ROOTFS/var/lib/dbus/machine-id"
+ln -s /etc/machine-id "$ROOTFS/var/lib/dbus/machine-id"
+cleanup
+e2fsck -f -n "$ROOT_IMG"
+img2simg "$ROOT_IMG" "$OUT_DIR/root.sparse.img"
+
+step "build the boot image set"
+mkdir -p "$BUILD_DIR/bootset"
+set +e
+unzip -o -q "$ASSET_DIR/piano-ubuntu-$RELEASE-boot.zip" 'boot/*.img' -d "$BUILD_DIR/bootset"
+set -e
+BOOT_SRC=$(find "$BUILD_DIR/bootset" -name boot.img -type f | head -n 1)
+INIT_SRC=$(find "$BUILD_DIR/bootset" -name init_boot.img -type f | head -n 1)
+VENDOR_SRC=$(find "$BUILD_DIR/bootset" -name vendor_boot.img -type f | head -n 1)
+CMDLINE="root=PARTLABEL=userdata rootfstype=ext4 rw rootwait log_buf_len=2M panic=15 msm.separate_gpu_kms=0 piano.boot=persistent systemd.gpt_auto=0"
+python3 "$PROJECT/scripts/patch-boot-cmdline.py" "$BOOT_SRC" "$OUT_DIR/boot.img" "$CMDLINE"
+cp "$INIT_SRC" "$OUT_DIR/init_boot.img"
+cp "$VENDOR_SRC" "$OUT_DIR/vendor_boot.img"
+
+step "write manifest"
+python3 - "$CONFIG" "$OUT_DIR" <<'PY'
+import hashlib, json, os, sys
+cfg = json.load(open(sys.argv[1]))
+out = sys.argv[2]
+def sha(p):
+    h = hashlib.sha256()
+    with open(p, 'rb') as f:
+        for chunk in iter(lambda: f.read(1 << 20), b''):
+            h.update(chunk)
+    return h.hexdigest()
+files = {}
+for name in sorted(os.listdir(out)):
+    p = os.path.join(out, name)
+    if os.path.isfile(p) and name.endswith(('.img', '.json', '.txt', '.tsv', '.log')):
+        files[name] = {'bytes': os.path.getsize(p), 'sha256': sha(p)}
+manifest = {
+    'name': 'kali-piano',
+    'device': cfg['device'],
+    'upstream': cfg['upstream'],
+    'kali': cfg['kali'],
+    'kernel_release': cfg['upstream']['kernel_release'],
+    'root_partition': 'userdata',
+    'images': files,
+    'scope': 'Root filesystem and boot image set only; not booted on hardware by the builder',
+}
+json.dump(manifest, open(os.path.join(out, 'manifest.json'), 'w'), indent=2)
+print(json.dumps(manifest['images'], indent=2))
+PY
+
+echo BUILD_COMPLETE

@@ -1,0 +1,34 @@
+#!/bin/sh
+# Extract the touchscreen (Novatek NT36532E THP) calibration from the stock ODM
+# partition on first boot. The calibration is unit/panel specific and is not
+# redistributable, so it is read from the tablet instead of being shipped.
+set -eu
+target=/etc/piano/thp-calibration.json
+[ -e "$target" ] && exit 0
+dev=/dev/disk/by-partlabel/odm
+[ -e "$dev" ] || { echo "piano-thp-calibrate: no odm partition"; exit 0; }
+mkdir -p /run/piano-odm
+mount -o ro "$dev" /run/piano-odm || { echo "piano-thp-calibrate: odm not mountable"; exit 0; }
+
+vendor=csot
+for node in /sys/class/misc/nvt-thp-*; do
+    [ -e "$node/device/panel_vendor" ] || continue
+    value=$(cat "$node/device/panel_vendor")
+    [ "$value" = boe ] && vendor=boe
+done
+
+ini=$(find /run/piano-odm -name "piano_nova_${vendor}_thp_config.ini" 2>/dev/null | head -n 1)
+[ -n "$ini" ] || ini=$(find /run/piano-odm -name 'piano_nova_*_thp_config.ini' 2>/dev/null | head -n 1)
+if [ -n "$ini" ]; then
+    mkdir -p /etc/piano
+    if python3 /usr/lib/piano/extract-thp-calibration.py --input "$ini" --output "$target"; then
+        chmod 600 "$target"
+        echo "piano-thp-calibrate: extracted from $ini (panel $vendor)"
+    else
+        echo "piano-thp-calibrate: extraction failed for $ini"
+    fi
+else
+    echo "piano-thp-calibrate: no piano_nova_*_thp_config.ini on odm"
+fi
+umount /run/piano-odm || true
+systemctl try-restart piano-thp.service 2>/dev/null || true

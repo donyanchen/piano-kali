@@ -1,0 +1,15 @@
+[Unit]
+Description=Grow the Kali root filesystem to the userdata partition
+DefaultDependencies=no
+After=systemd-udev-settle.service local-fs-pre.target
+Before=local-fs.target
+ConditionPathExists=!/var/lib/piano-root-grown
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/piano/piano-grow
+ExecStartPost=/usr/bin/touch /var/lib/piano-root-grown
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target
