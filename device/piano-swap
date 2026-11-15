@@ -1,0 +1,14 @@
+#!/bin/sh
+# 8 GiB swapfile on the UFS root (zram stays the first-choice swap).
+set -eu
+FILE=/swapfile
+SIZE=8G
+if ! grep -q "^$FILE " /etc/fstab; then
+    echo "$FILE none swap sw,pri=10 0 0" >> /etc/fstab
+fi
+if [ ! -f "$FILE" ]; then
+    fallocate -l "$SIZE" "$FILE" 2>/dev/null || dd if=/dev/zero of="$FILE" bs=1M count=8192 status=none
+    chmod 600 "$FILE"
+    mkswap "$FILE" >/dev/null
+fi
+swapon --priority 10 "$FILE" 2>/dev/null || true

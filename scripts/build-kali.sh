@@ -151,6 +151,21 @@ chmod -R a+rX "$ROOTFS/usr/share/alsa/ucm2"
 install -d "$ROOTFS/etc/systemd/logind.conf.d"
 printf '[Login]\nHandleLidSwitch=lock\nHandleLidSwitchExternalPower=lock\nHandleLidSwitchDocked=ignore\nHandlePowerKey=ignore\nHandlePowerKeyLongPress=ignore\n' \
     > "$ROOTFS/etc/systemd/logind.conf.d/99-kali-tablet.conf"
+install -Dm 0755 "$PROJECT/device/piano-swap" "$ROOTFS/usr/libexec/piano/piano-swap"
+install -Dm 0644 /dev/stdin "$ROOTFS/etc/systemd/system/piano-swap.service" <<'EOF'
+[Unit]
+Description=Create the UFS swapfile
+After=local-fs.target
+ConditionPathExists=!/swapfile
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/piano/piano-swap
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
 install -Dm 0755 "$PROJECT/device/piano-ipados" "$ROOTFS/usr/sbin/piano-ipados"
 install -Dm 0644 "$PROJECT/device/90-piano-ipados.rules" "$ROOTFS/etc/udev/rules.d/90-piano-ipados.rules"
 install -Dm 0755 "$PROJECT/vendor/extract-thp-calibration.py" "$ROOTFS/usr/lib/piano/extract-thp-calibration.py"
@@ -198,7 +213,7 @@ WantedBy=multi-user.target
 EOF
 printf 'vm.swappiness=100\n' > "$ROOTFS/etc/sysctl.d/80-piano-zram.conf"
 printf '[zram0]\nzram-size = min(ram / 2, 6144)\ncompression-algorithm = zstd\n' > "$ROOTFS/etc/systemd/zram-generator.conf"
-chroot "$ROOTFS" systemctl enable NetworkManager ssh sddm systemd-timesyncd bluetooth kali-ssh-keys piano-grow piano-thp-calibrate
+chroot "$ROOTFS" systemctl enable NetworkManager ssh sddm systemd-timesyncd bluetooth kali-ssh-keys piano-grow piano-thp-calibrate piano-swap
 install -d "$ROOTFS/home/kali/.config"
 cat > "$ROOTFS/home/kali/.config/powerdevilrc" <<'EOF'
 [AC][SuspendAndShutdown]
