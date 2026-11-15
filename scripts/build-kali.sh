@@ -166,6 +166,20 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 EOF
+install -Dm 0755 "$PROJECT/device/piano-volkeys" "$ROOTFS/home/kali/.local/bin/piano-volkeys"
+install -Dm 0644 "$PROJECT/device/70-piano-input-uaccess.rules" "$ROOTFS/etc/udev/rules.d/70-piano-input-uaccess.rules"
+install -Dm 0644 /dev/stdin "$ROOTFS/home/kali/.config/systemd/user/piano-volkeys.service" <<'EOF'
+[Unit]
+Description=Piano hardware volume keys
+[Service]
+ExecStart=/home/kali/.local/bin/piano-volkeys
+Restart=always
+[Install]
+WantedBy=default.target
+EOF
+ln -sf /home/kali/.config/systemd/user/piano-volkeys.service \
+    "$ROOTFS/home/kali/.config/systemd/user/default.target.wants/piano-volkeys.service"
+chroot "$ROOTFS" chown -R kali:kali /home/kali/.local || true
 install -Dm 0755 "$PROJECT/device/piano-privacy" "$ROOTFS/usr/libexec/piano-privacy"
 install -Dm 0755 "$PROJECT/device/sheng-privacy" "$ROOTFS/usr/bin/sheng-privacy"
 install -Dm 0440 "$PROJECT/device/50-piano-privacy.sudoers" "$ROOTFS/etc/sudoers.d/50-piano-privacy"

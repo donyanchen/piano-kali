@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""Handle the hardware volume keys ourselves.
+
+plasma-pa registers the 'kmix' shortcut component but no handler is active on
+this image, so XF86AudioRaiseVolume/LowerVolume/Mute do nothing. Read the
+keyboard event nodes directly and drive PipeWire.
+"""
+import glob
+import re
+import struct
+import subprocess
+import time
+
+EV_KEY = 1
+KEY_VOLUMEDOWN = 114
+KEY_VOLUMEUP = 115
+KEY_MUTE = 113
+ENV = ['XDG_RUNTIME_DIR=/run/user/1000']
+
+
+def has_keys(block, codes):
+    m = re.search(r'^B: KEY=(.*)$', block, re.M)
+    if not m:
+        return False
+    mask = 0
+    for i, word in enumerate(reversed(m.group(1).split())):
+        mask |= int(word, 16) << (64 * i)
+    return all(mask >> c & 1 for c in codes)
+
+
+def devices():
+    out = []
+    for block in open('/proc/bus/input/devices').read().split('\n\n'):
+        ev = re.search(r'^H: Handlers=.*?(event\d+)', block, re.M)
+        name = re.search(r'^N: Name="(.*)"', block, re.M)
+        if not ev or not name:
+            continue
+        if has_keys(block, (KEY_VOLUMEUP, KEY_VOLUMEDOWN)):
+            out.append(('/dev/input/' + ev.group(1), name.group(1)))
+    return out
+
+
+def run(args):
+    subprocess.run(['runuser', '-u', 'kali', '--', 'env'] + ENV + args, check=False)
+
+
+def main():
+    devs = devices()
+    for path, name in devs:
+        print('volume keys:', name, path, flush=True)
+    if not devs:
+        print('no keyboard with volume keys', flush=True)
+        return
+    handles = [open(p, 'rb', buffering=0) for p, _ in devs]
+    fmt = 'llHHi'
+    size = struct.calcsize(fmt)
+    while True:
+        for fd in handles:
+            data = fd.read(size)
+            if not data:
+                time.sleep(0.05)
+                continue
+            _, _, etype, code, value = struct.unpack(fmt, data)
+            if etype != EV_KEY or value != 1:
+                continue
+            if code == KEY_VOLUMEUP:
+                run(['wpctl', 'set-volume', '@DEFAULT_AUDIO_SINK@', '5%+'])
+            elif code == KEY_VOLUMEDOWN:
+                run(['wpctl', 'set-volume', '@DEFAULT_AUDIO_SINK@', '5%-'])
+            elif code == KEY_MUTE:
+                run(['wpctl', 'set-mute', '@DEFAULT_AUDIO_SINK@', 'toggle'])
+
+
+if __name__ == '__main__':
+    main()
