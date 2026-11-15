@@ -148,6 +148,20 @@ install -Dm 0644 "$PROJECT/device/piano-thp-calibrate.service" "$ROOTFS/etc/syst
 install -d "$ROOTFS/usr/share/alsa/ucm2"
 cp -a "$PROJECT/vendor/audio/ucm2/." "$ROOTFS/usr/share/alsa/ucm2/"
 chmod -R a+rX "$ROOTFS/usr/share/alsa/ucm2"
+install -Dm 0755 "$PROJECT/device/piano-powerkey" "$ROOTFS/usr/local/bin/piano-powerkey"
+install -Dm 0644 /dev/stdin "$ROOTFS/etc/systemd/system/piano-powerkey.service" <<'EOF'
+[Unit]
+Description=Piano power key DPMS toggle
+After=graphical.target
+[Service]
+ExecStart=/usr/local/bin/piano-powerkey
+Restart=always
+[Install]
+WantedBy=multi-user.target
+EOF
+install -d "$ROOTFS/etc/systemd/logind.conf.d"
+printf '[Login]\nHandleLidSwitch=lock\nHandleLidSwitchExternalPower=lock\nHandleLidSwitchDocked=ignore\nHandlePowerKey=ignore\nHandlePowerKeyLongPress=ignore\n' \
+    > "$ROOTFS/etc/systemd/logind.conf.d/99-kali-tablet.conf"
 install -Dm 0755 "$PROJECT/device/piano-ipados" "$ROOTFS/usr/sbin/piano-ipados"
 install -Dm 0644 "$PROJECT/device/90-piano-ipados.rules" "$ROOTFS/etc/udev/rules.d/90-piano-ipados.rules"
 install -Dm 0755 "$PROJECT/vendor/extract-thp-calibration.py" "$ROOTFS/usr/lib/piano/extract-thp-calibration.py"
@@ -195,7 +209,7 @@ WantedBy=multi-user.target
 EOF
 printf 'vm.swappiness=100\n' > "$ROOTFS/etc/sysctl.d/80-piano-zram.conf"
 printf '[zram0]\nzram-size = min(ram / 2, 6144)\ncompression-algorithm = zstd\n' > "$ROOTFS/etc/systemd/zram-generator.conf"
-chroot "$ROOTFS" systemctl enable NetworkManager ssh sddm systemd-timesyncd bluetooth kali-ssh-keys piano-grow piano-thp-calibrate
+chroot "$ROOTFS" systemctl enable NetworkManager ssh sddm systemd-timesyncd bluetooth kali-ssh-keys piano-grow piano-thp-calibrate piano-powerkey
 chroot "$ROOTFS" systemctl set-default graphical.target
 
 step "validate image contents"

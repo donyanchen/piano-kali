@@ -1,0 +1,33 @@
+#!/usr/bin/env python3
+"""Lock on lid close, unlock on lid open (piano tablet)."""
+import struct, glob, os, subprocess, time
+def has_lid(path):
+    try:
+        import fcntl
+        buf = bytearray(8)
+        fcntl.ioctl(open(path,'rb'), 0x80084525, buf, True)  # EVIOCGBIT(EV_SW)
+        bits = int.from_bytes(bytes(buf), 'little')
+        return bool(bits & (1 << 0))  # SW_LID
+    except Exception:
+        return False
+def events(path):
+    fmt = "llHHi"; size = struct.calcsize(fmt)
+    with open(path, 'rb', buffering=0) as fd:
+        while True:
+            data = fd.read(size)
+            if not data: break
+            _,_,t,c,v = struct.unpack(fmt, data)
+            if t == 5 and c == 0:
+                yield v
+def main():
+    dev = next((p for p in glob.glob('/dev/input/event*') if has_lid(p)), None)
+    if not dev:
+        print('no lid switch'); return
+    print('lid:', dev, flush=True)
+    last = None
+    for v in events(dev):
+        if v not in (0,1) or v == last: continue
+        last = v
+        if v == 1:
+            subprocess.run(['loginctl','lock-sessions'], check=False)
+if __name__ == '__main__': main()
