@@ -32,11 +32,29 @@ def power_key_devices():
             yield name.group(1), '/dev/input/' + events.group(1)
 
 
+STATE = '/run/piano-power-off'
+
+
+def dpms(on):
+    subprocess.run(['runuser', '-u', 'kali', '--', 'env'] + ENV +
+                   ['kscreen-doctor', '--dpms', 'on' if on else 'off'], check=False)
+
+
 def short_press():
+    # First press: lock and blank the panel. Second press: wake only.
+    if os.path.exists(STATE):
+        dpms(True)
+        os.remove(STATE)
+        return
     subprocess.run(['loginctl', 'lock-sessions'], check=False)
+    dpms(False)
+    open(STATE, 'w').close()
 
 
 def long_press():
+    if os.path.exists(STATE):
+        dpms(True)
+        os.remove(STATE)
     cmd = ['runuser', '-u', 'kali', '--', 'env'] + ENV + [
         'kdialog', '--title', '电源选项', '--menu', '请选择操作',
         'poweroff', '关机', 'reboot', '重启', 'logout', '注销', 'lock', '锁屏'
