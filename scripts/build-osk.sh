@@ -78,10 +78,6 @@ cp -a stage/usr/. "$ROOTFS/usr/"
 
 step "input engine and desktop dependencies inside the image"
 cp "$PROJECT/.work/assets/msime-linux_0.16.1_arm64.deb" "$ROOTFS/tmp/msime.deb"
-chroot "$ROOTFS" apt-get install -y --no-install-recommends \
-    fcitx5 fcitx5-frontend-qt6 fcitx5-chinese-addons fcitx5-config-qt \
-    xdg-desktop-portal xdg-desktop-portal-kde \
-    fonts-noto-cjk fonts-noto-color-emoji dbus-x11
 chroot "$ROOTFS" apt-get install -y --no-install-recommends /tmp/msime.deb || {
     echo "WARN: msime package install failed; the OSK will use fcitx5 defaults"
 }

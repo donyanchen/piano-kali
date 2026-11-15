@@ -107,6 +107,8 @@ chroot "$ROOTFS" apt-get install -y --no-install-recommends \
     e2fsprogs kmod qrtr-tools rmtfs tqftpserv bluez libkscreen-bin \
     systemd-timesyncd util-linux-extra zstd systemd-zram-generator \
     alsa-utils alsa-ucm-conf rtkit powerdevil plasma-pa hostapd kdialog \
+    fcitx5 fcitx5-frontend-qt6 fcitx5-chinese-addons fcitx5-config-qt \
+    xdg-desktop-portal xdg-desktop-portal-kde dbus-x11 \
     device-tree-compiler dracut libpam-modules openssl
 
 step "extract piano packages"
@@ -125,6 +127,8 @@ DEB_STATUS=$?
 set -e
 tail -n 25 "$OUT_DIR/piano-debs.log"
 echo "package installer exit=$DEB_STATUS"
+chroot "$ROOTFS" dpkg --configure -a >/dev/null 2>&1 || true
+chroot "$ROOTFS" apt-get -f install -y --no-install-recommends >/dev/null 2>&1 || true
 
 step "configure Kali for piano"
 ln -sf /usr/share/zoneinfo/Asia/Shanghai "$ROOTFS/etc/localtime"

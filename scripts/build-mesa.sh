@@ -26,7 +26,7 @@ sudo apt-get install -y --no-install-recommends \
     bison flex libdrm-dev libwayland-dev wayland-protocols libwayland-egl-backend-dev \
     libx11-dev libx11-xcb-dev libxcb1-dev libxcb-dri3-dev libxcb-present-dev \
     libxcb-shm0-dev libxcb-randr0-dev libxshmfence-dev libexpat1-dev libzstd-dev \
-    libglvnd-dev libllvm-dev llvm-dev libclc-dev zlib1g-dev
+    libglvnd-dev llvm-dev libclang-dev zlib1g-dev
 
 step "fetch mesa 26.2.6"
 if [[ ! -d src ]]; then
