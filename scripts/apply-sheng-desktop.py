@@ -30,6 +30,27 @@ def k(file, group, key, value):
     sh(FK, '--file', file, '--group', group, '--key', key, str(value))
 
 
+def ini_set(path, section, key, value):
+    """powerdevilrc uses nested groups ([AC][Display]); kwriteconfig6 mangles
+    those names, so edit the file directly while PowerDevil is stopped."""
+    import re
+    p = pathlib.Path(path).expanduser()
+    s = p.read_text() if p.exists() else ''
+    pat = re.compile(r'(\[' + re.escape(section) + r'\]\n)((?:.*\n)*?)(?=\n\[|\Z)')
+    m = pat.search(s)
+    line = f'{key}={value}'
+    if not m:
+        s = s.rstrip('\n') + f'\n\n[{section}]\n{line}\n'
+    else:
+        body = m.group(2)
+        if re.search(r'^' + re.escape(key) + r'=', body, re.M):
+            body = re.sub(r'^' + re.escape(key) + r'=.*$', line, body, count=1, flags=re.M)
+        else:
+            body = body + line + '\n'
+        s = s[:m.start(2)] + body + s[m.end(2):]
+    p.write_text(s)
+
+
 def plasma(script):
     out = sh('qdbus6', 'org.kde.plasmashell', '/PlasmaShell',
              'org.kde.PlasmaShell.evaluateScript', script)
@@ -57,6 +78,14 @@ def apply_kconfig(profile):
     for file, groups in kc.items():
         if file not in ('kdeglobals', 'kcminputrc', 'plasmarc', 'kwinrc',
                         'kscreenlockerrc', 'powerdevilrc'):
+            continue
+        if file == 'powerdevilrc':
+            sh('systemctl', '--user', 'stop', 'plasma-powerdevil')
+            for group, keys in groups.items():
+                section = group if '[' not in group else group
+                for key, value in keys.items():
+                    ini_set('~/.config/powerdevilrc', section.replace('][', ']['), key, value)
+            sh('systemctl', '--user', 'start', 'plasma-powerdevil')
             continue
         for group, keys in groups.items():
             for key, value in keys.items():
