@@ -202,6 +202,22 @@ chroot "$ROOTFS" /bin/bash -ec '
 ' | tee "$OUT_DIR/validation.txt"
 chroot "$ROOTFS" dpkg-query -W -f='${binary:Package}\t${Version}\t${Architecture}\n' > "$OUT_DIR/packages.tsv"
 
+step "check piano binaries against the Kali userland"
+{
+  echo "== dpkg --audit"
+  chroot "$ROOTFS" dpkg --audit || true
+  echo "== missing shared libraries"
+  chroot "$ROOTFS" /bin/bash -ec '
+    for f in /usr/libexec/piano/piano-thp-live /usr/libexec/piano/bluetooth-address \
+             /usr/bin/piano-camerad /usr/sbin/piano-devmode /usr/sbin/piano-boot-update \
+             /usr/sbin/piano-ipados; do
+        [ -x "$f" ] || continue
+        missing=$(ldd "$f" 2>/dev/null | grep "not found" || true)
+        [ -n "$missing" ] && printf "%s\n%s\n" "$f" "$missing"
+    done
+  ' || true
+} 2>&1 | tee "$OUT_DIR/kali-compat.txt"
+
 step "inject private touch calibration"
 mkdir -p "$ROOTFS/usr/share/piano"
 for panel in csot boe; do
