@@ -1,0 +1,45 @@
+#!/bin/sh
+# Small backend for the piano control center applet.
+set -u
+STATE=/run/piano-cc-dpms
+
+wifi_state() { nmcli -t -f WIFI g 2>/dev/null | head -n1; }
+wifi_ssid() { nmcli -t -f ACTIVE,SSID dev wifi 2>/dev/null | awk -F: '$1=="yes"{print $2; exit}'; }
+bt_state() { bluetoothctl show 2>/dev/null | sed -n 's/^\s*Powered: \(.*\)/\1/p' | head -n1; }
+bright() { brightnessctl -d ktz8866-backlight -m 2>/dev/null | awk -F, '{gsub("%","",$4); print $4}'; }
+vol() { wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{printf "%d", $2*100}'; }
+air() { rfkill list wlan 2>/dev/null | grep -q "Soft blocked: yes" && echo on || echo off; }
+
+case "${1:-state}" in
+state)
+    echo "wifi=$(wifi_state)"
+    echo "ssid=$(wifi_ssid)"
+    echo "bt=$(bt_state)"
+    echo "bright=$(bright)"
+    echo "vol=$(vol)"
+    ;;
+wifi)
+    case "${2:-toggle}" in
+    on|off) nmcli radio wifi "$2" ;;
+    toggle) [ "$(wifi_state)" = enabled ] && nmcli radio wifi off || nmcli radio wifi on ;;
+    esac ;;
+bt)
+    if [ "$(bt_state)" = "yes" ]; then bluetoothctl power off; else bluetoothctl power on; fi ;;
+bright)
+    brightnessctl -d ktz8866-backlight set "${2:-50}%" >/dev/null ;;
+vol)
+    wpctl set-volume @DEFAULT_AUDIO_SINK@ "${2:-50}%" ;;
+lock)
+    loginctl lock-sessions ;;
+dpms)
+    if [ -e "$STATE" ]; then
+        rm -f "$STATE"; runuser -u kali -- env XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-0 kscreen-doctor --dpms on
+    else
+        : > "$STATE"; runuser -u kali -- env XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-0 kscreen-doctor --dpms off
+    fi ;;
+shot)
+    runuser -u kali -- env XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-0 spectacle -b -n -f -o /home/kali/图片/screenshot-$(date +%s).png ;;
+dark)
+    runuser -u kali -- env XDG_RUNTIME_DIR=/run/user/1000 plasma-apply-colorscheme BreezeDark 2>/dev/null || true ;;
+*) echo "usage: piano-cc state|wifi|bt|bright N|vol N|lock|dpms|shot|dark" >&2; exit 2 ;;
+esac

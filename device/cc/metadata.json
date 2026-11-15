@@ -1,0 +1,13 @@
+{
+  "KPlugin": {
+    "Id": "org.piano.cc",
+    "Name": "控制中心",
+    "Description": "Piano tablet control center",
+    "Icon": "preferences-system",
+    "Version": "1.0",
+    "License": "GPL-2.0+",
+    "Authors": [{"Name": "piano-kali"}]
+  },
+  "X-Plasma-API-Minimum-Version": "6.0",
+  "KPackageStructure": "Plasma/Applet"
+}
