@@ -276,10 +276,22 @@ set -e
 BOOT_SRC=$(find "$BUILD_DIR/bootset" -name boot.img -type f | head -n 1)
 INIT_SRC=$(find "$BUILD_DIR/bootset" -name init_boot.img -type f | head -n 1)
 VENDOR_SRC=$(find "$BUILD_DIR/bootset" -name vendor_boot.img -type f | head -n 1)
-CMDLINE="root=PARTLABEL=userdata rootfstype=ext4 rw rootwait log_buf_len=2M panic=15 msm.separate_gpu_kms=0 piano.boot=persistent systemd.gpt_auto=0 bootconfig"
-python3 "$PROJECT/scripts/patch-boot-cmdline.py" "$BOOT_SRC" "$OUT_DIR/boot.img" "$CMDLINE"
+# The upstream boot.img is AVB-signed. On this tablet a modified boot image
+# fails the bootloader verification screen, so ship it byte-identical and
+# rename the root partition to what its command line already expects
+# (root=PARTLABEL=linux_rootfs). See docs/INSTALL.md step 3a.
+cp "$BOOT_SRC" "$OUT_DIR/boot.img"
+python3 - "$OUT_DIR/boot.img" <<'PY2'
+import sys
+d = open(sys.argv[1], 'rb').read()
+cmd = d[0x2c:0x2c+1536].split(b'\0')[0].decode()
+print('boot.img cmdline:', cmd)
+assert 'root=PARTLABEL=linux_rootfs' in cmd, 'unexpected cmdline in upstream boot.img'
+PY2
 cp "$INIT_SRC" "$OUT_DIR/init_boot.img"
 cp "$VENDOR_SRC" "$OUT_DIR/vendor_boot.img"
+MAINT_SRC=$(find "$BUILD_DIR/bootset" -name boot-ram-maintenance.img -type f | head -n 1)
+[[ -n "$MAINT_SRC" ]] && cp "$MAINT_SRC" "$OUT_DIR/boot-ram-maintenance.img"
 
 step "write manifest"
 python3 - "$CONFIG" "$OUT_DIR" <<'PY'

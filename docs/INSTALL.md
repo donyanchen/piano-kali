@@ -40,6 +40,37 @@ fastboot -s <SERIAL> getvar product      # 预期 product: piano
 fastboot -s <SERIAL> getvar current-slot # 预期 current-slot: a
 ```
 
+## 3a. 把 `userdata` 分区改名为 `linux_rootfs`
+
+上游 `boot.img` 是 **AVB 签名过的**，改一个字节就会在引导时被拒绝（"AVB 校验失败"）。所以本项目**不改 boot.img**，而是让它按自己的 cmdline 找 `PARTLABEL=linux_rootfs`；原来 Android 的 `userdata` 分区（198.9 GiB）改个名字即可，不移动任何数据。
+
+用上游的维护镜像（本产物里也带一份）在 RAM 里改 GPT：
+
+```bash
+fastboot boot boot-ram-maintenance.img      # 只在内存里运行，不写任何分区
+# 主机另一个终端（维护镜像通过 USB 网卡提供 shell）
+telnet 192.168.88.2 2323
+```
+
+在 telnet 里：
+
+```sh
+# 登录后第一屏会打印 LUN 表；LUN 0 是 /dev/sda
+sgdisk --change-name=34:linux_rootfs /dev/sda
+sgdisk -p /dev/sda | sed -n '34,36p'      # 确认第 34 项 Name 变成 linux_rootfs
+sync
+piano-maint fastboot                       # 回到 Fastboot
+```
+
+- 只改名字，不改类型 GUID、唯一 GUID、起止扇区，也不动 `ipados`（第 35 项）。
+- `sgdisk` 写的是主 GPT 和备份 GPT 两份，`piano-maint` 会保证落盘。
+
+回到 Fastboot 后确认：
+
+```bash
+fastboot -s <SERIAL> getvar partition-size:linux_rootfs   # 应打印 0x32517FE000 附近（198.9 GiB）
+```
+
 ## 4. 刷写
 
 ```bash
@@ -52,8 +83,8 @@ bash flash-piano.sh --serial <SERIAL> --dir . --yes
 fastboot -s <SERIAL> flash boot boot.img
 fastboot -s <SERIAL> flash init_boot init_boot.img
 fastboot -s <SERIAL> flash vendor_boot vendor_boot.img
-fastboot -s <SERIAL> erase userdata
-fastboot -s <SERIAL> flash userdata root.sparse.img
+fastboot -s <SERIAL> erase linux_rootfs
+fastboot -s <SERIAL> flash linux_rootfs root.sparse.img
 fastboot -s <SERIAL> reboot
 ```
 
