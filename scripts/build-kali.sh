@@ -264,7 +264,6 @@ install -Dm 0755 "$PROJECT/device/piano-powerkey" "$ROOTFS/usr/local/bin/piano-p
 install -Dm 0644 /dev/stdin "$ROOTFS/etc/systemd/system/piano-powerkey.service" <<'EOF'
 [Unit]
 Description=Piano power key policy
-After=graphical.target
 [Service]
 ExecStart=/usr/local/bin/piano-powerkey
 Restart=always

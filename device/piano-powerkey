@@ -77,10 +77,16 @@ def long_press():
 
 def main():
     dev = None
-    for name, path in power_key_devices():
-        if 'pwr' in name.lower() or dev is None:
-            dev = path
+    # The unit may start before the input devices are registered.
+    for _ in range(30):
+        for name, path in power_key_devices():
+            if 'pwr' in name.lower() or dev is None:
+                dev = path
+        if dev:
+            break
+        time.sleep(2)
     if not dev:
+        print('no power key device', flush=True)
         return
     fmt = 'llHHi'
     size = struct.calcsize(fmt)
