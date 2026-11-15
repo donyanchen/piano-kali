@@ -22,10 +22,13 @@ cd "$WORK"
 
 step "host build dependencies"
 sudo apt-get install -y --no-install-recommends \
-    meson ninja-build pkg-config python3-mako python3-yaml python3-packaging \
-    bison flex libdrm-dev libwayland-dev wayland-protocols libwayland-egl-backend-dev \
-    libx11-dev libx11-xcb-dev libxcb1-dev libxcb-dri3-dev libxcb-present-dev \
-    libxcb-shm0-dev libxcb-randr0-dev libxshmfence-dev libexpat1-dev libzstd-dev \
+    build-essential meson ninja-build pkg-config python3-mako python3-yaml \
+    python3-packaging bison flex glslang-tools git \
+    libdrm-dev libwayland-dev wayland-protocols libwayland-egl-backend-dev \
+    libx11-dev libx11-xcb-dev libxext-dev libxrandr-dev libxi-dev libxfixes-dev \
+    libxxf86vm-dev libxcb1-dev libxcb-glx0-dev libxcb-sync-dev libxcb-xfixes0-dev \
+    libxcb-dri2-0-dev libxcb-dri3-dev libxcb-present-dev libxcb-shm0-dev \
+    libxcb-randr0-dev libxshmfence-dev libexpat1-dev libzstd-dev \
     libglvnd-dev llvm-dev libclang-dev zlib1g-dev
 
 step "fetch mesa 26.2.6"
@@ -69,6 +72,8 @@ install -Dm 0644 /dev/stdin "$ROOTFS/etc/ld.so.conf.d/90-piano-mesa.conf" <<EOF
 $PREFIX/lib/aarch64-linux-gnu
 EOF
 cat >> "$ROOTFS/etc/environment" <<EOF
+LD_LIBRARY_PATH=$PREFIX/lib/aarch64-linux-gnu
+__EGL_VENDOR_LIBRARY_FILENAMES=$PREFIX/share/glvnd/egl_vendor.d/50_mesa.json
 LIBGL_DRIVERS_PATH=$PREFIX/lib/aarch64-linux-gnu/dri
 GBM_BACKENDS_PATH=$PREFIX/lib/aarch64-linux-gnu/gbm
 VK_ICD_FILENAMES=$PREFIX/share/vulkan/icd.d/freedreno_icd.aarch64.json
