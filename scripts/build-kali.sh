@@ -99,7 +99,7 @@ chroot "$ROOTFS" apt-get install -y --no-install-recommends \
     kali-archive-keyring kali-defaults kali-desktop-kde kali-tools-top10 \
     systemd-sysv sudo locales tzdata ca-certificates openssh-server \
     network-manager plasma-nm bluedevil wpasupplicant wireless-regdb iw rfkill \
-    sddm plasma-keyboard qt6-virtualkeyboard-plugin konsole dolphin \
+    sddm systemsettings plasma-keyboard qt6-virtualkeyboard-plugin konsole dolphin \
     pipewire-audio pulseaudio-utils playerctl brightnessctl brightness-udev wl-clipboard \
     libgl1-mesa-dri mesa-vulkan-drivers xserver-xorg-input-libinput \
     fonts-noto-cjk fonts-noto-color-emoji firefox-esr \
