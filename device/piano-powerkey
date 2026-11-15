@@ -56,9 +56,7 @@ def long_press():
     dpms(True)
     if os.path.exists(STATE):
         os.remove(STATE)
-    subprocess.run(['runuser', '-u', 'kali', '--', 'env'] + ENV +
-                   ['qdbus6', 'org.kde.LogoutPrompt', '/LogoutPrompt',
-                    'org.kde.LogoutPrompt.promptAll'], check=False)
+    subprocess.run(['loginctl', 'lock-sessions'], check=False)
 
 
 
