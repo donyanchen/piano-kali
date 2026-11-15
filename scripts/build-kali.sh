@@ -236,7 +236,7 @@ set -e
 BOOT_SRC=$(find "$BUILD_DIR/bootset" -name boot.img -type f | head -n 1)
 INIT_SRC=$(find "$BUILD_DIR/bootset" -name init_boot.img -type f | head -n 1)
 VENDOR_SRC=$(find "$BUILD_DIR/bootset" -name vendor_boot.img -type f | head -n 1)
-CMDLINE="root=PARTLABEL=userdata rootfstype=ext4 rw rootwait log_buf_len=2M panic=15 msm.separate_gpu_kms=0 piano.boot=persistent systemd.gpt_auto=0"
+CMDLINE="root=PARTLABEL=userdata rootfstype=ext4 rw rootwait log_buf_len=2M panic=15 msm.separate_gpu_kms=0 piano.boot=persistent systemd.gpt_auto=0 bootconfig"
 python3 "$PROJECT/scripts/patch-boot-cmdline.py" "$BOOT_SRC" "$OUT_DIR/boot.img" "$CMDLINE"
 cp "$INIT_SRC" "$OUT_DIR/init_boot.img"
 cp "$VENDOR_SRC" "$OUT_DIR/vendor_boot.img"

@@ -23,14 +23,18 @@ def main() -> int:
     version = struct.unpack('<I', data[0x28:0x2c])[0]
     if version < 3:
         raise SystemExit(f'unsupported boot header version {version}')
-    if header_size < 0x2c + 4096:
-        raise SystemExit(f'unexpected header size {header_size}')
+    # v3/v4: magic + 4 sizes + reserved[4] + header_version, then a 1536-byte
+    # command line (BOOT_ARGS_SIZE 512 + BOOT_EXTRA_ARGS_SIZE 1024) and a
+    # 4-byte signature size: 44 + 1536 + 4 = 1584.
     field = 0x2c
-    old = bytes(data[field:field + 4096]).split(b'\0')[0]
+    field_len = 1536
+    if header_size < field + field_len:
+        raise SystemExit(f'unexpected header size {header_size}')
+    old = bytes(data[field:field + field_len]).split(b'\0')[0]
     encoded = new_cmd.encode()
-    if len(encoded) > 4095:
+    if len(encoded) >= field_len:
         raise SystemExit('command line too long')
-    data[field:field + 4096] = encoded + b'\0' * (4096 - len(encoded))
+    data[field:field + field_len] = encoded + b'\0' * (field_len - len(encoded))
     open(dst, 'wb').write(data)
     print(f'header version : {version}')
     print(f'old cmdline    : {old.decode()}')
