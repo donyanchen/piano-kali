@@ -1,0 +1,18 @@
+#!/bin/sh
+# Keep the seat0 Wayland session active.
+#
+# When SDDM's greeter takes vt1 the user session turns Active=no and KWin loses
+# DRM master, which shows up as a black screen while everything else keeps
+# running. Re-activate the session whenever that happens.
+while true; do
+    seat_session=$(loginctl list-sessions --no-legend 2>/dev/null |
+        awk '$4 == "seat0" && $5 == "kali" { print $1; exit }')
+    if [ -n "$seat_session" ]; then
+        active=$(loginctl show-session "$seat_session" -p Active --value 2>/dev/null)
+        locked=$(loginctl show-session "$seat_session" -p LockedHint --value 2>/dev/null)
+        if [ "$active" = "no" ] && [ "$locked" != "yes" ]; then
+            loginctl activate "$seat_session" >/dev/null 2>&1 || true
+        fi
+    fi
+    sleep 5
+done

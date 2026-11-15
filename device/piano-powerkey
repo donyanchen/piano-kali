@@ -41,22 +41,16 @@ def dpms(on):
 
 
 def short_press():
-    # First press: lock and blank the panel. Second press: wake only.
-    if os.path.exists(STATE):
-        dpms(True)
-        os.remove(STATE)
-        return
+    # Lock only; PowerDevil blanks the panel shortly after the session locks,
+    # which avoids racing KWin's atomic commits with an out-of-band DPMS call.
     subprocess.run(['loginctl', 'lock-sessions'], check=False)
-    dpms(False)
-    open(STATE, 'w').close()
 
 
 def long_press():
     """Long press wakes the panel and shows Plasma's leave/power menu."""
-    dpms(True)
-    if os.path.exists(STATE):
-        os.remove(STATE)
     subprocess.run(['loginctl', 'lock-sessions'], check=False)
+    time.sleep(0.8)
+    dpms(True)
 
 
 
@@ -76,6 +70,7 @@ def main():
     fmt = 'llHHi'
     size = struct.calcsize(fmt)
     pressed_at = None
+    suppress_until = 0.0
     with open(dev, 'rb', buffering=0) as fd:
         while True:
             data = fd.read(size)
@@ -86,6 +81,8 @@ def main():
             if etype != EV_KEY or code != KEY_POWER:
                 continue
             if value == 1:
+                if time.time() < suppress_until:
+                    continue
                 pressed_at = time.time()
                 print('press', flush=True)
             elif value == 0 and pressed_at is not None:
@@ -98,6 +95,7 @@ def main():
                     print('-> short', flush=True)
                     short_press()
                 pressed_at = None
+                suppress_until = time.time() + 2.0
 
 
 if __name__ == '__main__':
