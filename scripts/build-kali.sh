@@ -226,6 +226,21 @@ Timeout=60
 LockGrace=0
 EOF
 chroot "$ROOTFS" chown -R kali:kali /home/kali/.config
+install -Dm 0755 "$PROJECT/device/piano-powerkey" "$ROOTFS/usr/local/bin/piano-powerkey"
+install -Dm 0644 /dev/stdin "$ROOTFS/etc/systemd/system/piano-powerkey.service" <<'EOF'
+[Unit]
+Description=Piano power key policy
+After=graphical.target
+[Service]
+ExecStart=/usr/local/bin/piano-powerkey
+Restart=always
+[Install]
+WantedBy=multi-user.target
+EOF
+install -d "$ROOTFS/home/kali/.config/systemd/user/default.target.wants"
+ln -sf /usr/lib/systemd/user/plasma-ksystemstats.service \
+    "$ROOTFS/home/kali/.config/systemd/user/default.target.wants/plasma-ksystemstats.service"
+chroot "$ROOTFS" chown -R kali:kali /home/kali/.config/systemd
 chroot "$ROOTFS" systemctl set-default graphical.target
 
 step "validate image contents"

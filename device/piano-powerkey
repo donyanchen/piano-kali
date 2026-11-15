@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+"""Own power-key policy for the piano tablet.
+
+Short press: lock the session (the lock screen blanks immediately, so it feels
+like screen off). Long press (>= 1.2 s): Xiaomi-style power menu.
+
+KDE's own power-button action is disabled so only this watcher reacts.
+"""
+import os
+import re
+import struct
+import subprocess
+import time
+
+KEY_POWER = 116
+EV_KEY = 1
+HOLD_SECONDS = 1.2
+ENV = ['XDG_RUNTIME_DIR=/run/user/1000', 'WAYLAND_DISPLAY=wayland-0', 'DISPLAY=:0']
+
+
+def power_key_devices():
+    for block in open('/proc/bus/input/devices').read().split('\n\n'):
+        name = re.search(r'^N: Name="(.*)"', block, re.M)
+        keys = re.search(r'^B: KEY=(.*)$', block, re.M)
+        events = re.search(r'^H: Handlers=.*?(event\d+)', block, re.M)
+        if not (name and keys and events):
+            continue
+        mask = 0
+        for i, word in enumerate(reversed(keys.group(1).split())):
+            mask |= int(word, 16) << (64 * i)
+        if mask >> KEY_POWER & 1:
+            yield name.group(1), '/dev/input/' + events.group(1)
+
+
+def short_press():
+    subprocess.run(['loginctl', 'lock-sessions'], check=False)
+
+
+def long_press():
+    cmd = ['runuser', '-u', 'kali', '--', 'env'] + ENV + [
+        'kdialog', '--title', '电源选项', '--menu', '请选择操作',
+        'poweroff', '关机', 'reboot', '重启', 'logout', '注销', 'lock', '锁屏'
+    ]
+    try:
+        choice = subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL).strip()
+    except subprocess.CalledProcessError:
+        return
+    if choice == 'poweroff':
+        subprocess.run(['systemctl', 'poweroff'], check=False)
+    elif choice == 'reboot':
+        subprocess.run(['systemctl', 'reboot'], check=False)
+    elif choice == 'logout':
+        subprocess.run(['runuser', '-u', 'kali', '--', 'env'] + ENV +
+                       ['qdbus6', 'org.kde.Shutdown', '/Shutdown',
+                        'org.kde.Shutdown.logout'], check=False)
+    elif choice == 'lock':
+        subprocess.run(['loginctl', 'lock-sessions'], check=False)
+
+
+def main():
+    dev = None
+    for name, path in power_key_devices():
+        if 'pwr' in name.lower() or dev is None:
+            dev = path
+    if not dev:
+        return
+    fmt = 'llHHi'
+    size = struct.calcsize(fmt)
+    pressed_at = None
+    with open(dev, 'rb', buffering=0) as fd:
+        while True:
+            data = fd.read(size)
+            if not data:
+                time.sleep(0.2)
+                continue
+            _, _, etype, code, value = struct.unpack(fmt, data)
+            if etype != EV_KEY or code != KEY_POWER:
+                continue
+            if value == 1:
+                pressed_at = time.time()
+            elif value == 0 and pressed_at is not None:
+                if time.time() - pressed_at >= HOLD_SECONDS:
+                    long_press()
+                else:
+                    short_press()
+                pressed_at = None
+
+
+if __name__ == '__main__':
+    main()
