@@ -12,6 +12,7 @@ zstd -T0 -6 -f "$OUT/root.sparse.img" -o "$REL/root.sparse.img.zst"
 
 cp "$OUT/boot.img" "$OUT/init_boot.img" "$OUT/vendor_boot.img" "$REL/"
 cp "$OUT/manifest.json" "$OUT/validation.txt" "$OUT/packages.tsv" "$OUT/piano-debs.log" "$REL/" 2>/dev/null || true
+cp "$OUT"/osk.log "$OUT"/mesa.log "$OUT"/kali-compat.txt "$REL/" 2>/dev/null || true
 cp "$PROJECT/scripts/flash-piano.sh" "$REL/"
 cp "$PROJECT/docs/INSTALL.md" "$REL/INSTALL.md"
 
