@@ -173,7 +173,7 @@ VirtualKeyboardEnabled=true
 Scale=2
 EOF
 if ! chroot "$ROOTFS" id kali >/dev/null 2>&1; then
-    chroot "$ROOTFS" useradd -m -s /bin/bash -G sudo,adm,audio,video,plugdev,netdev,dialout kali
+    chroot "$ROOTFS" useradd -m -s /bin/bash -G sudo,adm,audio,video,plugdev,netdev,dialout,render kali
 fi
 printf 'kali:%s\n' "$KALI_PASSWORD" | chroot "$ROOTFS" chpasswd
 chroot "$ROOTFS" passwd -l root
