@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+"""Wake the panel when the magnetic keyboard cover is opened.
+
+Closing the lid is handled by logind (HandleLidSwitch=lock) which also blanks
+the panel; opening the lid produces no input event, so DPMS has to be turned
+back on explicitly.
+"""
+import glob
+import re
+import struct
+import subprocess
+import time
+
+EV_SW = 5
+SW_LID = 0
+ENV = ['XDG_RUNTIME_DIR=/run/user/1000', 'WAYLAND_DISPLAY=wayland-0', 'DISPLAY=:0']
+
+
+def lid_devices():
+    for block in open('/proc/bus/input/devices').read().split('\n\n'):
+        name = re.search(r'^N: Name="(.*)"', block, re.M)
+        sw = re.search(r'^B: SW=(.*)$', block, re.M)
+        events = re.search(r'^H: Handlers=.*?(event\d+)', block, re.M)
+        if not (name and sw and events):
+            continue
+        words = sw.group(1).split()
+        mask = 0
+        for i, word in enumerate(reversed(words)):
+            mask |= int(word, 16) << (64 * i)
+        if mask & (1 << SW_LID):
+            yield name.group(1), '/dev/input/' + events.group(1)
+
+
+def dpms_on():
+    subprocess.run(['runuser', '-u', 'kali', '--', 'env'] + ENV +
+                   ['kscreen-doctor', '--dpms', 'on'], check=False)
+
+
+def main():
+    dev = None
+    for name, path in lid_devices():
+        dev = path
+        print('lid device:', name, path, flush=True)
+        break
+    if not dev:
+        print('no lid switch', flush=True)
+        return
+    fmt = 'llHHi'
+    size = struct.calcsize(fmt)
+    with open(dev, 'rb', buffering=0) as fd:
+        while True:
+            data = fd.read(size)
+            if not data:
+                time.sleep(0.2)
+                continue
+            _, _, etype, code, value = struct.unpack(fmt, data)
+            if etype == EV_SW and code == SW_LID and value == 0:
+                dpms_on()
+
+
+if __name__ == '__main__':
+    main()

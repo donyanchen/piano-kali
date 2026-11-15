@@ -82,7 +82,7 @@ public:
             const auto delta=m_last-m_origin;
             if(m_cancelled&&!m_multi&&!waylandServer()->isScreenLocked()){
                 QString method;
-                if(delta.y()<-56&&-delta.y()>std::abs(delta.x())*1.25)method="OpenAppDrawer";
+                if(delta.y()<-56&&-delta.y()>std::abs(delta.x())*1.25){auto *o=workspace()->outputAt(m_origin);if(o&&m_origin.y()>o->geometry().y()+o->geometry().height()*0.85)method="OpenAppDrawer";}
                 else if(!m_pointer&&delta.y()>56&&delta.y()>std::abs(delta.x())*1.25){auto *out=workspace()->outputAt(m_origin);if(out&&m_origin.x()>out->geometry().center().x())method="OpenControlCenter";}
                 if(!method.isEmpty()){++m_actions;QTimer::singleShot(0,this,[this,method]{dispatch(method);});}
             }
