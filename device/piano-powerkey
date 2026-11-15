@@ -52,11 +52,13 @@ def short_press():
 
 
 def long_press():
-    """Long press shows the lock screen with its power actions."""
+    """Long press wakes the panel and shows Plasma's leave/power menu."""
+    dpms(True)
     if os.path.exists(STATE):
-        dpms(True)
         os.remove(STATE)
-    subprocess.run(['loginctl', 'lock-sessions'], check=False)
+    subprocess.run(['runuser', '-u', 'kali', '--', 'env'] + ENV +
+                   ['qdbus6', 'org.kde.LogoutPrompt', '/LogoutPrompt',
+                    'org.kde.LogoutPrompt.promptAll'], check=False)
 
 
 
@@ -87,10 +89,15 @@ def main():
                 continue
             if value == 1:
                 pressed_at = time.time()
+                print('press', flush=True)
             elif value == 0 and pressed_at is not None:
-                if time.time() - pressed_at >= HOLD_SECONDS:
+                held = time.time() - pressed_at
+                print('release after %.2fs' % held, flush=True)
+                if held >= HOLD_SECONDS:
+                    print('-> long', flush=True)
                     long_press()
                 else:
+                    print('-> short', flush=True)
                     short_press()
                 pressed_at = None
 
