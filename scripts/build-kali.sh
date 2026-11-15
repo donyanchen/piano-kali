@@ -148,17 +148,6 @@ install -Dm 0644 "$PROJECT/device/piano-thp-calibrate.service" "$ROOTFS/etc/syst
 install -d "$ROOTFS/usr/share/alsa/ucm2"
 cp -a "$PROJECT/vendor/audio/ucm2/." "$ROOTFS/usr/share/alsa/ucm2/"
 chmod -R a+rX "$ROOTFS/usr/share/alsa/ucm2"
-install -Dm 0755 "$PROJECT/device/piano-powerkey" "$ROOTFS/usr/local/bin/piano-powerkey"
-install -Dm 0644 /dev/stdin "$ROOTFS/etc/systemd/system/piano-powerkey.service" <<'EOF'
-[Unit]
-Description=Piano power key DPMS toggle
-After=graphical.target
-[Service]
-ExecStart=/usr/local/bin/piano-powerkey
-Restart=always
-[Install]
-WantedBy=multi-user.target
-EOF
 install -d "$ROOTFS/etc/systemd/logind.conf.d"
 printf '[Login]\nHandleLidSwitch=lock\nHandleLidSwitchExternalPower=lock\nHandleLidSwitchDocked=ignore\nHandlePowerKey=ignore\nHandlePowerKeyLongPress=ignore\n' \
     > "$ROOTFS/etc/systemd/logind.conf.d/99-kali-tablet.conf"
