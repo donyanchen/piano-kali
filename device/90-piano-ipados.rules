@@ -1,0 +1,5 @@
+# Keep desktop storage helpers away from the UniXNU partition.
+# APFS is not mountable by Linux and the partition holds the iPadOS root image
+# plus the 160 MiB payload window; an accidental "mount" or format must not be
+# offered, and systemd must never generate a mount unit for it.
+SUBSYSTEM=="block", ENV{ID_PART_ENTRY_NAME}=="ipados", ENV{UDISKS_IGNORE}="1", ENV{SYSTEMD_READY}="0", OPTIONS+="db_persist"

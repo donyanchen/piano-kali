@@ -1,0 +1,60 @@
+#!/bin/sh
+# Inspect or update the `ipados` partition used by UniXNU without touching the
+# rest of it. Layout (4 KiB blocks, from the UniXNU piano handoff):
+#   block 0        .. 2,457,599   UniXNU root image (APFS), do not write
+#   block 3,145,728 .. +40,959    payload.img (160 MiB window)
+# Everything else in the 32 GiB partition is reserved for data/macOS.
+set -eu
+DEV=/dev/disk/by-partlabel/ipados
+OFFSET_BLOCKS=3145728      # 12 GiB
+BLOCK=4096
+WINDOW_BLOCKS=40960        # 160 MiB
+
+usage() {
+    cat <<'EOF'
+usage: piano-ipados status
+       piano-ipados write <payload.img>
+       piano-ipados dump <out.img> [blocks]
+       piano-ipados verify <payload.img>
+Never writes outside the 160 MiB payload window.
+EOF
+}
+
+[ -e "$DEV" ] || { echo "piano-ipados: no ipados partition" >&2; exit 1; }
+
+case "${1:-status}" in
+status)
+    bytes=$(blockdev --getsize64 "$DEV")
+    echo "device      : $DEV"
+    echo "size        : $bytes bytes ($((bytes / 1024 / 1024 / 1024)) GiB)"
+    echo "payload at  : block $OFFSET_BLOCKS ($((OFFSET_BLOCKS * BLOCK / 1024 / 1024 / 1024)) GiB), window $WINDOW_BLOCKS blocks"
+    first=$(dd if="$DEV" bs="$BLOCK" count=1024 2>/dev/null | sha256sum | cut -d' ' -f1)
+    payload=$(dd if="$DEV" bs="$BLOCK" skip="$OFFSET_BLOCKS" count=1024 2>/dev/null | sha256sum | cut -d' ' -f1)
+    echo "root img[0:4MiB] sha256: $first"
+    echo "payload[0:4MiB]  sha256: $payload"
+    ;;
+write)
+    src=${2:?payload image required}
+    [ -f "$src" ] || { echo "no such file: $src" >&2; exit 1; }
+    blocks=$(( ($(stat -c%s "$src") + BLOCK - 1) / BLOCK ))
+    [ "$blocks" -le "$WINDOW_BLOCKS" ] || { echo "payload is larger than the 160 MiB window" >&2; exit 1; }
+    echo "writing $src ($blocks blocks) to $DEV at block $OFFSET_BLOCKS"
+    dd if="$src" of="$DEV" bs="$BLOCK" seek="$OFFSET_BLOCKS" conv=notrunc,fsync
+    sync
+    ;;
+dump)
+    out=${2:?output file required}
+    blocks=${3:-$WINDOW_BLOCKS}
+    dd if="$DEV" of="$out" bs="$BLOCK" skip="$OFFSET_BLOCKS" count="$blocks"
+    ;;
+verify)
+    src=${2:?payload image required}
+    blocks=$(( ($(stat -c%s "$src") + BLOCK - 1) / BLOCK ))
+    got=$(dd if="$DEV" bs="$BLOCK" skip="$OFFSET_BLOCKS" count="$blocks" 2>/dev/null | sha256sum | cut -d' ' -f1)
+    want=$(sha256sum "$src" | cut -d' ' -f1)
+    echo "on device: $got"
+    echo "file     : $want"
+    [ "$got" = "$want" ] && echo MATCH || { echo MISMATCH; exit 1; }
+    ;;
+*) usage; exit 2 ;;
+esac

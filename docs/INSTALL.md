@@ -73,6 +73,20 @@ fastboot -s <SERIAL> reboot
 - 打开 USB 网络 + SSH（上游工具）：`sudo piano-devmode on`
 - 回 Fastboot：`sudo piano-reboot-bootloader`
 
+## 5a. `ipados` 分区（UniXNU）怎么对待
+
+- 大小固定 32 GiB（`34,361,815,040` 字节），布局：前 ~9.38 GB 是 UniXNU 根映像，**12 GiB 偏移处**是 160 MiB 的 `payload.img`，其余留给 Data 卷/以后 macOS。
+- 本项目的刷机脚本只写 `boot_<slot>`、`init_boot_<slot>`、`vendor_boot_<slot>`、`userdata`，不碰 `ipados`；脚本开刷前会打印它的分区大小供你核对。
+- Kali 里 `ipados` 不带 `/etc/fstab` 条目，`systemd.gpt_auto=0`，另加 udev 规则把 `UDISKS_IGNORE=1` / `SYSTEMD_READY=0`，Dolphin 不会提示挂载，也不会自动 fsck。
+- 需要换 UniXNU payload 时在 Kali 里用内置工具，只写那 160 MiB 窗口：
+
+  ```bash
+  sudo piano-ipados status              # 大小、两段 sha256
+  sudo piano-ipados verify payload.img  # 与设备上现有内容比对
+  sudo piano-ipados write payload.img   # dd 到 block 3145728，写完 fsync
+  sudo piano-ipados dump old.img        # 备份现有 payload
+  ```
+
 ## 6. 和 UniXNU 来回切
 
 ```bash

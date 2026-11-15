@@ -43,6 +43,9 @@ if (( ! YES )); then
     [[ "$answer" == ERASE ]] || { echo 'aborted'; exit 1; }
 fi
 
+ipados=$(fastboot -s "$SERIAL" getvar partition-size:ipados 2>&1 | sed -n 's/^partition-size:ipados: //p' | head -n 1)
+echo "ipados partition size: ${ipados:-unknown} (never written by this script)"
+
 fastboot -s "$SERIAL" --slot "$SLOT" flash boot boot.img
 fastboot -s "$SERIAL" --slot "$SLOT" flash init_boot init_boot.img
 fastboot -s "$SERIAL" --slot "$SLOT" flash vendor_boot vendor_boot.img
@@ -50,3 +53,4 @@ fastboot -s "$SERIAL" erase userdata
 fastboot -s "$SERIAL" flash userdata root.sparse.img
 fastboot -s "$SERIAL" reboot
 echo "Kali is booting from slot $SLOT. First boot grows the root filesystem to the full userdata partition."
+echo "UniXNU stays in the ipados partition; manage its payload from Kali with: sudo piano-ipados status"

@@ -128,6 +128,8 @@ install -Dm 0755 "$PROJECT/device/piano-grow" "$ROOTFS/usr/libexec/piano/piano-g
 install -Dm 0644 "$PROJECT/device/piano-grow.service" "$ROOTFS/etc/systemd/system/piano-grow.service"
 install -Dm 0755 "$PROJECT/device/piano-thp-calibrate" "$ROOTFS/usr/libexec/piano/piano-thp-calibrate"
 install -Dm 0644 "$PROJECT/device/piano-thp-calibrate.service" "$ROOTFS/etc/systemd/system/piano-thp-calibrate.service"
+install -Dm 0755 "$PROJECT/device/piano-ipados" "$ROOTFS/usr/sbin/piano-ipados"
+install -Dm 0644 "$PROJECT/device/90-piano-ipados.rules" "$ROOTFS/etc/udev/rules.d/90-piano-ipados.rules"
 install -Dm 0755 "$PROJECT/vendor/extract-thp-calibration.py" "$ROOTFS/usr/lib/piano/extract-thp-calibration.py"
 install -d "$ROOTFS/etc/piano"
 printf 'THP calibration is unit specific. piano-thp-calibrate extracts it from the stock odm partition\non first boot; if that fails, copy the JSON from the Android side to /etc/piano/thp-calibration.json.\n' \
