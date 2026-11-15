@@ -23,6 +23,14 @@ install_one() {
     fi
 }
 
+# dracut Conflicts initramfs-tools, so Kali gets dracut only. dracut's kernel
+# hook would rebuild an initrd we never boot (the vendor_boot ramdisk is used),
+# and under qemu it is very slow: park the hooks for the kernel install.
+mkdir -p /tmp/kernel-hooks-off
+for hook in /etc/kernel/postinst.d/*dracut* /etc/kernel/postrm.d/*dracut* /etc/initramfs/post-update.d/*dracut*; do
+    [ -e "$hook" ] && mv "$hook" /tmp/kernel-hooks-off/ || true
+done
+
 install_one piano-local-firmware
 install_one piano-npu-firmware
 install_one linux-image-7.4.0-rc2-piano88
@@ -32,6 +40,16 @@ install_one piano-iio-sensor-proxy
 install_one piano-iris-vaapi
 install_one piano-camerad
 install_one piano-camera-loopback-7.4.0-rc2-piano88
+
+for hook in /tmp/kernel-hooks-off/*; do
+    [ -e "$hook" ] || continue
+    case "$hook" in
+        *postinst*) install -m 755 "$hook" /etc/kernel/postinst.d/ ;;
+        *postrm*) install -m 755 "$hook" /etc/kernel/postrm.d/ ;;
+        *) install -m 755 "$hook" /etc/initramfs/post-update.d/ ;;
+    esac
+done
+rm -rf /tmp/kernel-hooks-off
 
 depmod -a 7.4.0-rc2-piano88 || true
 echo "SUMMARY:$FAILED"

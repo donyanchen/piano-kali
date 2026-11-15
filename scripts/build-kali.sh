@@ -96,7 +96,7 @@ chroot "$ROOTFS" apt-get install -y --no-install-recommends \
     e2fsprogs kmod qrtr-tools rmtfs tqftpserv bluez libkscreen-bin \
     systemd-timesyncd util-linux-extra zstd systemd-zram-generator \
     alsa-utils alsa-ucm-conf rtkit powerdevil plasma-pa hostapd kdialog \
-    device-tree-compiler dracut initramfs-tools libpam-modules openssl
+    device-tree-compiler dracut libpam-modules openssl
 
 step "extract piano packages"
 mkdir -p "$BUILD_DIR/debs"
