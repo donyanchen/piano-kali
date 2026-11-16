@@ -160,7 +160,11 @@ jobs:
           mkdir -p out
           cp parts/part-dtb/sm8750-piano.dtb out/
           cp parts/part-kernel/Image parts/part-kernel/kernel-release parts/part-kernel/config out/
-          cp -a parts/part-kernel/modules out/modules
+          if [ -d parts/part-kernel/modules ]; then
+            cp -a parts/part-kernel/modules out/modules
+          else
+            echo "fast build: no modules to bundle"
+          fi
           ls -lh out/Image out/sm8750-piano.dtb
           cat out/kernel-release
       - uses: actions/upload-artifact@v4
