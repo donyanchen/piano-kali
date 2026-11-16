@@ -33,7 +33,7 @@
  *   dtype(1) last(1) vc(1) ack(1) wait_ms(1) len(1) payload(len)
  * dtype 0x05/0x15 are short DCS writes, 0x39/0x29 long DCS writes.
  */
-#define P81_HDR_LEN		6
+#define P81_HDR_LEN		7
 
 struct p81_panel {
 	struct drm_panel panel;
@@ -52,15 +52,22 @@ static const struct drm_display_mode p81_144_mode = {
 	 * The panel is dual-DSI bonded with DSC: 3200 wide is the logical mode,
 	 * each link carries half of it.
 	 */
-	.clock = 1197500,
-	.hdisplay = 3200,
-	.hsync_start = 3200 + 42,
-	.hsync_end = 3200 + 42 + 32,
-	.htotal = 3200 + 42 + 32 + 32,
+	/*
+	 * Per-link mode: the panel is bonded dual-DSI (Android reports the
+	 * logical 3200x2136 @ 1197.5 MHz DSI clock). One link carries half the
+	 * width. Porches are the vendor timing@144 values:
+	 *   hfp 21, hbp 16, hsw 16, vfp 68, vbp 104, vsw 2
+	 * clock = 1653 * 2310 * 144 / 1000 = 550369 kHz.
+	 */
+	.clock = 550369,
+	.hdisplay = 1600,
+	.hsync_start = 1600 + 21,
+	.hsync_end = 1600 + 21 + 16,
+	.htotal = 1600 + 21 + 16 + 16,
 	.vdisplay = 2136,
-	.vsync_start = 2136 + 104,
-	.vsync_end = 2136 + 104 + 68,
-	.vtotal = 2136 + 104 + 68 + 2,
+	.vsync_start = 2136 + 68,
+	.vsync_end = 2136 + 68 + 104,
+	.vtotal = 2136 + 68 + 104 + 2,
 	.width_mm = 296,
 	.height_mm = 198,
 	.type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED,
@@ -78,7 +85,7 @@ static int p81_send_blob(struct mipi_dsi_device *dsi, const u8 *blob, size_t len
 
 	while (i + P81_HDR_LEN <= len) {
 		u8 wait = blob[i + 4];
-		u8 n = blob[i + 5];
+		u16 n = (blob[i + 5] << 8) | blob[i + 6];
 
 		if (i + P81_HDR_LEN + n > len) {
 			dev_err(&dsi->dev, "truncated command at %zu\n", i);
@@ -115,12 +122,11 @@ static int p81_prepare(struct drm_panel *panel)
 
 	/* vendor reset sequence: out of reset, hold, out again */
 	if (ctx->reset_gpio) {
+		/* ACTIVE_LOW: logical 1 = panel held in reset. End deasserted. */
 		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 		usleep_range(10000, 12000);
 		gpiod_set_value_cansleep(ctx->reset_gpio, 0);
-		usleep_range(10000, 12000);
-		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
-		usleep_range(10000, 12000);
+		usleep_range(120000, 140000);
 	}
 
 	ret = p81_send_blob(dsi, MDSS_DSI_P81_35_02_0B_144HZ_QCOM_MDSS_DSI_ON_COMMAND,

@@ -161,22 +161,6 @@
 		gpio = <&tlmm 118 GPIO_ACTIVE_HIGH>;
 	};
 
-	/*
-	 * Xiaomi p81 35 02 0b: 1600x2136 per DSI link, DSC, video mode.
-	 * Timings live in the panel driver; the node only wires the links.
-	 */
-	panel: panel {
-		compatible = "xiaomi,p81-35-02-0b";
-		/* both values are from the vendor DT: reset on tlmm 98 */
-		reset-gpios = <&tlmm 98 GPIO_ACTIVE_LOW>;
-		avdd-supply = <&display_panel_avdd>;
-
-		port {
-			panel_in: endpoint {
-				remote-endpoint = <&mdss_dsi0_out>;
-			};
-		};
-	};
 };
 
 &tlmm {
@@ -241,6 +225,27 @@
 
 &mdss_dsi0 {
 	status = "okay";
+
+	/*
+	 * Xiaomi p81 35 02 0b: 1600x2136 per DSI link, DSC, video mode.
+	 * Must live under the DSI host (reg = <0>) or the mipi_dsi_driver
+	 * never probes. Timings live in the panel driver.
+	 */
+	panel: panel@0 {
+		compatible = "xiaomi,p81-35-02-0b";
+		reg = <0>;
+		/* vendor DT: reset on tlmm 98 */
+		reset-gpios = <&tlmm 98 GPIO_ACTIVE_LOW>;
+		avdd-supply = <&display_panel_avdd>;
+		/* second half (backlight_1) stays dark until dual-link lands */
+		backlight = <&backlight_0>;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&mdss_dsi0_out>;
+			};
+		};
+	};
 };
 
 &mdss_dsi0_phy {
