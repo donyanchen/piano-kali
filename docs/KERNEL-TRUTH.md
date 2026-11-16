@@ -128,3 +128,17 @@ python3 scripts/dt-inventory.py /tmp/p0/real.dts --compat 'ufshc|mdss'
 ```
 
 产物：`$WORK/{boot,init_boot,vendor_boot}/`、`stock-config.txt`、`vb-dtbs/dtb0..7.dtb`、`dtbo/piano_entry.dtb`、`live.dts`、`real.dts`。
+
+## 真值来源优先级（硬规矩）
+
+写驱动/DTS 缺参数时，按这个顺序取，**不允许猜**：
+
+| 优先级 | 来源 | 例子 |
+|---|---|---|
+| 1 | **跑着的 Android**（sysfs / debugfs / dmesg） | GPU 频率表 `/sys/class/kgsl/kgsl-3d0/devfreq/available_frequencies`；SMMU stream id `/sys/kernel/debug/kgsl/`；触摸模式 `[NVT-ts] nvt_set_cur_value` |
+| 2 | **原厂分区镜像**（boot/vendor_boot/dtbo/firmware） | 面板初始化序列、触摸固件、regulator 配置 |
+| 3 | upstream mainline / linux-stable | 驱动框架、binding 结构、SoC dtsi |
+| — | 第三方内核（yzddmr6 等） | **只能对照，不能抄** |
+
+理由：Android 那套固件是这台机器**唯一跑通过的实现**，它暴露的运行时参数就是硬件真值；
+原厂 DTB 缺的字段（GPU 的 iommus/power-domains/opp），Android 的 sysfs 全都有。
