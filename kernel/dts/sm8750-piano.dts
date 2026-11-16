@@ -99,6 +99,21 @@
 	 * PMIC rails, with the values below (real.dts: display_panel_avdd 5.5 V,
 	 * display_panel_vsp/vsn +-5.8 V on tlmm 117/118, all boot-on).
 	 */
+	/*
+	 * DSI PHY rail. Upstream sm8750-mtp uses vreg_l3i_0p88 (PMIC L3I, 0.88 V,
+	 * 98 mA). The board regulator table is not ported yet, and the bootloader
+	 * leaves this rail on, so a fixed regulator satisfies the PHY's strict
+	 * bulk_get() without touching PMIC configuration.
+	 */
+	vreg_l3i_0p88: regulator-l3i {
+		compatible = "regulator-fixed";
+		regulator-name = "vreg_l3i_0p88";
+		regulator-min-microvolt = <880000>;
+		regulator-max-microvolt = <880000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
 	display_panel_avdd: regulator-avdd {
 		compatible = "regulator-fixed";
 		regulator-name = "display_panel_avdd";
@@ -214,6 +229,7 @@
 };
 
 &mdss_dsi0_phy {
+	vdds-supply = <&vreg_l3i_0p88>;
 	status = "okay";
 };
 
