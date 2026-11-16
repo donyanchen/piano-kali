@@ -33,10 +33,26 @@
 
 ## 3. 已知未完成项（真差异，非配置问题）
 
-1. **下排两个扬声器**：`aplay -D hw:0,0` 逐声道可听到 4 个，但立体声只填 TDM slot 0/1。
-   PipeWire 的 `channelmix.upmix`、`module-loopback`、`module-remap-sink` 都不复制到 slot 2/3；
-   ACP 不接受自定义 ALSA route PCM（只认 UCM 里的 hw PCM）。
-   正解在 ASoC：改 machine driver 让 2ch 复制到 4 slot，需要编内核。
+1. **下排两个扬声器**（已定位，未修）
+   官方运行 DTB（取自 `os4-backup/piano-live.dtb`）与主线 DTB（`piano-boot.dtb`）对比结论：
+
+   | | 官方 Android DT | 主线 piano DT |
+   | --- | --- | --- |
+   | 功放 | 2× WSA macro，4× `qcom,wsa884x`（SoundWire） | **4× Foursemi FS19xx**（I2C 0x34–0x37），`sound-name-prefix` = Top Left / Top Right / Bottom Left / Bottom Right |
+   | 声卡 | `qcom,sun-asoc-snd`，`qcom,dedicated-wsa2`，`tdm-max-slots=4` | `xiaomi,piano-sndcard`，单条 `speaker-dai-link` |
+   | TDM | — | `dai-tdm-slot-num=4`，`dai-tdm-slot-rx-mask=<1 1 1 1>`，codec 顺序 TL,TR,BL,BR |
+
+   实测声道：ch0=Top Left（摄像头侧）、ch1=Top Right（触点侧）、ch2=Bottom Left、ch3=Bottom Right。
+   **硬件链路是通的**（4 个 slot 各自对应一个 FS19xx），缺的只是“立体声 → 4 slot”的复制：
+   L 应进 slot 0/2，R 进 slot 1/3。
+
+   已排除：PipeWire `channelmix.upmix`（psd/simple）、`module-loopback`、`module-remap-sink`、
+   ALSA `route` PCM（ACP 只认 UCM 里的 hw PCM，会把名字加 `_ucm0001.` 前缀）。
+   可行修法（按代价排序）：
+   1. DTB 拆成两条 `speaker-dai-link`（TL+TR / BL+BR，各 2 slot）+ machine driver DPCM 复制 —— 要改内核；
+   2. machine driver `hw_params` 里把 2ch 扩成 4ch 并按上表复制 —— 要改内核；
+   3. 让 ACP 接受自定义 ALSA PCM（改 WirePlumber 策略）—— 无内核改动，但要对 ACP 打补丁。
+
 2. **指纹**：`mi_fp` 走 TEE（QSEE/Goodix TA），主线内核无 DT 节点，不可达。
 3. **摄像头**：`piano-camerad` 已装，KDE 侧没有应用集成，只能用 pianocam/V4L2。
 
