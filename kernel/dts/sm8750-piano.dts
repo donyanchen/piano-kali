@@ -95,13 +95,51 @@
 	};
 
 	/*
+	 * Panel rails. The vendor DT keeps these as fixed regulators rather than
+	 * PMIC rails, with the values below (real.dts: display_panel_avdd 5.5 V,
+	 * display_panel_vsp/vsn +-5.8 V on tlmm 117/118, all boot-on).
+	 */
+	display_panel_avdd: regulator-avdd {
+		compatible = "regulator-fixed";
+		regulator-name = "display_panel_avdd";
+		regulator-min-microvolt = <5500000>;
+		regulator-max-microvolt = <5500000>;
+		regulator-enable-ramp-delay = <233>;
+		regulator-boot-on;
+		enable-active-high;
+	};
+
+	display_panel_vsp: regulator-vsp {
+		compatible = "regulator-fixed";
+		regulator-name = "display_panel_vsp";
+		regulator-min-microvolt = <5800000>;
+		regulator-max-microvolt = <5800000>;
+		regulator-enable-ramp-delay = <233>;
+		regulator-boot-on;
+		enable-active-high;
+		gpio = <&tlmm 117 GPIO_ACTIVE_HIGH>;
+	};
+
+	display_panel_vsn: regulator-vsn {
+		compatible = "regulator-fixed";
+		regulator-name = "display_panel_vsn";
+		regulator-min-microvolt = <5800000>;
+		regulator-max-microvolt = <5800000>;
+		regulator-enable-ramp-delay = <233>;
+		regulator-boot-on;
+		enable-active-high;
+		gpio = <&tlmm 118 GPIO_ACTIVE_HIGH>;
+	};
+
+	/*
 	 * Xiaomi p81 35 02 0b: 1600x2136 per DSI link, DSC, video mode.
 	 * Timings live in the panel driver; the node only wires the links.
 	 */
 	panel: panel {
 		compatible = "xiaomi,p81-35-02-0b";
-		/* TODO(P3): reset gpio confirmed as tlmm 98 from the vendor DT */
+		/* both values are from the vendor DT: reset on tlmm 98 */
 		reset-gpios = <&tlmm 98 GPIO_ACTIVE_LOW>;
+		avdd-supply = <&display_panel_avdd>;
 
 		port {
 			panel_in: endpoint {
