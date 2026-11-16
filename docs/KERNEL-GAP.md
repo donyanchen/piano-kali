@@ -153,3 +153,17 @@
 2. initramfs 46 MB 太大（`MODULES=dep` 仍把 DRM 全套拉进去），`boot` 分区只剩 7 MB 余量。
    `modules_install` 应带 `INSTALL_MOD_STRIP=1`。
 3. 先用 `fastboot boot` 验证，**确认能看到日志再写分区**——这次先 dd 后重启是错的顺序。
+
+## 10. 剩下的缺口（按依赖顺序，全部有真值来源）
+
+| # | 缺什么 | 真值在哪 | 状态 |
+|---|---|---|---|
+| 1 | 面板驱动编译 | — | **已修**（v7.3 API + supplies 可选），待构建验证 |
+| 2 | 面板供电（`display_panel_avdd/vsp/vsn` 三个 fixed regulator） | 原厂 DTB `real.dts`（已确认存在这三个 regulator） | 待加进板级 DTS |
+| 3 | DSI PHY 的 `vdda-supply` | 原厂 DTB 未写；向上游 sm8650 对齐后按 0.88V 轨接 | 待定 |
+| 4 | 板级 regulator 表（163 个 regulator-name 已提取） | 原厂 DTB | 待按需逐条搬 |
+| 5 | GPU 节点（iommus / power-domains / opp-table） | **跑着的 Android**：`/sys/class/kgsl/kgsl-3d0/devfreq/available_frequencies`、`/sys/kernel/debug/kgsl/` | 等 adb 恢复 |
+| 6 | 触摸驱动 | 厂商 `NVT-ts` 行为 + 原厂 DTB 的 novatek 节点 | 待写 |
+
+**关键发现**：面板的三路供电是 **fixed regulator**（`display_panel_avdd` / `vsp` / `vsn`），
+不是 PMIC 轨，所以只要在板级 DTS 复刻这三个节点，面板驱动就能拿到 supply。
