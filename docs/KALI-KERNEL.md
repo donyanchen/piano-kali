@@ -101,3 +101,14 @@ chroot "$ROOTFS" dpkg -i /tmp/sheng-msime-integration_1.0-1_arm64.deb
 另一个坑：`scripts/osk-mode.py` 必须在**已登录、未锁屏**的会话里以桌面用户跑一次
 （`osk-mode.py dock --sheng-ui`），否则 `~/.config/fcitx5-osk/config.toml` 里
 `default_landscape_layout` 是空字符串，OSK 起来也没布局。
+
+### OSK 的两个配置坑（真机踩过）
+
+1. `~/.config/fcitx5-osk/config.toml` 的 `indicator_display` **只接受
+   `Auto` / `AlwaysOn` / `AlwaysOff`**。写成 `Never` 之类会让整份配置解析失败、
+   OSK 静默回退到默认值——表现为「指示器还在、布局也没生效」，日志里只有一行
+   `try to use default config`。
+2. 磁吸键盘接着时 `nanosic_hinge/keyboard_attached = 1`，
+   `sheng-keyboard-policy` 会把 KWin 的虚拟键盘模式设成 `Never`(0)，此时点 OSK
+   会「闪一下就消失」——这是上游的抑制逻辑，不是崩溃。想让按钮彻底消失就设
+   `indicator_display = "AlwaysOff"`。
