@@ -112,3 +112,22 @@ chroot "$ROOTFS" dpkg -i /tmp/sheng-msime-integration_1.0-1_arm64.deb
    `sheng-keyboard-policy` 会把 KWin 的虚拟键盘模式设成 `Never`(0)，此时点 OSK
    会「闪一下就消失」——这是上游的抑制逻辑，不是崩溃。想让按钮彻底消失就设
    `indicator_display = "AlwaysOff"`。
+
+## 8. 只更新内核（不重建 Kali）
+
+内核换代不需要重做 rootfs——镜像里只有 boot 三件套和 `/lib/modules` 会变：
+
+```bash
+# 沙箱里，拿 kernel.yml 的 artifact 目录
+SUDO_PASS=kali scripts/push-kernel-to-device.sh kali@192.168.0.13 <artifact-dir> [--flash]
+```
+
+脚本做的四件事：
+
+1. 把 `modules/lib/modules/<krel>` 解到设备 `/lib/modules/`，`depmod`
+2. 在设备上 `mkinitramfs`（缺 `kmod`/`initramfs-tools` 会自动装）
+3. 回到沙箱用 `mk-bootimg.sh` 拼 `boot.img` / `init_boot.img` / `vendor_boot.img`
+   （平板没有 `mkbootimg`，所以这一步在沙箱做）
+4. `--flash` 时先备份当前三个分区到 `/var/backups/piano-boot-<时间>/`，再 dd 写入并 sync
+
+Kali 的文件系统一个字节都不动。回退就是把备份 dd 回去，或者 `fastboot flash`。
