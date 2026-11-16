@@ -24,11 +24,11 @@
 
 | 上游做法 | piano 事实 | 处理 |
 | --- | --- | --- |
-| `sheng-hotspot` 独立 AP（hostapd + sheng-ap） | WCN7860 主线驱动未验证 AP+STA 并发 | 不装，热点继续用 NetworkManager |
+| `sheng-hotspot` 独立 AP（hostapd + sheng-ap） | **已验证可用**：ath12k_wifi7 报告 `#{managed}<=1, #{AP,...}<=16, total<=16, #channels<=2`，实测 `sheng-ap` 起来后 wlan0 仍保持上游连接 | 照搬上游，仅把 `xiaomi,sheng` 设备守卫放宽为 `sheng` 或 `piano`；脚本装到 `/usr/libexec/sheng-hotspot/{setup,hotspot}.py` |
 | `device/keyboard-auth`（sheng_devauth） | piano 是 Nanosic WN8030，走 `nanosic_auth`/`nanosic_hinge` | 不装，PIN 解锁不适用 |
 | UCM `Qualcomm/sm8750/Xiaomi-Pad-8-Pro/HiFi.conf` 用 sheng 的声道假设 | piano 四个功放分别挂 TDM slot 0–3（摄像头侧 L/R、触点侧 L/R） | 保留 piano 自己的 UCM；四扬声器需要 ASoC 侧复制，见第 3 节 |
-| `sheng-desktop-sleep` 挂起钩子 | piano 挂起不稳（已关自动挂起） | 暂不启用 |
-| 隐私 udev 规则按 sheng 的 `/dev/video*` 命名 | piano 摄像头是 `qcom-camss` + ad27000 ISP，节点/驱动不同 | 隐私开关保留但只做“摄像头/麦克风权限”，设备名需按本机改 |
+| `sheng-desktop-sleep` 挂起钩子 | piano 挂起不稳（已关自动挂起） | 钩子脚本照搬，但 `AutoSuspendAction` 保持 0，只在手动挂起时生效 |
+| 隐私 udev 规则按 sheng 的 `/dev/video*` 命名 | piano 视频节点是 `qcom-camss` + ad27000 ISP，名称与 sheng 不同 | 保留上游规则并用 piano 的实际节点名补一条，不改语义（只封摄像头/麦克风/定位） |
 | `20-sheng-sddm-display.conf` 里 `InputMethod=qtvirtualkeyboard` | 我们走 fcitx5-osk | 保留我们的 sddm 配置 |
 
 ## 3. 已知未完成项（真差异，非配置问题）
