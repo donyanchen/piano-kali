@@ -1,0 +1,176 @@
+// Reference GPU node + OPP table for SM8750 (Adreno 830), NOT included by any
+// DTS yet. Values: frequencies cross-checked against the running Android
+// (/sys/class/kgsl/kgsl-3d0/devfreq/available_frequencies, 160M..1100M match);
+// opp-level/acd come from a third-party tree and are therefore provisional.
+// Blockers before enabling: adreno_smmu node (iommus), power-domains (CX/GX),
+// and the signed gen80000_zap.mbn in /lib/firmware/qcom/sm8750/xiaomi/piano/.
+
+		gpu: gpu@3d00000 {
+			compatible = "qcom,adreno-44050001", "qcom,adreno";
+			reg = <0x0 0x03d00000 0x0 0x6d000>,
+			      <0x0 0x03d9e000 0x0 0x2000>;
+			reg-names = "kgsl_3d0_reg_memory",
+				    "cx_mem";
+
+			interrupts = <GIC_SPI 300 IRQ_TYPE_LEVEL_HIGH>;
+
+			iommus = <&adreno_smmu 0 0x0>,
+				 <&adreno_smmu 1 0x0>;
+
+			operating-points-v2 = <&gpu_opp_table>;
+
+			qcom,gmu = <&gmu>;
+			#cooling-cells = <2>;
+
+			nvmem-cells = <&gpu_speed_bin>;
+			nvmem-cell-names = "speed_bin";
+
+			interconnects = <&gem_noc MASTER_GFX3D QCOM_ICC_TAG_ALWAYS
+					 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+			interconnect-names = "gfx-mem";
+
+			status = "disabled";
+
+			gpu_zap_shader: zap-shader {
+				memory-region = <&gpu_micro_code_mem>;
+			};
+
+			gpu_opp_table: opp-table {
+				compatible = "operating-points-v2-adreno",
+					     "operating-points-v2";
+
+				opp-160000000 {
+					opp-hz = /bits/ 64 <160000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS_D3>;
+					opp-peak-kBps = <2136718>;
+					opp-supported-hw = <0x1f>;
+				};
+
+				opp-222000000 {
+					opp-hz = /bits/ 64 <222000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS_D2>;
+					opp-peak-kBps = <2136718>;
+					opp-supported-hw = <0x1f>;
+				};
+
+				opp-342000000 {
+					opp-hz = /bits/ 64 <342000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS_D1>;
+					opp-peak-kBps = <5285156>;
+					opp-supported-hw = <0x1f>;
+				};
+
+				opp-389000000 {
+					opp-hz = /bits/ 64 <389000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS_D0>;
+					opp-peak-kBps = <6074218>;
+					qcom,opp-acd-level = <0xc8285ffd>;
+					opp-supported-hw = <0x1f>;
+				};
+
+				opp-443000000 {
+					opp-hz = /bits/ 64 <443000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS>;
+					opp-peak-kBps = <6074218>;
+					qcom,opp-acd-level = <0xc02e5ffd>;
+					opp-supported-hw = <0x1f>;
+				};
+
+				opp-525000000 {
+					opp-hz = /bits/ 64 <525000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS_L1>;
+					opp-peak-kBps = <6074218>;
+					qcom,opp-acd-level = <0xc02e5ffd>;
+					opp-supported-hw = <0x1f>;
+				};
+
+				opp-607000000 {
+					opp-hz = /bits/ 64 <607000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_SVS>;
+					opp-peak-kBps = <8171875>;
+					qcom,opp-acd-level = <0xa82e5ffd>;
+					opp-supported-hw = <0x1f>;
+				};
+
+				opp-660000000 {
+					opp-hz = /bits/ 64 <660000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_SVS_L0>;
+					opp-peak-kBps = <8171875>;
+					qcom,opp-acd-level = <0x882c5ffd>;
+					opp-supported-hw = <0x1f>;
+				};
+
+				opp-734000000 {
+					opp-hz = /bits/ 64 <734000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_SVS_L1>;
+					opp-peak-kBps = <12449218>;
+					qcom,opp-acd-level = <0xa82a5ffd>;
+					opp-supported-hw = <0x1f>;
+				};
+
+				opp-832000000 {
+					opp-hz = /bits/ 64 <832000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_SVS_L2>;
+					opp-peak-kBps = <16500000>;
+					qcom,opp-acd-level = <0x882a5ffd>;
+					opp-supported-hw = <0x1f>;
+				};
+
+				opp-900000000-0 {
+					opp-hz = /bits/ 64 <900000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_NOM>;
+					opp-peak-kBps = <16500000>;
+					qcom,opp-acd-level = <0x882a5ffd>;
+					opp-supported-hw = <0x0f>;
+				};
+
+				/* Only applicable for SKUs which has 900Mhz as Fmax */
+				opp-900000000-1 {
+					opp-hz = /bits/ 64 <900000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_NOM>;
+					opp-peak-kBps = <18597656>;
+					qcom,opp-acd-level = <0x882a5ffd>;
+					opp-supported-hw = <0x10>;
+				};
+
+				opp-967000000 {
+					opp-hz = /bits/ 64 <967000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_NOM_L1>;
+					opp-peak-kBps = <18597656>;
+					qcom,opp-acd-level = <0x882a5ffd>;
+					opp-supported-hw = <0x0f>;
+				};
+
+				opp-1050000000 {
+					opp-hz = /bits/ 64 <1050000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_TURBO_L1>;
+					opp-peak-kBps = <18597656>;
+					qcom,opp-acd-level = <0xa8295ffd>;
+					opp-supported-hw = <0x0f>;
+				};
+
+				opp-1100000000 {
+					opp-hz = /bits/ 64 <1100000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_TURBO_L3>;
+					opp-peak-kBps = <18597656>;
+					qcom,opp-acd-level = <0x88295ffd>;
+					opp-supported-hw = <0x05>;
+				};
+
+				opp-1150000000 {
+					opp-hz = /bits/ 64 <1150000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_TURBO_L3>;
+					opp-peak-kBps = <18597656>;
+					qcom,opp-acd-level = <0x88295ffd>;
+					opp-supported-hw = <0x02>;
+				};
+
+				opp-1200000000 {
+					opp-hz = /bits/ 64 <1200000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_TURBO_L4>;
+					opp-peak-kBps = <18597656>;
+					qcom,opp-acd-level = <0x88295ffd>;
+					opp-supported-hw = <0x01>;
+				};
+			};
+		};
