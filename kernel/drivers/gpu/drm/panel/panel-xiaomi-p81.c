@@ -40,6 +40,7 @@ struct p81_panel {
 	struct mipi_dsi_device *dsi;
 	struct gpio_desc *reset_gpio;
 	struct regulator_bulk_data supplies[2];
+	int num_supplies;
 	struct backlight_device *backlight;
 	bool prepared;
 };
@@ -101,7 +102,7 @@ static int p81_prepare(struct drm_panel *panel)
 	if (ctx->prepared)
 		return 0;
 
-	ret = regulator_bulk_enable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
+	ret = regulator_bulk_enable(ctx->num_supplies, ctx->supplies);
 	if (ret) {
 		dev_err(&dsi->dev, "regulators failed: %d\n", ret);
 		return ret;
@@ -138,7 +139,7 @@ static int p81_prepare(struct drm_panel *panel)
 	return 0;
 
 err_regs:
-	regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
+	regulator_bulk_disable(ctx->num_supplies, ctx->supplies);
 	return ret;
 }
 
@@ -178,7 +179,7 @@ static int p81_unprepare(struct drm_panel *panel)
 
 	if (ctx->reset_gpio)
 		gpiod_set_value_cansleep(ctx->reset_gpio, 0);
-	regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
+	regulator_bulk_disable(ctx->num_supplies, ctx->supplies);
 
 	ctx->prepared = false;
 	return 0;
@@ -209,50 +210,66 @@ static const struct drm_panel_funcs p81_funcs = {
 
 static int p81_probe(struct mipi_dsi_device *dsi)
 {
+	struct device *dev = &dsi->dev;
 	struct p81_panel *ctx;
 	int ret;
 
-	ctx = devm_kzalloc(&dsi->dev, sizeof(*ctx), GFP_KERNEL);
-	if (!ctx)
-		return -ENOMEM;
+	/* v6.15 dropped drm_panel_init(); the panel is now allocated through
+	 * devm_drm_panel_alloc(), which also sets up the refcounted base. */
+	ctx = devm_drm_panel_alloc(dev, struct p81_panel, panel,
+				   &p81_funcs, DRM_MODE_CONNECTOR_DSI);
+	if (IS_ERR(ctx))
+		return PTR_ERR(ctx);
 
 	ctx->supplies[0].supply = "vddi";
 	ctx->supplies[1].supply = "avdd";
-	ret = devm_regulator_bulk_get(&dsi->dev, ARRAY_SIZE(ctx->supplies), ctx->supplies);
-	if (ret)
-		return dev_err_probe(&dsi->dev, ret, "regulators\n");
+	/* The board DT may not describe the panel rails (the vendor DT keeps them
+	 * implicit, powered by the bootloader). Treat a missing supply as "none"
+	 * instead of failing probe. */
+	ret = devm_regulator_bulk_get(dev, ARRAY_SIZE(ctx->supplies), ctx->supplies);
+	if (ret == -ENODEV) {
+		dev_info(dev, "no panel supplies described, continuing\n");
+		ctx->num_supplies = 0;
+	} else if (ret) {
+		return dev_err_probe(dev, ret, "regulators\n");
+	} else {
+		ctx->num_supplies = ARRAY_SIZE(ctx->supplies);
+	}
 
-	ctx->reset_gpio = devm_gpiod_get_optional(&dsi->dev, "reset", GPIOD_OUT_LOW);
+	ctx->reset_gpio = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_LOW);
 	if (IS_ERR(ctx->reset_gpio))
-		return dev_err_probe(&dsi->dev, PTR_ERR(ctx->reset_gpio), "reset gpio\n");
+		return dev_err_probe(dev, PTR_ERR(ctx->reset_gpio), "reset gpio\n");
 
 	ctx->dsi = dsi;
+	mipi_dsi_set_drvdata(dsi, ctx);
+
 	dsi->lanes = 4;
 	dsi->format = MIPI_DSI_FMT_RGB888;
 	dsi->mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST |
 			  MIPI_DSI_MODE_NO_EOT_PACKET;
 
-	drm_panel_init(&ctx->panel, &dsi->dev, &p81_funcs, DRM_MODE_CONNECTOR_DSI);
+	/* The DSI host must be in LP-11 before the panel is powered up. */
+	ctx->panel.prepare_prev_first = true;
+
 	ret = drm_panel_of_backlight(&ctx->panel);
 	if (ret)
-		return dev_err_probe(&dsi->dev, ret, "backlight\n");
+		return dev_err_probe(dev, ret, "backlight\n");
 	ctx->backlight = ctx->panel.backlight;
 
-	ret = drm_panel_add(&ctx->panel);
-	if (ret)
-		return ret;
+	drm_panel_add(&ctx->panel);
 
-	dev_set_drvdata(&dsi->dev, ctx);
 	ret = mipi_dsi_attach(dsi);
-	if (ret)
+	if (ret) {
 		drm_panel_remove(&ctx->panel);
+		return dev_err_probe(dev, ret, "dsi attach\n");
+	}
 
-	return ret;
+	return 0;
 }
 
 static void p81_remove(struct mipi_dsi_device *dsi)
 {
-	struct p81_panel *ctx = dev_get_drvdata(&dsi->dev);
+	struct p81_panel *ctx = mipi_dsi_get_drvdata(dsi);
 
 	mipi_dsi_detach(dsi);
 	drm_panel_remove(&ctx->panel);
