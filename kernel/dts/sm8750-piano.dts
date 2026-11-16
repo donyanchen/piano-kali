@@ -1,0 +1,294 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Xiaomi Pad 8 Pro (piano, 25091RP04C) — SM8750 board.
+ *
+ * Every number in this file comes from the *factory* device tree
+ * (piano-real.dtb / dtbo piano overlay), not from any third-party kernel tree.
+ * See docs/KERNEL-TRUTH.md for the evidence behind each node.
+ *
+ * Status: v0 scaffold. Display/touch/keyboard/keys are described; audio DAI
+ * links and GPU nodes land in P3 (they need the amp driver / gpu node shape).
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/leds/common.h>
+#include <dt-bindings/regulator/qcom,rpmh-regulator.h>
+
+#include "sm8750.dtsi"
+#include "pm8010.dtsi"
+#include "pm8550.dtsi"
+#define PMK8550VE_SID 8
+#include "pm8550ve.dtsi"
+#include "pmd8028.dtsi"
+#include "pmih0108.dtsi"
+#include "pmk8550.dtsi"
+#include "pmr735d_a.dtsi"
+#include "sm8750-pmics.dtsi"
+
+/ {
+	model = "Xiaomi Pad 8 Pro (piano)";
+	compatible = "xiaomi,piano", "qcom,sm8750";
+	chassis-type = "tablet";
+
+	aliases {
+		serial0 = &uart7;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+		/*
+		 * The real cmdline is injected into boot.img by
+		 * scripts/patch-boot-cmdline.py; keep this as a fallback so a
+		 * bare `boot Image --dtb ...` still gets a root filesystem.
+		 */
+		bootargs = "root=PARTLABEL=linux_rootfs rootwait ro console=ttyMSM0,115200n8 earlycon";
+	};
+
+	/*
+	 * Board-level fixed clocks. sm8750.dtsi references these labels but does
+	 * not define them — every board has to (see upstream sm8750-mtp.dts).
+	 */
+	xo_board: xo-board {
+		compatible = "fixed-clock";
+		clock-frequency = <76800000>;
+		#clock-cells = <0>;
+	};
+
+	sleep_clk: sleep-clk {
+		compatible = "fixed-clock";
+		clock-frequency = <32000>;
+		#clock-cells = <0>;
+	};
+
+	bi_tcxo_div2: bi-tcxo-div2-clk {
+		compatible = "fixed-factor-clock";
+		#clock-cells = <0>;
+		clocks = <&rpmhcc RPMH_CXO_CLK>;
+		clock-mult = <1>;
+		clock-div = <2>;
+	};
+
+	bi_tcxo_ao_div2: bi-tcxo-ao-div2-clk {
+		compatible = "fixed-factor-clock";
+		#clock-cells = <0>;
+		clocks = <&rpmhcc RPMH_CXO_CLK_A>;
+		clock-mult = <1>;
+		clock-div = <2>;
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+		pinctrl-0 = <&vol_up_state>;
+		pinctrl-names = "default";
+
+		key-vol-up {
+			label = "volume_up";
+			gpios = <&tlmm 6 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_VOLUMEUP>;
+			debounce-interval = <32>;
+			wakeup-source;
+		};
+	};
+
+	/*
+	 * Xiaomi p81 35 02 0b: 1600x2136 per DSI link, DSC, video mode.
+	 * Timings live in the panel driver; the node only wires the links.
+	 */
+	panel: panel {
+		compatible = "xiaomi,p81-35-02-0b";
+		/* TODO(P3): reset gpio confirmed as tlmm 98 from the vendor DT */
+		reset-gpios = <&tlmm 98 GPIO_ACTIVE_LOW>;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&mdss_dsi0_out>;
+			};
+		};
+	};
+};
+
+&tlmm {
+	vol_up_state: vol-up-state {
+		pins = "gpio6";
+		function = "gpio";
+		bias-pull-up;
+		drive-strength = <2>;
+	};
+
+	touch_irq_state: touch-irq-state {
+		pins = "gpio162";
+		function = "gpio";
+		bias-pull-up;
+		drive-strength = <2>;
+	};
+
+	touch_reset_state: touch-reset-state {
+		pins = "gpio98";
+		function = "gpio";
+		bias-disable;
+		drive-strength = <2>;
+	};
+};
+
+/* ---- storage ---------------------------------------------------------- */
+
+&ufs_mem_hc {
+	status = "okay";
+	/* TODO(P3): rails are vcc/vccq/vccq2 from the PMIC set above */
+};
+
+&ufs_mem_phy {
+	status = "okay";
+};
+
+/* ---- USB -------------------------------------------------------------- */
+
+&usb {
+	status = "okay";
+};
+
+&usb_dp_qmpphy {
+	status = "okay";
+};
+
+/* ---- PCIe0: WCN7850 "peach" ------------------------------------------- */
+
+&pcie0 {
+	status = "okay";
+};
+
+&pcie0_phy {
+	status = "okay";
+};
+
+/* ---- display ---------------------------------------------------------- */
+
+&mdss {
+	status = "okay";
+};
+
+&mdss_dsi0 {
+	status = "okay";
+};
+
+&mdss_dsi0_phy {
+	status = "okay";
+};
+
+&mdss_dsi0_out {
+	data-lanes = <0 1 2 3>;
+	remote-endpoint = <&panel_in>;
+};
+
+/* ---- I2C / SPI peripherals -------------------------------------------- */
+
+/* i2c@880000 (QUPv3_2 se0): backlight for one DSI half, id 0 */
+&i2c8 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	backlight_0: backlight@11 {
+		compatible = "kinetic,ktz8866";
+		reg = <0x11>;
+		/* vendor DT: ktz8866,id = <0>, ktz8866,hwen-gpio = <&tlmm 2 0> */
+		enable-gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
+		/* TODO(P3): vddpos/vddneg come from the panel bias rails */
+	};
+};
+
+/* i2c@98c000 (i2c hub se3): backlight for the other DSI half, id 1 */
+&i2c_hub_3 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	backlight_1: backlight@11 {
+		compatible = "kinetic,ktz8866";
+		reg = <0x11>;
+		/* TODO(P3): vddpos/vddneg come from the panel bias rails */
+	};
+};
+
+/* i2c@980000 (i2c hub se0): four FS19xx smart amps, 0x34..0x37 */
+&i2c_hub_0 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	amp_0: amplifier@34 {
+		compatible = "foursemi,fs16xx";
+		reg = <0x34>;
+		#sound-dai-cells = <0>;
+	};
+
+	amp_1: amplifier@35 {
+		compatible = "foursemi,fs16xx";
+		reg = <0x35>;
+		#sound-dai-cells = <0>;
+	};
+
+	amp_2: amplifier@36 {
+		compatible = "foursemi,fs16xx";
+		reg = <0x36>;
+		#sound-dai-cells = <0>;
+	};
+
+	amp_3: amplifier@37 {
+		compatible = "foursemi,fs16xx";
+		reg = <0x37>;
+		#sound-dai-cells = <0>;
+	};
+};
+
+/* i2c@a98000 (QUPv3_1 se6): magnetic keyboard MCU */
+&i2c6 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	keyboard@4c {
+		compatible = "nanosic,803", "hid-over-i2c";
+		reg = <0x4c>;
+		interrupt-parent = <&tlmm>;
+		interrupts-extended = <&tlmm 97 IRQ_TYPE_EDGE_FALLING>;
+		reset-gpios = <&tlmm 188 GPIO_ACTIVE_LOW>;
+		/* vendor DT: status_pin 95, sleep_pin 3 */
+		pinctrl-0 = <&kb_irq_state>;
+		pinctrl-names = "default";
+	};
+};
+
+/* spi@a88000 (QUPv3_1 se2): Novatek touch controller */
+&spi2 {
+	status = "okay";
+
+	touchscreen@0 {
+		compatible = "novatek,nvt-ts-spi";
+		reg = <0>;
+		spi-max-frequency = <19200000>;	/* vendor DT: 0x124f800 */
+		interrupt-parent = <&tlmm>;
+		interrupts-extended = <&tlmm 162 IRQ_TYPE_EDGE_RISING>;
+		reset-gpios = <&tlmm 98 GPIO_ACTIVE_LOW>;
+		pinctrl-0 = <&touch_irq_state &touch_reset_state>;
+		pinctrl-names = "default";
+		/* panel lcd_id strap, vendor DT: novatek,lcd_id-gpio = <&tlmm 100 0> */
+	};
+};
+
+&tlmm {
+	kb_irq_state: kb-irq-state {
+		pins = "gpio97";
+		function = "gpio";
+		bias-pull-up;
+		drive-strength = <2>;
+	};
+};
+
+/* ---- placeholder: audio (P3) ------------------------------------------ */
+/*
+ * The factory DT says: sound card "sun-mtp-snd-card", qcom,tdm-max-slots = <4>,
+ * qcom,wsa-max-devs = <0>, 4x foursemi,fs16xx on i2c 0x34-0x37.
+ * Upstream already has qcom,sm8750-sndcard (sc8280xp.c) with TDM hw_params, so
+ * P3 only has to write the board DAI link + the amp codec driver.
+ */

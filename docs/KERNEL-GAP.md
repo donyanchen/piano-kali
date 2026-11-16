@@ -44,7 +44,7 @@
 |---|---|---|---|---|---|---|---|
 | 1 | SoC 基础 | clk/icc/pinctrl/tsens/rpmh/SMMU/remoteproc | 全套 | ✅ | 只写板级引用 | 0.5d | 必做 |
 | 2 | UFS | UFSHCI 4.0 + **MCQ** + Gear5×2 | `qcom,sm8750-ufshc` + ufs-qcom MCQ ops | ✅ | DT 带 `mcq_sqd/mcq_vs` reg；验证 ESI/MCQ 真开 | 1d | 必做 |
-| 3 | DPU + 双 DSI + DSC | 3200×2136@144 双链路、DSC、亮度 | DPU catalog + dsi-ctrl/phy + bonded DSI | ⚠️ | **面板驱动**（p81_35_02_0b 初始化序列/DSC/亮度） | 3–5d | 必做 |
+| 3 | DPU + 双 DSI + DSC | 3200×2136@144 双链路、DSC、亮度 | DPU catalog + dsi-ctrl/phy + bonded DSI；板级 DTB 已编过（CI dtb job） | ⚠️ | 面板驱动：90/120/144 三套序列已从 `piano-real.dtb` 提取到 `kernel/drivers/gpu/drm/panel/panel-xiaomi-p81/`，剩命令编码/DSC/双链路 | 3–5d | 必做 |
 | 4 | 背光 | 两颗 ktz8866，0–0xfff | `ktz8866.c` | ✅ | DT 两个实例 + 亮度映射 | 0.5d | 必做 |
 | 5 | 触摸 | Novatek **SPI**（NVT-ts-spi） | 仅 I2C 版 | ❌ | 写 SPI 驱动（或扩 nvt-ts 支持 SPI）；`invert_y` | 1–2d | 必做 |
 | 6 | USB/Type-C | dwc3 + QMP + UCSI/PD 角色 | dwc3/pcie-qcom/ucsi_glink 全有 | ⚠️ | DT 用上游 compatible（`qcom,sm8550-pmic-glink`）+ 验证 ADSP 通道 | 1d | 必做 |
