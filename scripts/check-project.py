@@ -37,8 +37,8 @@ def main():
             continue
         if path.stat().st_size > 5 * 1024 * 1024:
             problems.append(name + ': unexpected large file')
-        if path.suffix.lower() in ('.jpg', '.jpeg', '.png') or name == 'parted':
-            continue  # Existing upstream historical files, documented in THIRD_PARTY.md.
+        if path.suffix.lower() in ('.jpg', '.jpeg', '.png', '.otf', '.ttf', '.woff2') or name == 'parted':
+            continue  # Binary assets, documented in THIRD_PARTY.md.
         try:
             data = path.read_text(encoding='utf-8')
             for number, line in enumerate(data.splitlines(), 1):
@@ -63,7 +63,9 @@ def main():
                     if urllib.parse.urlsplit(link).scheme or link.startswith(('#', '//')):
                         continue
                     relative = urllib.parse.unquote(link.split('#', 1)[0])
-                    if relative and not (path.parent / relative).exists():
+                    # vendor/ is a trimmed copy of the sheng tree: its READMEs
+                    # link to files we deliberately do not carry.
+                    if relative and parts[0] != 'vendor' and not (path.parent / relative).exists():
                         problems.append(name + ': broken local link: ' + relative)
         except (UnicodeError, SyntaxError, ValueError, ET.ParseError) as error:
             problems.append(name + ': parse error (' + type(error).__name__ + ')')

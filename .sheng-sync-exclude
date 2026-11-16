@@ -22,6 +22,7 @@ scripts/dt-inventory.py
 scripts/extract-panel-seq.py
 scripts/patch-boot-cmdline.py
 configs/piano.json
+scripts/check-project.py   # patched: vendor/ is a subset, binary assets skipped
 
 # docs that describe this device / this kernel
 docs/INSTALL.md
