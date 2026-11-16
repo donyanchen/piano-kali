@@ -2,6 +2,17 @@
 
 在小米平板 8 Pro（`piano` / `25091RP04C`，骁龙 8 至尊版 SM8750）上跑原生 **Kali Linux ARM64 + KDE Plasma Wayland**，内核由本项目自己从 upstream 构建。
 
+## 仓库结构：两条独立流水线
+
+| 线 | 目录 / 工作流 | 来源 | 触发 |
+|---|---|---|---|
+| **内核** | `kernel/`、`.github/workflows/kernel.yml`、`docs/KERNEL-TRUTH.md`、`docs/KERNEL-GAP.md` | kernel.org `v7.3.4` + 按原厂真值自写 | 改 `kernel/**` 才跑 |
+| **Kali** | `device/`、`scripts/`、`docs/`（sheng 那批）、`.github/workflows/build.yml` | 1:1 同步 sheng-kali-linux（`scripts/sync-sheng-base.sh`） | 手动 / 每周同步 |
+
+两条线的唯一接口是 `scripts/build-kali.sh` 的 `PIANO_KERNEL_DIR`：Kali 镜像构建时把内核
+artifact 拿过去装模块、做 initramfs、拼 boot 三件套。除此之外互不依赖，改内核不会动 Kali 用户态，
+同步 Kali 也不会动内核（`.sheng-sync-exclude` 里锁死了）。
+
 ## 三条来源原则
 
 | 层 | 来源 | 说明 |
