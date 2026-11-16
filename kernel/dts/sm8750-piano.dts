@@ -95,6 +95,21 @@
 	};
 
 	/*
+	 * Borrow the stock ramoops region (0xa3500000, 4 MiB, 2 MiB console) so our
+	 * kernel's log lands where Android's pstore driver will read it back:
+	 * reboot into Android, then /sys/fs/pstore/console-ramoops.
+	 */
+	reserved-memory {
+		ramoops_region: ramoops@a3500000 {
+			compatible = "ramoops";
+			reg = <0x0 0xa3500000 0x0 0x400000>;
+			console-size = <0x200000>;
+			pmsg-size = <0x200000>;
+			no-map;
+		};
+	};
+
+	/*
 	 * Panel rails. The vendor DT keeps these as fixed regulators rather than
 	 * PMIC rails, with the values below (real.dts: display_panel_avdd 5.5 V,
 	 * display_panel_vsp/vsn +-5.8 V on tlmm 117/118, all boot-on).
