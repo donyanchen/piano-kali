@@ -21,7 +21,7 @@ def main():
     for name in ('metadata.json', 'LICENSE', 'README.md'):
         files[name] = (source / name).read_bytes().replace(b'\r\n', b'\n')
     revision = hashlib.sha256(b''.join(k.encode() + b'\0' + v for k, v in sorted(files.items()))).hexdigest()[:12]
-    identifier = 'piano-task-cards-' + revision
+    identifier = 'sheng-task-cards-' + revision
     metadata = json.loads(files['metadata.json'])
     metadata['KPlugin']['Id'] = identifier
     metadata['KPlugin']['Version'] = '1.0.0+' + revision
@@ -48,7 +48,7 @@ def main():
     manifest = {'id': identifier, 'artifact': output.name, 'sha256': hashlib.sha256(output.read_bytes()).hexdigest()}
     output.with_suffix('.manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(manifest, indent=2))
-    print('After disabling older Piano effect IDs, enable as the desktop user:')
+    print('After disabling older Sheng effect IDs, enable as the desktop user:')
     print('kwriteconfig6 --file kwinrc --group Plugins --key ' + identifier + 'Enabled true')
     print('qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.loadEffect ' + identifier)
 

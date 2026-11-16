@@ -1,4 +1,4 @@
-# Adreno 830 monitoring for piano
+# Adreno 740 monitoring for sheng
 
 This device-specific KSystemStats plugin provides the standard `gpu/gpu0/` and
 `gpu/all/` sensor paths. The original PCI-only KDE GPU plugin is preserved by a
@@ -24,6 +24,6 @@ CPU core. It samples every two seconds. The Qt plugin runs as the desktop user.
 Remove the adaptation and restore the distribution plugin with:
 
 ```bash
-sudo apt remove piano-gpu-monitor
+sudo apt remove sheng-gpu-monitor
 systemctl --user restart plasma-ksystemstats.service
 ```

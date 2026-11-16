@@ -1,6 +1,6 @@
 /*
     SPDX-FileCopyrightText: 2026 Petexy
-    SPDX-FileCopyrightText: 2026 Piano Kali contributors
+    SPDX-FileCopyrightText: 2026 Sheng Kali contributors
     SPDX-License-Identifier: GPL-3.0-or-later
 
     Linexin's running-app Dock, extracted from DashboardRepresentation.qml
@@ -96,7 +96,7 @@ Item {
                     }
                     Kirigami.Icon {
                         anchors.centerIn:parent;width:root.dockIconSize;height:width
-                        source:/^Burp Suite/.test(String(task.model.AppName||task.model.display||""))?Qt.resolvedUrl("../icons/piano-burp-rounded.svg"):task.model.decoration;animated:false
+                        source:/^Burp Suite/.test(String(task.model.AppName||task.model.display||""))?Qt.resolvedUrl("../icons/sheng-burp-rounded.svg"):task.model.decoration;animated:false
                         Rectangle {
                             visible:!task.model.IsLauncher
                             anchors.horizontalCenter:parent.horizontalCenter;anchors.top:parent.bottom;anchors.topMargin:2
@@ -134,7 +134,7 @@ Item {
             Item {
                 id:drawerButton;width:root.dockCellSize;height:root.dockCellSize
                 Accessible.name:"应用抽屉";Accessible.role:Accessible.Button
-                Kirigami.Icon{anchors.centerIn:parent;width:root.dockIconSize-6;height:width;source:Qt.resolvedUrl("../icons/piano-apps-grid.svg");isMask:true;color:Kirigami.Theme.textColor;animated:false}
+                Kirigami.Icon{anchors.centerIn:parent;width:root.dockIconSize-6;height:width;source:Qt.resolvedUrl("../icons/sheng-apps-grid.svg");isMask:true;color:Kirigami.Theme.textColor;animated:false}
                 scale:drawerMouse.pressed?0.88:drawerMouse.containsMouse?1.08:1
                 Behavior on scale{NumberAnimation{duration:root.hoverDuration;easing.type:Easing.OutBack;easing.overshoot:2}}
                 MouseArea{id:drawerMouse;anchors.fill:parent;hoverEnabled:true;onClicked:root.toggleDrawer()}

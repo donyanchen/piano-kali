@@ -85,7 +85,7 @@ Item {
         }
         Rectangle {
             id: media; y: 110; width: panel.half; height: 222; radius: 28; color: hyperColors.card
-            Kirigami.Icon { x: 22; y: 20; width: 28; height: 28; source: panel.ic("piano-music.svg"); isMask: true; color: hyperColors.muted }
+            Kirigami.Icon { x: 22; y: 20; width: 28; height: 28; source: panel.ic("sheng-music.svg"); isMask: true; color: hyperColors.muted }
             Text { x: 22; y: 66; width: parent.width - 44; text: ctl.mediaActive ? ctl.mediaTitle : "未在播放"; color: hyperColors.text; font.pixelSize: 17; font.weight: Font.Medium; maximumLineCount: 2; wrapMode: Text.WordWrap; elide: Text.ElideRight }
             Text { x: 22; y: 118; width: parent.width - 44; text: ctl.mediaActive ? ctl.mediaArtist : "音乐与媒体"; color: hyperColors.muted; font.pixelSize: 12; elide: Text.ElideRight }
             Row {
@@ -124,7 +124,7 @@ Item {
         }
         Grid {
             y: 354; width: parent.width; columns: 4; columnSpacing: 14; rowSpacing: 8
-            HyperToggle { colors: panel.colors; width: (panel.inner - 42) / 4; title: "热点"; selected: ctl.hotspotOn; available: !ctl.hotspotBusy; iconSource: panel.ic("piano-hotspot.svg"); onClicked: ctl.entryClick(panel.entry("piano-hotspot")) }
+            HyperToggle { colors: panel.colors; width: (panel.inner - 42) / 4; title: "热点"; selected: ctl.hotspotOn; available: !ctl.hotspotBusy; iconSource: panel.ic("sheng-hotspot.svg"); onClicked: ctl.entryClick(panel.entry("sheng-hotspot")) }
             HyperToggle { colors: panel.colors; width: (panel.inner - 42) / 4; title: "飞行模式"; selected: ctl.airplane; iconSource: panel.ic("plane.svg"); onClicked: ctl.toggleAirplane() }
             HyperToggle { colors: panel.colors; width: (panel.inner - 42) / 4; title: "勿扰模式"; selected: ctl.dnd; iconSource: panel.ic("bell-off.svg"); onClicked: ctl.entryClick(panel.entry("dnd")) }
             HyperToggle { colors: panel.colors; width: (panel.inner - 42) / 4; title: "深色模式"; selected: ctl.dark; iconSource: panel.ic("moon.svg"); onClicked: ctl.entryClick(panel.entry("dark")) }
@@ -133,13 +133,13 @@ Item {
                 colors: panel.colors; width: (panel.inner - 42) / 4; title: ctl.privacyError ? "隐私异常" : "隐私"
                 selected: ctl.privacyOn && ctl.privacyGuard && !ctl.privacyError
                 available: !ctl.privacyBusy && !ctl.privacyServiceBusy
-                iconSource: panel.ic("piano-privacy.svg")
+                iconSource: panel.ic("sheng-privacy.svg")
                 onClicked: ctl.togglePrivacy()
                 QQC2.ToolTip.visible: privacyHover.hovered
                 QQC2.ToolTip.text: ctl.privacyHint
                 HoverHandler { id: privacyHover }
             }
-            HyperToggle { colors: panel.colors; width: (panel.inner - 42) / 4; title: "截屏"; iconSource: panel.ic("piano-capture.svg"); onClicked: ctl.entryClick(panel.entry("capture")) }
+            HyperToggle { colors: panel.colors; width: (panel.inner - 42) / 4; title: "截屏"; iconSource: panel.ic("sheng-capture.svg"); onClicked: ctl.entryClick(panel.entry("capture")) }
             HyperToggle { colors: panel.colors; width: (panel.inner - 42) / 4; title: "锁屏"; iconSource: panel.ic("lock.svg"); onClicked: ctl.closeAnd("qdbus6 org.freedesktop.ScreenSaver /ScreenSaver org.freedesktop.ScreenSaver.Lock") }
         }
     }

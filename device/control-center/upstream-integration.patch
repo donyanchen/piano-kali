@@ -25,7 +25,7 @@
 +    property string privacyError: ""
 +    property string privacyHint: "正在读取隐私状态"
 +    function refreshPrivacy() {
-+        exec.run("/usr/bin/piano-privacy status", applyPrivacy)
++        exec.run("/usr/bin/sheng-privacy status", applyPrivacy)
 +    }
 +    function applyPrivacy(output) {
 +        try {
@@ -40,7 +40,7 @@
 +    function togglePrivacy() {
 +        if (privacyBusy) return
 +        privacyBusy = true
-+        exec.run("/usr/bin/piano-privacy " + (privacyOn ? "off" : "on"), function(output) {
++        exec.run("/usr/bin/sheng-privacy " + (privacyOn ? "off" : "on"), function(output) {
 +            root.applyPrivacy(output)
 +            root.privacyBusy = false
 +            root.refresh()
@@ -144,7 +144,7 @@
          switch (e.preset) {
          case "wifi": return wifiOn
          case "bluetooth": return btOn
-+        case "piano-hotspot": return hotspotOn
++        case "sheng-hotspot": return hotspotOn
          case "pen": return penOn
          case "profile": return profile !== "balanced"
          case "dnd": return dnd
@@ -162,7 +162,7 @@
          case "wifi": return wifiOn ? (wifiConn ? (wifiSsid !== "" ? wifiSsid : t("connected")) : t("on")) : t("off")   // off / on / network name
          case "bluetooth": return btOn ? (btCount > 0 ? t("connected_n", { n: btCount }) : t("on_not_connected")) : t("off")   // off / on / connected (devices)
 -        case "mic": return micMuted ? t("muted") : t("on")
-+        case "piano-hotspot": return hotspotBusy ? "正在切换…" : (hotspotOn ? t("on") : t("off"))
++        case "sheng-hotspot": return hotspotBusy ? "正在切换…" : (hotspotOn ? t("on") : t("off"))
 +        case "mic": return privacyBusy ? "正在切换…" : (privacyOn ? "已保护" : "已允许")
          case "profile": return t("profile." + profile)
          case "capture": case "record": return ""
@@ -171,8 +171,8 @@
          }
      }
      function entryIcon(e) {
-+        if (e.preset === "mic") return iconBase + "piano-privacy.svg"
-+        if (e.preset === "piano-hotspot") return iconBase + "piano-hotspot.svg"
++        if (e.preset === "mic") return iconBase + "sheng-privacy.svg"
++        if (e.preset === "sheng-hotspot") return iconBase + "sheng-hotspot.svg"
          if (e.icon) return Presets.iconUrl(e.icon, iconBase)
          var c = Presets.find(e.preset)
          if (!c) return ""
@@ -180,10 +180,10 @@
          switch (e.preset) {
          case "wifi": toggleWifi(); break
          case "bluetooth": toggleBluetooth(); break
-+        case "piano-hotspot":
++        case "sheng-hotspot":
 +            if (hotspotBusy) break
 +            hotspotBusy = true
-+            exec.run(script("piano-hotspot.sh", hotspotOn ? "off" : "on"), function() {
++            exec.run(script("sheng-hotspot.sh", hotspotOn ? "off" : "on"), function() {
 +                hotspotBusy = false
 +                root.refresh()
 +            })
@@ -984,7 +984,7 @@
  var catalog = [
    { id: "wifi",       label: "Wi-Fi",         icon: "wifi.svg",          iconOff: "wifi-off.svg",          page: "wifi" },
    { id: "bluetooth",  label: "Bluetooth",     icon: "kc-bluetooth.svg",  iconOff: "bluetooth-off.svg",     page: "bluetooth" },
-+  { id: "piano-hotspot", label: "热点", icon: "wifi.svg" },
++  { id: "sheng-hotspot", label: "热点", icon: "wifi.svg" },
    { id: "pen",        label: "Pen Display",   icon: "device-tablet.svg", iconOff: "device-tablet-off.svg" },
    { id: "profile",    label: "Power Profile", icon: "scale.svg" },
    { id: "dnd",        label: "DND",           icon: "bell-off.svg",      iconOff: "kc-bell.svg" },
@@ -1004,7 +1004,7 @@
  fi
  
 +# Xiaomi concurrent AP is owned by the existing patched service, not nmcli.
-+if [ -f /run/piano-hotspot/ready ]; then echo "hotspot=1"; else echo "hotspot=0"; fi
++if [ -f /run/sheng-hotspot/ready ]; then echo "hotspot=1"; else echo "hotspot=0"; fi
 +for supply in /sys/class/power_supply/*; do
 +  if [ "$(cat "$supply/type" 2>/dev/null)" = Battery ] && [ -r "$supply/capacity" ]; then
 +    echo "battery=$(cat "$supply/capacity")"; break
@@ -1073,25 +1073,25 @@
      "Category": "System Information",
      "License": "GPL-3.0+",
 -    "Version": "0.7.7 Beta",
-+    "Version": "0.7.7-piano-privacy4",
++    "Version": "0.7.7-sheng-privacy4",
      "Website": "https://github.com/ItsNotMeBro87/plasma6-kontrol-center"
    },
    "KPackageStructure": "Plasma/Applet",
 --- /dev/null
-+++ b/contents/scripts/piano-hotspot.sh
++++ b/contents/scripts/sheng-hotspot.sh
 @@ -0,0 +1,15 @@
 +#!/bin/bash
 +set -euo pipefail
 +case "${1:-}" in
 +    on)
-+        systemctl start piano-hotspot.service
++        systemctl start sheng-hotspot.service
 +        for ((i=0; i<60; i++)); do
-+            if [[ -f /run/piano-hotspot/ready ]]; then printf 'ready\n'; exit 0; fi
-+            if systemctl is-failed --quiet piano-hotspot.service; then exit 1; fi
++            if [[ -f /run/sheng-hotspot/ready ]]; then printf 'ready\n'; exit 0; fi
++            if systemctl is-failed --quiet sheng-hotspot.service; then exit 1; fi
 +            sleep 0.2
 +        done
 +        exit 1
 +        ;;
-+    off) systemctl stop piano-hotspot.service ;;
++    off) systemctl stop sheng-hotspot.service ;;
 +    *) exit 2 ;;
 +esac

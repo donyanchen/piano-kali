@@ -6,7 +6,7 @@
  }
 +
 +// Native FUTO Unicode commit bridge. Arguments are intentionally not traced.
-+#[zbus::proxy(default_service = "org.fcitx.Fcitx5", default_path = "/org/piano/FutoKeyboard", interface = "org.piano.FutoKeyboard1")]
++#[zbus::proxy(default_service = "org.fcitx.Fcitx5", default_path = "/org/sheng/FutoKeyboard", interface = "org.sheng.FutoKeyboard1")]
 +pub trait FutoUiBridge {
 +    fn commit_text(&self, text: &str) -> ZbusResult<bool>;
 +}
@@ -96,7 +96,7 @@
  
      pub fn update_key_area_layout(&mut self, key_area_layout: &KeyAreaLayout, store: &Store) {
          self.id = self.id.wrapping_add(1);
-+        self.futo_ui = key_area_layout.name().starts_with("piano-futo");
++        self.futo_ui = key_area_layout.name().starts_with("sheng-futo");
          self.primary_text_size_u = key_area_layout.primary_text_size_u();
          self.secondary_text_size_u = key_area_layout.secondary_text_size_u();
          self.popup_key_width_u = key_area_layout.popup_key_width_u();
@@ -275,7 +275,7 @@
          modifier_workaround_keycodes: Vec<u16>,
      ) -> Result<Self> {
          let connection = Connection::session().await?;
-+        let _ = connection.request_name("org.piano.FutoKeyboard.UI").await;
++        let _ = connection.request_name("org.sheng.FutoKeyboard.UI").await;
          let controller = Fcitx5ControllerServiceProxy::new(&connection).await?;
          let virtual_keyboard = Fcitx5VirtualKeyboardServiceProxy::new(&connection).await?;
          let virtual_keyboard_backend =
@@ -326,7 +326,7 @@
          // one padding is between toolbar and key_area, two paddings are of the keyboard.
          let height = key_area_size.1 + (self.toolbar_layout.height_u() + 3) * unit;
 +        let futo_scale = (width.val() / 393.0).clamp(0.8, 1.65);
-+        let height = if self.key_area_layout.name().starts_with("piano-futo") {
++        let height = if self.key_area_layout.name().starts_with("sheng-futo") {
 +            KLength::from((205.6 + 40.0 + 28.0 + 12.0 + if self.futo_ui.actions { 40.0 } else { 0.0 }) * futo_scale)
 +        } else { height };
          self.size = (width, height);
@@ -336,7 +336,7 @@
          params: &'a ToElementCommonParams<'b>,
      ) -> Element<'b, Message> {
          let size = self.size();
-+        if self.key_area_layout.name().starts_with("piano-futo") {
++        if self.key_area_layout.name().starts_with("sheng-futo") {
 +            let settings = if self.setting_shown { Some(self.setting_layout.to_element(params, self.unit, 3)) } else { None };
 +            return crate::futo_ui::view(&self.futo_ui, params, self.unit, size.width.val(), size.height.val(), settings);
 +        }

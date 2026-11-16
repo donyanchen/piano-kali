@@ -1,6 +1,6 @@
 # AI 开发与部署约定
 
-本仓库针对 Xiaomi Pad 8 Pro 12.4 (`piano` / `25091RP04C`) 的原生 Kali ARM64。先读 `README.md`、`docs/AI_DEPLOY.md`、`docs/DEPLOYMENT.md`、`docs/VALIDATION.md`，再操作设备。
+本仓库针对 Xiaomi Pad 6S Pro 12.4 (`sheng` / `24018RPACC`) 的原生 Kali ARM64。先读 `README.md`、`docs/AI_DEPLOY.md`、`docs/DEPLOYMENT.md`、`docs/VALIDATION.md`，再操作设备。
 
 ## 工作方式
 

@@ -68,7 +68,7 @@ class KeyboardPolicyTests(unittest.TestCase):
         self.dbus.Boolean = bool
         self.dbus.Int32 = int
         self.dbus.DBusException = RuntimeError
-        config = types.SimpleNamespace(read=lambda *_: None, get=lambda *_args, **_kwargs: '/usr/share/applications/piano-msime-fcitx5.desktop')
+        config = types.SimpleNamespace(read=lambda *_: None, get=lambda *_args, **_kwargs: '/usr/share/applications/sheng-msime-fcitx5.desktop')
         self.patches = [patch.dict(sys.modules, {'dbus': self.dbus}),
                         patch.object(policy.configparser, 'ConfigParser', return_value=config),
                         patch.object(policy, 'physical_keyboards', return_value=[])]

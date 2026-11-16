@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch pinned piano assets; reject kernel binaries with incorrect SHA-256."""
+"""Fetch pinned sheng assets; reject kernel binaries with incorrect SHA-256."""
 import hashlib
 import json
 import pathlib
@@ -15,7 +15,7 @@ assets.mkdir(parents=True, exist_ok=True)
 def fetch(url, path, sha256=None):
     if not path.exists():
         print(f"Downloading {path.name}", flush=True)
-        request = urllib.request.Request(url, headers={"User-Agent": "piano-kali-builder"})
+        request = urllib.request.Request(url, headers={"User-Agent": "sheng-kali-builder"})
         temporary = path.with_suffix(path.suffix + ".part")
         with urllib.request.urlopen(request, timeout=120) as source, temporary.open("wb") as target:
             while chunk := source.read(1024 * 1024):

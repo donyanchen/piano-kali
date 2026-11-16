@@ -23,7 +23,7 @@
  };
  
  int main() {
-+	openlog("piano-devauth", LOG_PID, LOG_DAEMON);
++	openlog("sheng-devauth", LOG_PID, LOG_DAEMON);
  	Object root_env = Object_NULL;
  	Object client_env = Object_NULL;
 +	Object app_loader = Object_NULL;

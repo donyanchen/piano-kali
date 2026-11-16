@@ -1,0 +1,9 @@
+name = "Sheng Light"
+
+[palette]
+background = "#f1f3f7"
+text = "#222631"
+primary = "#3478f6"
+success = "#34c759"
+danger = "#ff453a"
+warning = "#ff9f0a"

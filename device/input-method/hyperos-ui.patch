@@ -13,7 +13,7 @@
              .into()
      }
  
-+    // Piano tablet UI: a compact toolbar, visible drag grip and native mode toggle.
++    // Sheng tablet UI: a compact toolbar, visible drag grip and native mode toggle.
      fn toolbar_element<'a, 'b>(
          &'a self,
          params: &'a ToElementCommonParams<'b>,
@@ -54,13 +54,13 @@
 -        // padding
 +        let mut row = Row::new().height(Length::Fill)
 +            .align_y(Vertical::Center).spacing(unit);
-+        let futo = state.im().im_names().iter().any(|name| name == "piano-futo");
++        let futo = state.im().im_names().iter().any(|name| name == "sheng-futo");
 +        row = row.push(Text::new(if futo { "FUTO" } else { "水杉" }).size(KLength(font_size.val() * 0.85))
 +            .shaping(Shaping::Advanced));
 +        if state.window_manager_mode() == WindowManagerMode::Normal {
 +            let chinese = state.im().im_name().map(|s| s.as_str()) == Some("msime");
 +            row = row.push(control(if chinese { "中 · EN" } else { "EN · 中" },
-+                ImEvent::SelectIm(if chinese { if futo { "piano-futo" } else { "keyboard-us" } } else { "msime" }.to_string()).into()));
++                ImEvent::SelectIm(if chinese { if futo { "sheng-futo" } else { "keyboard-us" } } else { "msime" }.to_string()).into()));
 +        }
          let window_id = params.window_id;
          let movable = state.movable(window_id);

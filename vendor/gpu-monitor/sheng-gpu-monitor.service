@@ -1,0 +1,27 @@
+[Unit]
+Description=Read-only MSM Adreno GPU statistics
+After=systemd-udevd.service sys-kernel-debug.mount
+Wants=sys-kernel-debug.mount
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/libexec/sheng-gpu-monitor/collector.py
+Restart=on-failure
+RestartSec=3
+RuntimeDirectory=sheng-gpu-monitor
+RuntimeDirectoryMode=0755
+UMask=0022
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_SYS_PTRACE
+ReadWritePaths=/run/sheng-gpu-monitor
+MemoryMax=64M
+CPUQuota=10%
+
+[Install]
+WantedBy=multi-user.target

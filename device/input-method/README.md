@@ -13,7 +13,7 @@
 
 `build-device-package.py STAGING GUARD OUTPUT.deb` 只打包**已完成上游安装的 staging**（含 `usr/bin/fcitx5-osk`、helper、service 及上游许可证），GUARD 为仓库 `scripts/keyboard-policy.py`。源码打包版本 `0.2.1-8` 保留 `-3` 的卸载回退、字体依赖与模式切换器，并支持 FUTO 英文入口。新原生 UI/UX 需用 `prepare-osk-ui.py --futo-ui` 构建；默认构建仍保留原界面。安装新版后仍按验证矩阵逐项验收。
 
-KWin 的 `Wayland/InputMethod` 指向 `/usr/share/applications/piano-msime-fcitx5.desktop`，其 wrapper 进入 `piano-msime-launcher`。热切换用 `kwriteconfig6 ... --notify`；只调用 reconfigure 不足以替换输入面板。
+KWin 的 `Wayland/InputMethod` 指向 `/usr/share/applications/sheng-msime-fcitx5.desktop`，其 wrapper 进入 `sheng-msime-launcher`。热切换用 `kwriteconfig6 ... --notify`；只调用 reconfigure 不足以替换输入面板。
 
 Fcitx 默认引擎为 msime，保留 keyboard-us；全拼 `quanpin`。本机关闭云候选与翻译，停用语音/在线 socket 和剪贴板服务。每个开发者从官方设置初始化自己的资源和账户，**不能复制作者 preferences、匿名凭据、学习库或运行缓存**。
 
@@ -37,7 +37,7 @@ Plasma 会话只设置 `XMODIFIERS=@im=fcitx`，不全局强制 `QT_IM_MODULE`/`
 
 工具栏提供中英切换、停靠/悬浮、设置与收起。悬浮模式保持原有长按约 1 秒拖动规则；横屏宽 640、竖屏宽 480 逻辑像素。拖动位置在该 OSK 进程中保留，进程重启后不承诺恢复原位置。没有移植小米商业输入引擎、云服务或系统玻璃材质。
 
-2026-11-15 已在 ARM64 实机完成优化构建，安装 `piano-msime-integration 0.2.1-3`，截图检查键帽、功能键、主题和浮窗显示；用户确认“中文、拖动和切换都正常”。原始截图包含私人桌面/浏览器内容，不随源码公开。构建时的内存峰值与运行时占用不同，本次 release 优化阶段峰值约 5.3 GiB，建议限制并发并预留 swap。
+2026-11-15 已在 ARM64 实机完成优化构建，安装 `sheng-msime-integration 0.2.1-3`，截图检查键帽、功能键、主题和浮窗显示；用户确认“中文、拖动和切换都正常”。原始截图包含私人桌面/浏览器内容，不随源码公开。构建时的内存峰值与运行时占用不同，本次 release 优化阶段峰值约 5.3 GiB，建议限制并发并预留 swap。
 
 ### 从公开源码构建
 
@@ -49,12 +49,12 @@ cmake -S out/osk-source -B out/osk-cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INS
 CARGO_BUILD_JOBS=2 cmake --build out/osk-cmake --parallel 2
 DESTDIR="$PWD/out/osk-stage" cmake --install out/osk-cmake --component Fcitx5Osk
 DESTDIR="$PWD/out/osk-stage" cmake --install out/osk-cmake --component Fcitx5OskKwinLauncher
-python3 device/input-method/build-device-package.py out/osk-stage scripts/keyboard-policy.py out/packages/piano-msime-integration_0.2.1-8_arm64.deb
-sudo apt-get install ./out/packages/piano-msime-integration_0.2.1-8_arm64.deb
+python3 device/input-method/build-device-package.py out/osk-stage scripts/keyboard-policy.py out/packages/sheng-msime-integration_0.2.1-8_arm64.deb
+sudo apt-get install ./out/packages/sheng-msime-integration_0.2.1-8_arm64.deb
 # 桌面用户、解锁状态下，启用布局和字体；只重新加载输入面板
-piano-osk-mode float --font-defaults --piano-ui
+sheng-osk-mode float --font-defaults --sheng-ui
 # 切回底部停靠
-piano-osk-mode dock
+sheng-osk-mode dock
 ```
 
 先安装固定版本 msime-linux，并按前文设置 Fcitx profile 与 KWin InputMethod；集成包不复制用户词库或账户。构建器不会自动编译实验 KWin 插件。此处路径从仓库根开始；干净源码构建可能需要较长时间和大量缓存空间。

@@ -30,14 +30,14 @@ client.set_missing_host_key_policy(paramiko.RejectPolicy())
 client.connect(args.host, username="kali", password=os.environ.get("KALI_PASSWORD", "kali"),
                timeout=15, auth_timeout=15, look_for_keys=False, allow_agent=False)
 checks = {
-    "tablet_model": ("tr -d '\\000' < /proc/device-tree/model", "Xiaomi Pad 8 Pro 12.4"),
+    "tablet_model": ("tr -d '\\000' < /proc/device-tree/model", "Xiaomi Pad 6S Pro 12.4"),
     "kernel_architecture": ("uname -m", "aarch64"),
     "userland_architecture": ("dpkg --print-architecture", "arm64"),
     "distribution": (". /etc/os-release; printf '%s' \"$ID\"", "kali"),
     "display_manager": ("systemctl is-active sddm", "active"),
     "plasma_shell": ("pgrep -x plasmashell", None),
     "wayland_compositor": ("pgrep -x kwin_wayland", None),
-    "touch_service": ("systemctl is-active xiaomi-piano-thp", "active"),
+    "touch_service": ("systemctl is-active xiaomi-sheng-thp", "active"),
     "touch_input": ("grep 'Name=\"NVTCapacitiveTouchScreen\"' /proc/bus/input/devices", None),
 }
 result = {"checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(), "checks": {}}
@@ -54,7 +54,7 @@ try:
     for name, command in {
         "kernel": "uname -r",
         "boot_id": "cat /proc/sys/kernel/random/boot_id",
-        "desktop_packages": "dpkg-query -W kali-desktop-kde plasma-workspace plasma-keyboard xiaomi-piano-thp libssc",
+        "desktop_packages": "dpkg-query -W kali-desktop-kde plasma-workspace plasma-keyboard xiaomi-sheng-thp libssc",
         "filesystem": "df -h /",
         "time": "date -Is",
         "drm_connectors": "for f in /sys/class/drm/*/status; do echo \"$f: $(cat \"$f\")\"; done",

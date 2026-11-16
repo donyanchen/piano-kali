@@ -1,0 +1,11 @@
+[Unit]
+Description=Sheng device privacy switch (%i)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/sheng-privacyctl %i
+TimeoutStartSec=45
+NoNewPrivileges=yes
+ProtectSystem=full
+PrivateTmp=yes
+ReadWritePaths=/etc/dbus-1/session.d/51-sheng-privacy.conf /etc/dbus-1/system.d/51-sheng-privacy.conf

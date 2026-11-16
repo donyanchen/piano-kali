@@ -1,6 +1,6 @@
 import hashlib,json,sys
 from pathlib import Path
-state=Path('/home/kali/.local/state/piano-gpu-bench')
+state=Path('/home/kali/.local/state/sheng-gpu-bench')
 tag=sys.argv[1] if len(sys.argv)>1 else 'balanced'
 assert tag.isalnum()
 report=json.loads((state/('run-report-'+tag+'.json')).read_text())

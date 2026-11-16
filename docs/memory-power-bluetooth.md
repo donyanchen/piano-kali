@@ -1,6 +1,6 @@
 # 平板内存、电源键与蓝牙
 
-2026-11-14 已在当前约 12GB RAM 的 piano 平板应用，记录为本机 `out/system-tuning-verification.json`。
+2026-11-14 已在当前约 12GB RAM 的 sheng 平板应用，记录为本机 `out/system-tuning-verification.json`。
 
 使用发行版 `systemd-zram-generator 1.2.1-2+b2` 创建 `/dev/zram0`，逻辑容量 6GiB、Zstd 压缩、swap 优先级 100。原有 `/swapfile` 保持 8GiB、优先级 10；分区未改动。配置源为 [zram-generator.conf](../device/zram-generator.conf)。ZRAM 按实际使用分配压缩存储，不预留 6GiB 物理内存。
 
@@ -12,4 +12,4 @@ Plasma 的锁屏超时是全局设置，显示关闭超时则按电源配置分�
 
 蓝牙为 WCN7850，hci0 固件加载正常，已安装 BlueDevil 并启用 BlueZ 开机启动，状态栏始终显示蓝牙入口。控制中心也可切换蓝牙及打开设备列表；开关往返测试通过并恢复原状态。此前约 8 秒扫描收到 54 个不同设备地址。配对、蓝牙音频和外设输入尚未实测，未连接未知设备。界面与后端的最新记录为 `out/tablet-controls-verification.json`。
 
-实体键盘策略使用 [keyboard-policy.py](../scripts/keyboard-policy.py) 和用户级 [piano-keyboard-policy.service](../device/piano-keyboard-policy.service)。PIN 口读取驱动的 `keyboard_attached`，USB/蓝牙读取 udev 键盘属性，不读取实际按键内容。连接时将 KWin 虚拟键盘模式设为 Never，断开后恢复 NonMouseInput；用户已确认接入 PIN 键盘后触屏文本框不再弹出软键盘。[resume-desktop.py](../scripts/resume-desktop.py) 恢复输入面板时遵循相同判定，避免再次强制弹出。
+实体键盘策略使用 [keyboard-policy.py](../scripts/keyboard-policy.py) 和用户级 [sheng-keyboard-policy.service](../device/sheng-keyboard-policy.service)。PIN 口读取驱动的 `keyboard_attached`，USB/蓝牙读取 udev 键盘属性，不读取实际按键内容。连接时将 KWin 虚拟键盘模式设为 Never，断开后恢复 NonMouseInput；用户已确认接入 PIN 键盘后触屏文本框不再弹出软键盘。[resume-desktop.py](../scripts/resume-desktop.py) 恢复输入面板时遵循相同判定，避免再次强制弹出。

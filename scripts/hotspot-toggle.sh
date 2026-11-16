@@ -1,16 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 if [[ "${1:-}" == info ]]; then
-    exec kdialog --title 'Piano 热点连接信息' --textbox /etc/piano-hotspot/access.txt 500 230
+    exec kdialog --title 'Sheng 热点连接信息' --textbox /etc/sheng-hotspot/access.txt 500 230
 fi
-if systemctl is-active --quiet piano-hotspot.service; then
-    systemctl stop piano-hotspot.service
+if systemctl is-active --quiet sheng-hotspot.service; then
+    systemctl stop sheng-hotspot.service
     kdialog --passivepopup '热点已关闭' 3
 else
-    systemctl start piano-hotspot.service
+    systemctl start sheng-hotspot.service
     for attempt in {1..80}; do
-        if [[ -f /run/piano-hotspot/ready ]]; then
-            kdialog --passivepopup 'Piano-Kali 热点已开启；右键应用可查看连接信息' 5
+        if [[ -f /run/sheng-hotspot/ready ]]; then
+            kdialog --passivepopup 'Sheng-Kali 热点已开启；右键应用可查看连接信息' 5
             exit 0
         fi
         sleep 0.25

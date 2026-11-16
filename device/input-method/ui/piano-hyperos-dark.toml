@@ -1,9 +1,0 @@
-name = "Piano Dark"
-
-[palette]
-background = "#202229"
-text = "#f3f4f7"
-primary = "#3478f6"
-success = "#34c759"
-danger = "#ff453a"
-warning = "#ff9f0a"

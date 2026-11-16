@@ -1,8 +1,8 @@
 {
   "KPackageStructure": "KWin/Effect",
   "KPlugin": {
-    "Id": "piano-task-cards",
-    "Name": "Piano Recents",
+    "Id": "sheng-task-cards",
+    "Name": "Sheng Recents",
     "Name[zh_CN]": "平板后台任务卡片",
     "Description": "HyperOS-inspired live task cards and three-finger application switching",
     "Version": "1.0.0",

@@ -27,14 +27,14 @@ struct State : fcitx::InputContextProperty {
 class UiBridge final : public fcitx::dbus::ObjectVTable<UiBridge> {
 public:
     UiBridge(fcitx::Instance *instance, fcitx::dbus::Bus *bus) : instance_(instance), bus_(bus) {
-        bus_->addObjectVTable("/org/piano/FutoKeyboard", "org.piano.FutoKeyboard1", *this);
+        bus_->addObjectVTable("/org/sheng/FutoKeyboard", "org.sheng.FutoKeyboard1", *this);
     }
     bool commitText(const std::string &text) {
         // Only the currently registered screen-keyboard connection may commit.
         // No global text injection interface, logging or clipboard polling.
         auto *message = currentMessage();
         if (!message || text.empty() || text.size() > 64) return false;
-        if (message->sender() != bus_->serviceOwner("org.piano.FutoKeyboard.UI", 1000000)) return false;
+        if (message->sender() != bus_->serviceOwner("org.sheng.FutoKeyboard.UI", 1000000)) return false;
         auto *ic = instance_->mostRecentInputContext();
         if (!ic || !ic->hasFocus() || ic->capabilityFlags().test(fcitx::CapabilityFlag::Password)
             || ic->capabilityFlags().test(fcitx::CapabilityFlag::Sensitive)) return false;
@@ -61,8 +61,8 @@ private:
 };
 class Engine final : public fcitx::InputMethodEngineV2 {
 public:
-    explicit Engine(fcitx::Instance *instance, const QString &dictionary = "/usr/share/piano-futo-keyboard/en_US") : instance_(instance), factory_([](fcitx::InputContext &) { return new State; }) {
-        if (!instance_->inputContextManager().registerProperty("pianoFutoState", &factory_))
+    explicit Engine(fcitx::Instance *instance, const QString &dictionary = "/usr/share/sheng-futo-keyboard/en_US") : instance_(instance), factory_([](fcitx::InputContext &) { return new State; }) {
+        if (!instance_->inputContextManager().registerProperty("shengFutoState", &factory_))
             throw std::runtime_error("Could not register FUTO input context state");
         // Only the fixed public dictionary is read. No per-user learning store.
         dictionary_ = std::make_unique<FutoDictionary>(dictionary);

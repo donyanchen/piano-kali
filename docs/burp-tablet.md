@@ -4,7 +4,7 @@
 
 ## 安装与性能
 
-下载适合 Linux ARM64 的官方安装包，安装到自己的应用目录。参考启动器 [piano-burpsuite.sh](../scripts/piano-burpsuite.sh) 默认路径为 `$HOME/.local/opt/BurpSuite/BurpSuite`，其他安装位置先修改该路径。它仅为 Burp 设置 `MALLOC_ARENA_MAX=4`，清除旧 Zink/Turnip 环境覆盖，使用系统默认 freedreno/OpenGL，不更换全局 Java。
+下载适合 Linux ARM64 的官方安装包，安装到自己的应用目录。参考启动器 [sheng-burpsuite.sh](../scripts/sheng-burpsuite.sh) 默认路径为 `$HOME/.local/opt/BurpSuite/BurpSuite`，其他安装位置先修改该路径。它仅为 Burp 设置 `MALLOC_ARENA_MAX=4`，清除旧 Zink/Turnip 环境覆盖，使用系统默认 freedreno/OpenGL，不更换全局 Java。
 
 将 [JVM 参数模板](../configs/burp-user.vmoptions) 合并到该安装器支持的应用专用 `user.vmoptions`；先备份，不要覆盖厂商默认文件或用户已有的必要选项：
 

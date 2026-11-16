@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(piano_hotspot_panel VERSION 1.0 LANGUAGES CXX)
+project(sheng_hotspot_panel VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(ECM 6.26 REQUIRED NO_MODULE)
@@ -12,7 +12,7 @@ find_package(KF6 6.26 REQUIRED COMPONENTS CoreAddons Config I18n Notifications P
 find_package(Plasma 6.7 REQUIRED)
 add_subdirectory(applet)
 target_sources(org.kde.plasma.networkmanagement PRIVATE
-    pianohotspotcontroller.cpp pianohotspotcontroller.h)
+    shenghotspotcontroller.cpp shenghotspotcontroller.h)
 target_include_directories(org.kde.plasma.networkmanagement PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(org.kde.plasma.networkmanagement PRIVATE
     Qt6::DBus KF6::I18n KF6::Notifications)

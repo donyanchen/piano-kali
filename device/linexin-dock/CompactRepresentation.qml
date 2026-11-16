@@ -1,6 +1,6 @@
 /*
     SPDX-FileCopyrightText: 2026 Petexy
-    SPDX-FileCopyrightText: 2026 Piano Kali contributors
+    SPDX-FileCopyrightText: 2026 Sheng Kali contributors
     SPDX-License-Identifier: GPL-3.0-or-later
 */
 import QtQuick
@@ -33,7 +33,7 @@ Item {
             dashWindowComponent.statusChanged.connect(createWindow)
     }
     Connections { target: Plasmoid; function onActivated() { root.toggleDrawer() } }
-    PianoDock {
+    ShengDock {
         id: dock
         anchors.fill: parent
         onDrawerRequested: root.toggleDrawer()

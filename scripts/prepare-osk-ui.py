@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Fetch pinned Fcitx5 OSK source and apply the Piano touch UI adaptation."""
+"""Fetch pinned Fcitx5 OSK source and apply the Sheng touch UI adaptation."""
 import argparse
 import hashlib
 import io
@@ -84,8 +84,8 @@ def main():
             'ActionBar.kt, v2keyboard/Keyboard.kt, DefaultLightDark.kt and layout schemas.\n'
             'FUTO Source First terms and per-file notices remain applicable to upstream content.\n'
             'New Linux rendering/integration: MIT. Support the original: https://keyboard.futo.org/\n', encoding='utf-8')
-    (args.output_dir / 'NOTICE.piano').write_text(
-        'Fcitx5 OSK by fortime, MIT.\nPiano touch UI modifications, MIT.\n'
+    (args.output_dir / 'NOTICE.sheng').write_text(
+        'Fcitx5 OSK by fortime, MIT.\nSheng touch UI modifications, MIT.\n'
         'Upstream commit: ' + pin['osk_commit'] + '\n'
         'Source: https://github.com/LuKeyC-NetSEC/sheng-kali-linux\n', encoding='utf-8')
     print(json.dumps({'source': str(args.output_dir.resolve()), 'upstream_commit': pin['osk_commit'], 'ui_patch_sha256': sha(patch)}, indent=2))

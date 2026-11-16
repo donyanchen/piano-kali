@@ -1,6 +1,6 @@
-# 使用 AI 部署 Piano Kali Linux
+# 使用 AI 部署 Sheng Kali Linux
 
-本指南面向可执行终端命令的 AI 编程助手及负责验收的开发者。目标是分阶段、有证据地部署 `piano`，不是把其他机型套用本仓库分区表。先读 [部署手册](DEPLOYMENT.md) 与 [硬件矩阵](HARDWARE.md)。
+本指南面向可执行终端命令的 AI 编程助手及负责验收的开发者。目标是分阶段、有证据地部署 `sheng`，不是把其他机型套用本仓库分区表。先读 [部署手册](DEPLOYMENT.md) 与 [硬件矩阵](HARDWARE.md)。
 
 ## 可直接交给 AI 的提示词
 
@@ -10,7 +10,7 @@
 和 docs/VALIDATION.md，检查当前代码及固定来源，不依赖作者 .work 或 out 目录。
 
 首先只读识别已连接的设备、Bootloader 状态、分区/槽位与现有系统；
-核对必须是 Xiaomi Pad 8 Pro 12.4 / piano，并记录内核与 Plasma ABI。
+核对必须是 Xiaomi Pad 6S Pro 12.4 / sheng，并记录内核与 Plasma ABI。
 先备份及准备镜像、manifest 和恢复方案。未取得清空 userdata 的明确授权前不要刷写。
 已有明确授权时继续执行，不反复请求同一确认。
 
@@ -33,7 +33,7 @@ uname -a
 dpkg --print-architecture
 cat /sys/firmware/devicetree/base/model
 lsblk -o NAME,SIZE,FSTYPE,LABEL,PARTLABEL,MOUNTPOINTS
-dpkg-query -W plasma-workspace plasma-nm linux-xiaomi-piano
+dpkg-query -W plasma-workspace plasma-nm linux-xiaomi-sheng
 ```
 
 将重要数据备份到独立介质，确认可读。分开备份桌面配置、网络/应用数据与原厂恢复资料；秘密备份保留在本地。不能从“平板连接电脑”推断 Bootloader 已解锁，也不能从“可以清数据”推断可以刷另一台设备。

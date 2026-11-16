@@ -1,7 +1,7 @@
 import datetime, hashlib, json, os, signal, statistics, subprocess, sys, threading, time
 from pathlib import Path
 
-state=Path('/home/kali/.local/state/piano-gpu-bench')
+state=Path('/home/kali/.local/state/sheng-gpu-bench')
 tag=sys.argv[1] if len(sys.argv)>1 else 'balanced'
 assert tag.isalnum()
 resultdir=state/('results-'+tag)

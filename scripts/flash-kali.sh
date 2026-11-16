@@ -19,7 +19,7 @@ getvar() {
     response=$("$FASTBOOT" -s "$SERIAL" getvar "$1" 2>&1)
     printf '%s\n' "$response" | sed -n "s/^$1: *//p" | head -n 1 | tr -d '\r'
 }
-[[ "$(getvar product)" == piano ]] || { echo 'Wrong tablet model.' >&2; exit 1; }
+[[ "$(getvar product)" == sheng ]] || { echo 'Wrong tablet model.' >&2; exit 1; }
 [[ "$(getvar unlocked)" == yes ]] || { echo 'Bootloader is locked.' >&2; exit 1; }
 userdata_size=$(getvar partition-size:userdata)
 boot_size=$(getvar partition-size:boot_b)
@@ -28,11 +28,11 @@ python3 - "$OUT_DIR" "$userdata_size" "$boot_size" "$SERIAL" "$previous_slot" <<
 import datetime, json, pathlib, sys
 out = pathlib.Path(sys.argv[1])
 manifest = json.loads((out / 'manifest.json').read_text())
-assert (manifest['device'], manifest['architecture'], manifest['distribution'], manifest['desktop'], manifest['root_partition']) == ('piano', 'arm64', 'kali', 'kde', 'userdata')
+assert (manifest['device'], manifest['architecture'], manifest['distribution'], manifest['desktop'], manifest['root_partition']) == ('sheng', 'arm64', 'kali', 'kde', 'userdata')
 assert manifest['host_image_validation'] == 'passed'
 assert int(sys.argv[2], 16) >= manifest['expanded_rootfs_bytes']
-assert int(sys.argv[3], 16) >= manifest['files']['boot-kali-piano.img']['bytes']
-record = dict(serial=sys.argv[4], product='piano', previous_slot=sys.argv[5],
+assert int(sys.argv[3], 16) >= manifest['files']['boot-kali-sheng.img']['bytes']
+record = dict(serial=sys.argv[4], product='sheng', previous_slot=sys.argv[5],
               userdata_bytes=int(sys.argv[2], 16),
               started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
               completed=False, device_boot_verified=False)
@@ -42,8 +42,8 @@ run() {
     "$FASTBOOT" -s "$SERIAL" "$@" 2>&1 | tee -a "$OUT_DIR/flash-log.txt"
 }
 echo 'Installing native Kali ARM64 KDE: all Android user data will be erased.'
-run -S 256M flash userdata "$OUT_DIR/rootfs-kali-arm64-kde-piano.img"
-run flash boot_b "$OUT_DIR/boot-kali-piano.img"
+run -S 256M flash userdata "$OUT_DIR/rootfs-kali-arm64-kde-sheng.img"
+run flash boot_b "$OUT_DIR/boot-kali-sheng.img"
 run erase dtbo_b
 run set_active b
 run reboot

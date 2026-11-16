@@ -11,8 +11,8 @@ parser.add_argument("directory", type=pathlib.Path)
 parser.add_argument("--write-manifest", action="store_true")
 args = parser.parse_args()
 directory = args.directory.resolve()
-boot = directory / "boot-kali-piano.img"
-rootfs = directory / "rootfs-kali-arm64-kde-piano.img"
+boot = directory / "boot-kali-sheng.img"
+rootfs = directory / "rootfs-kali-arm64-kde-sheng.img"
 with boot.open("rb") as stream:
     header = stream.read(1632)
 if header[:8] != b"ANDROID!":
@@ -20,7 +20,7 @@ if header[:8] != b"ANDROID!":
 kernel_size, _, ramdisk_size, _, _, _, _, page_size, version = struct.unpack_from("<9I", header, 8)
 cmdline = (header[64:576].split(b"\0")[0] + header[608:1632].split(b"\0")[0]).decode()
 if version != 0 or page_size != 4096 or ramdisk_size != 0 or kernel_size < 1024 * 1024:
-    raise SystemExit("Unexpected piano boot image geometry")
+    raise SystemExit("Unexpected sheng boot image geometry")
 if cmdline.split() != ["root=PARTLABEL=userdata"]:
     raise SystemExit(f"Unexpected root partition in boot image: {cmdline}")
 with rootfs.open("rb") as stream:
@@ -58,7 +58,7 @@ with rootfs.open("rb") as stream:
 if not superblock_bytes or superblock_bytes[1080:1082] != b"\x53\xef":
     raise SystemExit("Rootfs does not contain an ext4 superblock")
 packages = (directory / "packages.tsv").read_text()
-for package in ("kali-desktop-kde", "plasma-workspace", "sddm", "linux-xiaomi-piano", "xiaomi-piano-thp", "libssc"):
+for package in ("kali-desktop-kde", "plasma-workspace", "sddm", "linux-xiaomi-sheng", "xiaomi-sheng-thp", "libssc"):
     if not any(line.startswith(package + "\t") or line.startswith(package + ":arm64\t") for line in packages.splitlines()):
         raise SystemExit(f"Missing target package: {package}")
 files = {}
@@ -69,7 +69,7 @@ for path in (boot, rootfs):
             digest_state.update(chunk)
         digest = digest_state.hexdigest()
     files[path.name] = {"bytes": path.stat().st_size, "sha256": digest}
-manifest = {"device": "piano", "architecture": "arm64", "distribution": "kali",
+manifest = {"device": "sheng", "architecture": "arm64", "distribution": "kali",
             "desktop": "kde", "root_partition": "userdata", "boot_cmdline": cmdline,
             "expanded_rootfs_bytes": blocks * block_size, "files": files,
             "host_image_validation": "passed", "device_boot_verified": False}

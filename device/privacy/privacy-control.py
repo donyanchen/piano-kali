@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-shot, reversible device privacy policy for the piano tablet."""
+"""One-shot, reversible device privacy policy for the sheng tablet."""
 import base64
 import contextlib
 import fcntl
@@ -13,21 +13,21 @@ import subprocess
 import sys
 import time
 
-PRIVATE = pathlib.Path('/var/lib/piano-privacy')
-PUBLIC = pathlib.Path('/run/piano-privacy')
+PRIVATE = pathlib.Path('/var/lib/sheng-privacy')
+PUBLIC = pathlib.Path('/run/sheng-privacy')
 STATE_FILE = PRIVATE/'state.json'
 MARKER = PRIVATE/'blocked'
 LOCATION_UNITS = ['geoclue.service', 'gpsd.service', 'gpsd.socket']
 CAMERA_DRIVERS = [('platform', 'qcom-camss'), ('usb', 'uvcvideo')]
-GUARD = '/usr/libexec/piano-privacy-bpf'
+GUARD = '/usr/libexec/sheng-privacy-bpf'
 CGROUP = pathlib.Path('/sys/fs/cgroup')
-FROZEN = CGROUP/'piano-privacy-frozen'
+FROZEN = CGROUP/'sheng-privacy-frozen'
 BUS_POLICIES = {
-    pathlib.Path('/etc/dbus-1/session.d/51-piano-privacy.conf'): [
+    pathlib.Path('/etc/dbus-1/session.d/51-sheng-privacy.conf'): [
         '<deny send_interface="org.freedesktop.portal.Camera"/>',
         '<deny send_interface="org.freedesktop.portal.Location"/>',
         '<deny send_interface="org.freedesktop.portal.Microphone"/>'],
-    pathlib.Path('/etc/dbus-1/system.d/51-piano-privacy.conf'): [
+    pathlib.Path('/etc/dbus-1/system.d/51-sheng-privacy.conf'): [
         '<deny send_destination="org.freedesktop.GeoClue2"/>',
         '<deny send_interface="org.freedesktop.GeoClue2.Manager"/>',
         '<deny send_interface="org.freedesktop.GeoClue2.Client"/>',
@@ -183,7 +183,7 @@ def freeze_clients(state):
     for entry in saved.get('frozen',[]):
         try: group=pathlib.Path('/proc',str(entry['pid']),'cgroup').read_text()
         except OSError: continue
-        if entry.get('boot')==boot and process_identity(entry['pid'])==entry['identity'] and '0::/piano-privacy-frozen\n' in group:
+        if entry.get('boot')==boot and process_identity(entry['pid'])==entry['identity'] and '0::/sheng-privacy-frozen\n' in group:
             entries.append(entry)
     saved['frozen'] = entries
     # Suspend has normally closed PipeWire's capture FD. If a source is still
@@ -240,7 +240,7 @@ def publish(state, busy=False, error=''):
     gps = bool(list(pathlib.Path('/dev').glob('gnss*')))
     enabled = bool(state.get('enabled'))
     status = {'enabled':enabled,'busy':busy,'gpsHardware':gps,'lastError':error,
-              'processGuard':enabled and pathlib.Path('/sys/fs/bpf/piano-privacy/device-guard').exists(),
+              'processGuard':enabled and pathlib.Path('/sys/fs/bpf/sheng-privacy/device-guard').exists(),
               'pausedCaptureProcesses':len(state.get('saved',{}).get('frozen',[])),
               'cameraSupported':bool(state.get('saved',{}).get('bindings') or camera_bindings()),
               'hint':('已拦截应用和进程的摄像头、麦克风、定位请求' if enabled else '允许摄像头、麦克风和定位请求')

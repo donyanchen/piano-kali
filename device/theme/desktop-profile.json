@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "capturedAtUTC": "2026-11-15T15:36:34+00:00",
   "platform": {
-    "device": "piano",
+    "device": "sheng",
     "architecture": "arm64",
     "kernel": "7.3.4-sm8550-00104-g87ac0f2347eb",
     "packages": {
@@ -15,9 +15,9 @@
       "libqt6core6t64:arm64": "6.11.2+dfsg-5",
       "plasma-desktop": "4:6.7.4-1+b1",
       "plasma-workspace": "4:6.7.4-2",
-      "piano-futo-keyboard": "0.3.0-3",
-      "piano-msime-integration": "0.2.1-8",
-      "piano-tablet-controls": "1.0-5"
+      "sheng-futo-keyboard": "0.3.0-3",
+      "sheng-msime-integration": "0.2.1-8",
+      "sheng-tablet-controls": "1.0-5"
     }
   },
   "kconfig": {
@@ -54,10 +54,10 @@
         "theme": "Breeze"
       },
       "TabBox": {
-        "LayoutName": "piano-native-tabbox-spatial1"
+        "LayoutName": "sheng-native-tabbox-spatial1"
       },
       "Wayland": {
-        "InputMethod": "/usr/share/applications/piano-msime-fcitx5.desktop",
+        "InputMethod": "/usr/share/applications/sheng-msime-fcitx5.desktop",
         "VirtualKeyboardEnabled": "true"
       }
     },
@@ -294,8 +294,8 @@
           }
         },
         {
-          "role": "org.piano.linexin.launcher#1",
-          "plugin": "org.piano.linexin.launcher",
+          "role": "org.sheng.linexin.launcher#1",
+          "plugin": "org.sheng.linexin.launcher",
           "settings": {
             "General": {
               "alphaSort": "true",
@@ -325,7 +325,7 @@
       ],
       "appletOrder": [
         "luisbocanegra.panel.colorizer#1",
-        "org.piano.linexin.launcher#1"
+        "org.sheng.linexin.launcher#1"
       ],
       "detachedApplets": []
     },
@@ -702,8 +702,8 @@
           }
         },
         {
-          "role": "org.piano.panel-style#1",
-          "plugin": "org.piano.panel-style",
+          "role": "org.sheng.panel-style#1",
+          "plugin": "org.sheng.panel-style",
           "settings": {}
         }
       ],
@@ -717,7 +717,7 @@
         "org.kde.plasma.battery#1",
         "luisbocanegra.panel.colorizer#1",
         "org.kontrol.center#1",
-        "org.piano.panel-style#1"
+        "org.sheng.panel-style#1"
       ],
       "detachedApplets": [
         "org.kde.plasma.digitalclock#1"
@@ -743,8 +743,8 @@
           }
         },
         {
-          "role": "org.piano.desktop-gesture#1",
-          "plugin": "org.piano.desktop-gesture",
+          "role": "org.sheng.desktop-gesture#1",
+          "plugin": "org.sheng.desktop-gesture",
           "settings": {}
         }
       ],
@@ -769,8 +769,8 @@
     "portrait_width": 300.0,
     "default_font": "Roboto",
     "default_nerd_font": "Material Design Icons version 6",
-    "default_landscape_layout": "piano-futo-landscape",
-    "default_portrait_layout": "piano-futo-portrait",
+    "default_landscape_layout": "sheng-futo-landscape",
+    "default_portrait_layout": "sheng-futo-portrait",
     "theme": "Auto",
     "light_theme": "FUTO Light",
     "dark_theme": "FUTO Dark",

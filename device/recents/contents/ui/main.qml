@@ -41,7 +41,7 @@ KWin.SceneEffect {
         selectedIndex = 0
         expanded = true
         visible = true
-        console.info("PIANO_RECENTS opened", entries.length)
+        console.info("SHENG_RECENTS opened", entries.length)
     }
     function toggleTasks() {
         if (visible) dismiss(null)
@@ -100,13 +100,13 @@ KWin.SceneEffect {
         }
     }
     KWin.ShortcutHandler {
-        name: "Piano Task Cards"
+        name: "Sheng Task Cards"
         text: "显示平板后台任务卡片"
         sequence: "Meta+W"
         onActivated: recents.toggleTasks()
     }
     KWin.ShortcutHandler {
-        name: "Piano Leave Task Cards"
+        name: "Sheng Leave Task Cards"
         text: "退出平板后台任务卡片"
         onActivated: recents.leaveImmediately()
     }
@@ -122,6 +122,6 @@ KWin.SceneEffect {
     delegate: TasksView { controller: recents }
     Component.onCompleted: {
         remember(KWin.Workspace.activeWindow)
-        console.info("PIANO_RECENTS ready horizontal-only-v2")
+        console.info("SHENG_RECENTS ready horizontal-only-v2")
     }
 }

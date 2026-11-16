@@ -64,7 +64,7 @@ PlasmoidItem {
         running: region.parent !== null && root.desktopLayout === null
         onTriggered: {
             root.desktopLayout = root.findDesktopLayout(region.parent, 0)
-            if (root.desktopLayout) console.info("PIANO_DESKTOP_HOLD_GUARD_READY", root.nativeHoldInterval)
+            if (root.desktopLayout) console.info("SHENG_DESKTOP_HOLD_GUARD_READY", root.nativeHoldInterval)
         }
     }
     Timer {
@@ -108,7 +108,7 @@ PlasmoidItem {
                 else if (qualified !== "") {
                     var action = qualified
                     qualified = ""
-                    execute.connectSource("qdbus6 org.piano.DesktopPolicy /org/piano/DesktopPolicy org.piano.DesktopPolicy." + action)
+                    execute.connectSource("qdbus6 org.sheng.DesktopPolicy /org/sheng/DesktopPolicy org.sheng.DesktopPolicy." + action)
                 }
             }
             onCanceled: qualified = ""

@@ -22,7 +22,7 @@ def main():
     pin = json.loads((source / 'provenance.json').read_text(encoding='utf-8'))
     target = pathlib.Path(pin['target'])
     distributed = pathlib.Path(str(target) + '.distrib')
-    state = pathlib.Path('/var/lib/piano-lockscreen')
+    state = pathlib.Path('/var/lib/sheng-lockscreen')
     installed = state / 'installed.json'
     if args.restore:
         previous = json.loads(installed.read_text())
@@ -32,13 +32,13 @@ def main():
             raise SystemExit('Missing distribution backup; refusing to remove the current UI')
         target.unlink()
         subprocess.run(['dpkg-divert', '--local', '--remove', '--rename', str(target)], check=True)
-        (target.parent / 'PianoClock.qml').unlink(missing_ok=True)
+        (target.parent / 'ShengClock.qml').unlink(missing_ok=True)
         print('Restored the KDE lockscreen. Applies to the next greeter; no session was restarted.')
         return
     baseline = distributed if distributed.exists() else target
     if hashlib.sha256(baseline.read_bytes()).hexdigest() != pin['baseline_sha256']:
         raise SystemExit('Unsupported lockscreen version; review the patch against this system first')
-    with tempfile.TemporaryDirectory(prefix='piano-lockscreen-') as tmp:
+    with tempfile.TemporaryDirectory(prefix='sheng-lockscreen-') as tmp:
         stage = pathlib.Path(tmp)
         (stage / target.name).write_bytes(baseline.read_bytes())
         patch = (source / 'LockScreenUi.patch').read_bytes().replace(b'\r\n', b'\n')
@@ -51,9 +51,9 @@ def main():
     shutil.copy2(target, backup / target.name)
     if not distributed.exists():
         subprocess.run(['dpkg-divert', '--local', '--add', '--rename', str(target)], check=True)
-    shutil.copyfile(source / 'PianoClock.qml', target.parent / 'PianoClock.qml')
-    (target.parent / 'PianoClock.qml').chmod(0o644)
-    temporary = target.with_suffix('.qml.piano-new')
+    shutil.copyfile(source / 'ShengClock.qml', target.parent / 'ShengClock.qml')
+    (target.parent / 'ShengClock.qml').chmod(0o644)
+    temporary = target.with_suffix('.qml.sheng-new')
     temporary.write_bytes(patched)
     temporary.chmod(0o644)
     temporary.replace(target)

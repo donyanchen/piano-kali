@@ -6,7 +6,7 @@ import os
 import pathlib
 import secrets
 
-directory = pathlib.Path('/etc/piano-hotspot')
+directory = pathlib.Path('/etc/sheng-hotspot')
 directory.mkdir(mode=0o750, exist_ok=True)
 group = grp.getgrnam('netdev').gr_gid
 os.chown(directory, 0, group)
@@ -15,7 +15,7 @@ settings = directory / 'settings.ini'
 if not settings.exists():
     fd = os.open(settings, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o640)
     with os.fdopen(fd, 'w') as target:
-        target.write('[hotspot]\nssid=Piano-Kali\npassword=' + secrets.token_urlsafe(12) + '\n')
+        target.write('[hotspot]\nssid=Sheng-Kali\npassword=' + secrets.token_urlsafe(12) + '\n')
 config = configparser.ConfigParser(interpolation=None)
 config.read(settings)
 ssid, password = config['hotspot']['ssid'], config['hotspot']['password']

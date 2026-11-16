@@ -24,7 +24,7 @@
 namespace KWin {
 class DesktopTouchGuard final : public Effect {
     Q_OBJECT
-    Q_CLASSINFO("D-Bus Interface", "org.piano.DesktopTouch")
+    Q_CLASSINFO("D-Bus Interface", "org.sheng.DesktopTouch")
     class Filter final : public InputEventFilter {
     public:
         explicit Filter(DesktopTouchGuard *owner):InputEventFilter(InputFilterOrder::ScreenEdge),m_owner(owner){}
@@ -39,14 +39,14 @@ public:
     DesktopTouchGuard()
     {
         m_filter=std::make_unique<Filter>(this);input()->installInputEventFilter(m_filter.get());
-        QDBusConnection::sessionBus().registerService("org.piano.DesktopTouch");
-        QDBusConnection::sessionBus().registerObject("/org/piano/DesktopTouch",this,QDBusConnection::ExportAllSlots);
-        QDBusConnection::sessionBus().connect("org.piano.DesktopPolicy","/org/piano/DesktopPolicy","org.piano.DesktopPolicy","PointerPresenceChanged",this,SLOT(pointerPresence(bool)));
-        QDBusConnection::sessionBus().connect("org.piano.DesktopPolicy","/org/piano/DesktopPolicy","org.piano.DesktopPolicy","DockVisibilityChanged",this,SLOT(dockVisibility(bool)));
+        QDBusConnection::sessionBus().registerService("org.sheng.DesktopTouch");
+        QDBusConnection::sessionBus().registerObject("/org/sheng/DesktopTouch",this,QDBusConnection::ExportAllSlots);
+        QDBusConnection::sessionBus().connect("org.sheng.DesktopPolicy","/org/sheng/DesktopPolicy","org.sheng.DesktopPolicy","PointerPresenceChanged",this,SLOT(pointerPresence(bool)));
+        QDBusConnection::sessionBus().connect("org.sheng.DesktopPolicy","/org/sheng/DesktopPolicy","org.sheng.DesktopPolicy","DockVisibilityChanged",this,SLOT(dockVisibility(bool)));
         m_hintTimer.setSingleShot(true);
         connect(&m_hintTimer,&QTimer::timeout,this,[this]{m_hint.reset();m_hintOutput=nullptr;});
         connect(effects,&EffectsHandler::screenLockingChanged,this,[this](bool locked){if(locked){m_hintTimer.stop();m_hint.reset();m_hintOutput=nullptr;clear();clearRevealConstraint();}});
-        auto *watch=new QDBusServiceWatcher("org.piano.DesktopPolicy",QDBusConnection::sessionBus(),QDBusServiceWatcher::WatchForOwnerChange,this);
+        auto *watch=new QDBusServiceWatcher("org.sheng.DesktopPolicy",QDBusConnection::sessionBus(),QDBusServiceWatcher::WatchForOwnerChange,this);
         connect(watch,&QDBusServiceWatcher::serviceOwnerChanged,this,[this]{readPresence();});
         QTimer::singleShot(0,this,&DesktopTouchGuard::readPresence);
         connect(workspace(),&Workspace::windowAdded,this,[this](Window *){syncDrawerDock();});
@@ -54,7 +54,7 @@ public:
         connect(workspace(),&Workspace::showingDesktopChanged,this,[this](bool showing,bool){if(showing)clearRevealConstraint();});
         QTimer::singleShot(0,this,&DesktopTouchGuard::syncDrawerDock);
     }
-    ~DesktopTouchGuard()override{clearRevealConstraint();clearDrawerDock();m_hint.reset();m_filter.reset();QDBusConnection::sessionBus().unregisterObject("/org/piano/DesktopTouch");QDBusConnection::sessionBus().unregisterService("org.piano.DesktopTouch");}
+    ~DesktopTouchGuard()override{clearRevealConstraint();clearDrawerDock();m_hint.reset();m_filter.reset();QDBusConnection::sessionBus().unregisterObject("/org/sheng/DesktopTouch");QDBusConnection::sessionBus().unregisterService("org.sheng.DesktopTouch");}
     bool isActive()const override{return m_hint!=nullptr;}
     bool down(TouchDownEvent *event)
     {
@@ -165,7 +165,7 @@ private:
     }
     void showDockHint(LogicalOutput *output){
         auto *dock=bottomDock(output);if(!dock)return;
-        m_hint=std::make_unique<OffscreenQuickScene>();m_hint->setSource(QUrl(QStringLiteral(PIANO_GUARD_HINT_URL)));
+        m_hint=std::make_unique<OffscreenQuickScene>();m_hint->setSource(QUrl(QStringLiteral(SHENG_GUARD_HINT_URL)));
         if(!m_hint->rootItem()){m_hint.reset();return;}
         const auto screen=output->geometry();
         // The installed floating host adds 12px each side around the actual Dock.
@@ -179,7 +179,7 @@ private:
     {
         Window *drawer=nullptr,*dock=nullptr;
         for(auto *win:workspace()->windows()){
-            if(!win->isDeleted()&&win->caption()==QStringLiteral("Piano Application Drawer")&&win->resourceClass()==QByteArrayLiteral("org.kde.plasmashell")){
+            if(!win->isDeleted()&&win->caption()==QStringLiteral("Sheng Application Drawer")&&win->resourceClass()==QByteArrayLiteral("org.kde.plasmashell")){
                 drawer=win;break;
             }
         }
@@ -202,8 +202,8 @@ private:
     QPointF m_origin,m_last;
     int m_id=-1,m_presses=0,m_cancelCount=0,m_actions=0;
     bool m_pointer=true,m_cancelled=false,m_multi=false;
-    void dispatch(const QString &method){auto message=QDBusMessage::createMethodCall("org.piano.DesktopPolicy","/org/piano/DesktopPolicy","org.piano.DesktopPolicy",method);QDBusConnection::sessionBus().asyncCall(message);}
-    void readPresence(){auto msg=QDBusMessage::createMethodCall("org.piano.DesktopPolicy","/org/piano/DesktopPolicy","org.piano.DesktopPolicy","GetState");auto *w=new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(msg),this);connect(w,&QDBusPendingCallWatcher::finished,this,[this](QDBusPendingCallWatcher *w){QDBusPendingReply<QString> reply=*w;if(!reply.isError()){const auto state=QJsonDocument::fromJson(reply.value().toUtf8()).object();m_pointer=state["pointer_present"].toBool(true);dockVisibility(state["dock_hidden"].toBool()&&!state["dock_revealed"].toBool()&&!state["showing_desktop"].toBool());}w->deleteLater();});}
+    void dispatch(const QString &method){auto message=QDBusMessage::createMethodCall("org.sheng.DesktopPolicy","/org/sheng/DesktopPolicy","org.sheng.DesktopPolicy",method);QDBusConnection::sessionBus().asyncCall(message);}
+    void readPresence(){auto msg=QDBusMessage::createMethodCall("org.sheng.DesktopPolicy","/org/sheng/DesktopPolicy","org.sheng.DesktopPolicy","GetState");auto *w=new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(msg),this);connect(w,&QDBusPendingCallWatcher::finished,this,[this](QDBusPendingCallWatcher *w){QDBusPendingReply<QString> reply=*w;if(!reply.isError()){const auto state=QJsonDocument::fromJson(reply.value().toUtf8()).object();m_pointer=state["pointer_present"].toBool(true);dockVisibility(state["dock_hidden"].toBool()&&!state["dock_revealed"].toBool()&&!state["showing_desktop"].toBool());}w->deleteLater();});}
 };
 KWIN_EFFECT_FACTORY_SUPPORTED(DesktopTouchGuard,"metadata.json",return waylandServer()!=nullptr;)
 }

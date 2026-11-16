@@ -1,13 +1,13 @@
 # 第三方来源与许可
 
-保留上游 [piano-pmos-builds](https://github.com/alghiffaryfa19/piano-pmos-builds) Git 历史和根 [GPL-3.0 许可证](LICENSE)。不同组件按各自文件头/上游许可证处理；以下列出源码和资产来源，不把单一许可证套用所有外部产物。本项目的适配修改记录于 Git 提交与 patch。
+保留上游 [sheng-pmos-builds](https://github.com/alghiffaryfa19/sheng-pmos-builds) Git 历史和根 [GPL-3.0 许可证](LICENSE)。不同组件按各自文件头/上游许可证处理；以下列出源码和资产来源，不把单一许可证套用所有外部产物。本项目的适配修改记录于 Git 提交与 patch。
 
 | 组件 | 固定来源/入口 | 许可与分发说明 |
 | --- | --- | --- |
-| Linux piano | [ianchb/sm8550-mainline](https://github.com/ianchb/sm8550-mainline)，commit `87ac0f2347eb433933841e6854950dd90e96e6b2` | 驱动补丁遵循 GPL-2.0-only；不随仓库提交内核二进制 |
+| Linux sheng | [ianchb/sm8550-mainline](https://github.com/ianchb/sm8550-mainline)，commit `87ac0f2347eb433933841e6854950dd90e96e6b2` | 驱动补丁遵循 GPL-2.0-only；不随仓库提交内核二进制 |
 | 固件/触屏/硬件库 | [sources.json](configs/sources.json) 内固定提交、下载和哈希 | 各上游许可；构建时获取，不把缓存打包入源仓库 |
-| Debian piano 音频适配 | [alghiffaryfa19/debian-piano](https://github.com/alghiffaryfa19/debian-piano) | 固定来源见 sources.json，保留上游声明 |
-| PIN 认证 | [ianchb/piano_devauth](https://github.com/ianchb/piano_devauth)，`bac03b5bcfefa1467ebad490edd910a6cef8a207` | patch与上游依赖分开；静态依赖含各自 libs/LICENSE，重新分发前核查 |
+| Debian sheng 音频适配 | [alghiffaryfa19/debian-sheng](https://github.com/alghiffaryfa19/debian-sheng) | 固定来源见 sources.json，保留上游声明 |
+| PIN 认证 | [ianchb/sheng_devauth](https://github.com/ianchb/sheng_devauth)，`bac03b5bcfefa1467ebad490edd910a6cef8a207` | patch与上游依赖分开；静态依赖含各自 libs/LICENSE，重新分发前核查 |
 | Plasma NM | [KDE/plasma-nm](https://github.com/KDE/plasma-nm)，`b6c03fe24b30d2a963a41dd83784e36086d7257e` | applet与库按原文件 SPDX；打包保留 GPL/LGPL 文本 |
 | 控制中心 | [Kontrol Center](https://github.com/ItsNotMeBro87/plasma6-kontrol-center)，`137ba6c3b441c69dd3e59052ac9e8124367f40b4` | GPL-3.0-or-later；构建器保留 LICENSE、图标说明和新增 NOTICE |
 | 自定义任务效果/手势 | [device/recents/LICENSE](device/recents/LICENSE) | MIT，保留文件头与许可证 |

@@ -3,7 +3,7 @@ var list = panels();
 var dock = null;
 for (var p of list) {
     p.currentConfigGroup = ["General"];
-    if (p.readConfig("PianoThemeRole", "") === "top") throw new Error("Theme layout already exists");
+    if (p.readConfig("ShengThemeRole", "") === "top") throw new Error("Theme layout already exists");
     if (p.widgets().some(w => w.type === "org.kde.plasma.icontasks")) dock = p;
 }
 if (!dock) throw new Error("Existing task manager panel not found");
@@ -16,7 +16,7 @@ top.hiding = "none";
 top.alignment = "left";
 top.lengthMode = "fill";
 top.currentConfigGroup = ["General"];
-top.writeConfig("PianoThemeRole", "top");
+top.writeConfig("ShengThemeRole", "top");
 function use(type) {
     var widget = existing(type);
     return widget ? top.addWidget(widget) : top.addWidget(type);
@@ -57,7 +57,7 @@ dock.minimumLength = 1;
 dock.maximumLength = 1100;
 dock.lengthMode = "fit";
 dock.currentConfigGroup = ["General"];
-dock.writeConfig("PianoThemeRole", "dock");
+dock.writeConfig("ShengThemeRole", "dock");
 for (var widget of dock.widgets()) {
     if (widget.type !== "org.kde.plasma.icontasks") widget.remove();
 }

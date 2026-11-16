@@ -3,7 +3,7 @@
 from pathlib import Path
 import json,os,shutil,subprocess
 
-home=Path.home(); state=home/'.local/state/piano-theme'
+home=Path.home(); state=home/'.local/state/sheng-theme'
 backup=Path((state/'latest-backup').read_text().strip())
 if not backup.is_relative_to(state) or not (backup/'manifest.json').is_file():
     raise SystemExit('Invalid desktop backup path')

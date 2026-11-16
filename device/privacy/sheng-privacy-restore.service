@@ -1,0 +1,13 @@
+[Unit]
+Description=Restore Sheng device privacy state
+After=systemd-udev-settle.service
+Wants=systemd-udev-settle.service
+Before=systemd-user-sessions.service display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/sheng-privacyctl restore
+TimeoutStartSec=45
+
+[Install]
+WantedBy=multi-user.target

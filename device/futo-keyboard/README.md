@@ -1,6 +1,6 @@
 # FUTO 键盘的原生 Linux 移植（实验）
 
-针对 piano / Kali ARM64 / Fcitx5 5.1.23 / Plasma Wayland 6.7.4 / Qt 6.11.2。本组件将 **FUTO/LatinIME 的真实 C++ 词典与英文输入候选核心**编译为 Linux ELF，并把固定版本的 FUTO QWERTY 布局和默认浅/深色调色板接入现有原生屏幕键盘。没有运行 Android 容器、APK 或 Java 虚拟机，也不只是更换键盘外观。
+针对 sheng / Kali ARM64 / Fcitx5 5.1.23 / Plasma Wayland 6.7.4 / Qt 6.11.2。本组件将 **FUTO/LatinIME 的真实 C++ 词典与英文输入候选核心**编译为 Linux ELF，并把固定版本的 FUTO QWERTY 布局和默认浅/深色调色板接入现有原生屏幕键盘。没有运行 Android 容器、APK 或 Java 虚拟机，也不只是更换键盘外观。
 
 这是有范围限制的原生移植，**不是完整 FUTO Android 应用**。中文继续使用已经安装的水杉；Wayland 窗口、悬浮/停靠和实体键盘抑制复用 [Fcitx5 OSK 集成](../input-method/README.md)。`0.2.0` 将核心 UI/UX 重绘为原生 Rust/Iced 组件：候选/动作栏、字母和符号页、分类表情、文本编辑、设置与关于页。没有运行 Android Compose。滑行解码、空格滑动光标、神经语言模型、语音、完整 Android 设置、表情搜索/肤色选择尚未移植；英文只支持 QWERTY/en_US。
 
@@ -22,7 +22,7 @@
 ```text
 实体键盘 / Linux 原生触屏键盘
                   ↓ Fcitx5 VirtualKeyboard / 原生输入上下文
-     中文 msime ← 中英切换 → piano-futo 英文引擎
+     中文 msime ← 中英切换 → sheng-futo 英文引擎
                                 ↓
                     FUTO/LatinIME C++ 输入候选核心
                                 ↓
@@ -35,7 +35,7 @@
 - `futo-core.cpp` 调用上游 `Dictionary::getSuggestions`，不是自建模糊词典；英文拼写错误可通过触屏选择纠正。空格默认保留原输入，避免未经确认的自动替换。
 - `fcitx-engine.cpp` 使用每个输入上下文独立的预编辑状态；密码/敏感输入直接交回 Fcitx，不查询词典。不保存输入记录、学习词库或联网请求。
 - `prepare-futo-keyboard.py` 验证固定 archive/patch SHA；从上游布局生成 Linux 键位映射、从 Kotlin 默认配色生成 Linux 主题。当前只接受明确支持的 QWERTY schema，其他布局拒绝并要求适配。
-- 保留数字行、长按候选键、中文、水杉候选、悬浮/停靠和自动弹出策略。英文工具栏入口只在检测到 `piano-futo` 引擎后启用，未安装时保持原来的中英切换。
+- 保留数字行、长按候选键、中文、水杉候选、悬浮/停靠和自动弹出策略。英文工具栏入口只在检测到 `sheng-futo` 引擎后启用，未安装时保持原来的中英切换。
 
 ## 来源与许可
 
@@ -45,7 +45,7 @@
 
 ## 从公开源码构建
 
-在 ARM64 Kali Linux 上操作；Windows 只负责源码准备与传输。先按水杉集成说明安装可用的 `piano-msime-integration 0.2.1-8`；构建该版本时使用下面的 `--futo-ui` 入口，否则只有原界面中的英文引擎入口。不要用 PowerShell 编译 Linux ELF。
+在 ARM64 Kali Linux 上操作；Windows 只负责源码准备与传输。先按水杉集成说明安装可用的 `sheng-msime-integration 0.2.1-8`；构建该版本时使用下面的 `--futo-ui` 入口，否则只有原界面中的英文引擎入口。不要用 PowerShell 编译 Linux ELF。
 
 ```bash
 # Rust/Cargo 和 OSK 开发依赖见 input-method/README.md
@@ -56,8 +56,8 @@ CARGO_BUILD_JOBS=2 cmake --build out/futo-osk-build --parallel 2
 DESTDIR="$PWD/out/futo-osk-stage" cmake --install out/futo-osk-build --component Fcitx5Osk
 DESTDIR="$PWD/out/futo-osk-stage" cmake --install out/futo-osk-build --component Fcitx5OskKwinLauncher
 python3 device/input-method/build-device-package.py out/futo-osk-stage \
-  scripts/keyboard-policy.py out/packages/piano-msime-integration_0.2.1-8_arm64.deb
-sudo apt-get install ./out/packages/piano-msime-integration_0.2.1-8_arm64.deb
+  scripts/keyboard-policy.py out/packages/sheng-msime-integration_0.2.1-8_arm64.deb
+sudo apt-get install ./out/packages/sheng-msime-integration_0.2.1-8_arm64.deb
 ```
 
 ```bash
@@ -69,19 +69,19 @@ cmake -S device/futo-keyboard -B out/futo-build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr \
   -DFUTO_SOURCE="$PWD/out/futo-source"
 cmake --build out/futo-build --parallel 2
-out/futo-build/piano-futo-tool --import \
+out/futo-build/sheng-futo-tool --import \
   out/futo-source/linux-data/en_US.tsv out/futo-en_US
 cmake -S device/futo-keyboard -B out/futo-build \
   -DFUTO_DICTIONARY="$PWD/out/futo-en_US"
 ctest --test-dir out/futo-build --output-on-failure
 python3 device/futo-keyboard/build-device-package.py \
   out/futo-build out/futo-source out/futo-en_US \
-  out/packages/piano-futo-keyboard_0.3.0-3_arm64.deb
-sudo apt-get install ./out/packages/piano-futo-keyboard_0.3.0-3_arm64.deb
+  out/packages/sheng-futo-keyboard_0.3.0-3_arm64.deb
+sudo apt-get install ./out/packages/sheng-futo-keyboard_0.3.0-3_arm64.deb
 # 解锁状态，以桌面用户执行；只重载输入面板
-piano-futo-keyboard-setup
+sheng-futo-keyboard-setup
 # 已启用过旧版时，保留原回退备份并重新加载升级后的界面
-piano-futo-keyboard-setup --refresh --compact
+sheng-futo-keyboard-setup --refresh --compact
 ```
 
 准备器和词典导入要求新的空输出目录；重复构建应指定新目录。第三方源码与二进制不提交，其他开发者不需要作者 `.work`。打包器只打包编译产物并复验词典，不代替 C++ 编译。包依赖匹配 Fcitx5 与 Qt ABI，不能跳过依赖或移植其他架构二进制。
@@ -90,20 +90,20 @@ piano-futo-keyboard-setup --refresh --compact
 
 中文使用水杉；触屏工具栏/底行的「中/EN」切到 FUTO 英文，再点可返回中文。英文输入显示原词及纠错候选，点击候选会提交该词和一个空格。空格提交原词，退格修改组合，Esc 取消。物理键盘可在 Fcitx 配置中选择该英文引擎；水杉默认项仍保留。
 
-原布局和当前悬浮/停靠尺寸保留；安装程序只改允许的 OSK 根键和当前输入法组，私有备份位于 `~/.local/state/piano-futo-keyboard`。不导出用户词库或 Fcitx 账号信息。
+原布局和当前悬浮/停靠尺寸保留；安装程序只改允许的 OSK 根键和当前输入法组，私有备份位于 `~/.local/state/sheng-futo-keyboard`。不导出用户词库或 Fcitx 账号信息。
 
 `--compact` 在悬浮状态使用横屏 400、竖屏 300 逻辑像素宽，等比例缩小键盘；普通 setup 保留原尺寸。当前设备选择此模式。字体按键高的较小比例显示；切回旧界面可使用下面的完整回退，或自行在设置中调整尺寸。
 
 ```bash
 # 先恢复界面与中英入口，再卸载新引擎；水杉集成继续保留
-piano-futo-keyboard-setup --restore
-sudo apt-get remove piano-futo-keyboard
+sheng-futo-keyboard-setup --restore
+sudo apt-get remove sheng-futo-keyboard
 ```
 
 若启用后又修改过键盘设置，回退器会停止覆盖并要求核对自己的备份。不能通过全局重启 Plasma/KWin 刷新。锁屏、挂起恢复和物理触屏输入需要分别验收，不能用 CTest 通过替代用户实际输入确认。
 
 ## 本机验证
 
-2026-11-15，piano / ARM64 / 上述 ABI：已安装 `piano-futo-keyboard 0.3.0-3`、`piano-msime-integration 0.2.1-8`；原生核心及模块编译通过，导入 160325 条公开 unigram。`hellp → hello`、`tge → the`、空/超长输入通过；60 次查询约 52 ms（仅本轮轻量检查，非功耗或完整输入延迟基准）。隔离 Fcitx 实例验证候选/上屏、预编辑、退格、空格、按键释放、上下文隔离、密码/敏感框直通，通过。
+2026-11-15，sheng / ARM64 / 上述 ABI：已安装 `sheng-futo-keyboard 0.3.0-3`、`sheng-msime-integration 0.2.1-8`；原生核心及模块编译通过，导入 160325 条公开 unigram。`hellp → hello`、`tge → the`、空/超长输入通过；60 次查询约 52 ms（仅本轮轻量检查，非功耗或完整输入延迟基准）。隔离 Fcitx 实例验证候选/上屏、预编辑、退格、空格、按键释放、上下文隔离、密码/敏感框直通，通过。
 
 用户确认新尺寸/字号、中文大写/英文默认小写键帽、双层符号、分类表情上屏及动作栏正常；专用测试窗记录中英已知样本均匹配。翻页修复后用户确认前后翻页与选词上屏正常。最终 OSK 的 `cargo check` 和 ARM64 优化构建成功，安装/运行 ELF 与本机构建一致；编译峰值约 5.8 GiB，不等于运行时占用。PIN 接入/拔下抑制、锁屏解锁、挂起恢复、竖屏仍需在此版本独立回归。

@@ -1,6 +1,6 @@
 # 构建、部署与回退
 
-仅针对 `piano`。版本基线见 [HARDWARE.md](HARDWARE.md)，实际验收见 [VALIDATION.md](VALIDATION.md)。仓库无需连接作者设备、无需作者 `.work/`，也不包含预构建全量镜像或私有软件。
+仅针对 `sheng`。版本基线见 [HARDWARE.md](HARDWARE.md)，实际验收见 [VALIDATION.md](VALIDATION.md)。仓库无需连接作者设备、无需作者 `.work/`，也不包含预构建全量镜像或私有软件。
 
 ## 分层与依赖
 
@@ -43,7 +43,7 @@ OUT_DIR=out bash scripts/flash-kali.sh --erase-userdata
 | 对象 | 操作 |
 | --- | --- |
 | `userdata` | 覆盖为 Linux ext4 根分区，Android 数据全部丢失 |
-| `boot_b` | 写入 piano 专用内核 |
+| `boot_b` | 写入 sheng 专用内核 |
 | `dtbo_b` | 清除，为该主线内核使用 |
 | 活跃槽位 | 切至 B，重启 |
 | A 槽 boot/dtbo、recovery | 脚本不写入，但不能恢复已覆盖 userdata |
@@ -62,10 +62,10 @@ PIN 先读 [驱动说明](../device/keyboard-driver/README.md)：
 
 - 精确内核源码 `ianchb/sm8550-mainline@87ac0f2347eb433933841e6854950dd90e96e6b2`、运行内核配置和 Clang 21.1.8-13；在源码根应用驱动 patch，执行 `make LLVM=-21 olddefconfig prepare modules_prepare`，编译相应模块。
 - `CONFIG_MODVERSIONS=n` 仍需匹配导出符号/配置。没有完整的精确构建树与符号表时不能强行加载；本仓库目前没有一键重建该模块的完整工具链封装。
-- 认证使用 `ianchb/piano_devauth@bac03b5bcfefa1467ebad490edd910a6cef8a207`，应用 [service-fixes.patch](../device/keyboard-auth/service-fixes.patch)，遵循上游构建并链接其授权的依赖。
+- 认证使用 `ianchb/sheng_devauth@bac03b5bcfefa1467ebad490edd910a6cef8a207`，应用 [service-fixes.patch](../device/keyboard-auth/service-fixes.patch)，遵循上游构建并链接其授权的依赖。
 - `bash scripts/build-dock-fix-package.sh MODULE AUTH_BINARY "$PWD" out/packages` **仅打包已编译、已验 ABI 的产物**。安装后用 `modinfo`/服务状态及真实输入验收，不重绑整条 I²C/TEE 链路。二进制依赖许可需另行确认。
 
-热点后端已在基础镜像安装，SSID/随机新密码位于 `/etc/piano-hotspot/`，不会从本仓库获取作者密码。`sudo systemctl start piano-hotspot.service` 开启，`stop` 关闭；本地查看 `/etc/piano-hotspot/access.txt`，不要提交该文件。热点使用 `piano-ap` 虚拟 AP、hostapd、dnsmasq 和专用 nftables 表，保留原 wlan 上网连接。默认关闭，必须用另一设备连接并确认互联网访问。
+热点后端已在基础镜像安装，SSID/随机新密码位于 `/etc/sheng-hotspot/`，不会从本仓库获取作者密码。`sudo systemctl start sheng-hotspot.service` 开启，`stop` 关闭；本地查看 `/etc/sheng-hotspot/access.txt`，不要提交该文件。热点使用 `sheng-ap` 虚拟 AP、hostapd、dnsmasq 和专用 nftables 表，保留原 wlan 上网连接。默认关闭，必须用另一设备连接并确认互联网访问。
 
 原生状态栏按钮需 [hotspot-panel](../device/hotspot-panel/README.md)。从固定 `KDE/plasma-nm@b6c03fe24b30d2a963a41dd83784e36086d7257e` 获取源码并应用 `applet.patch`；将该源码的 `applet/` 与本仓库该目录的 CMake/controller 文件组成独立源码根，安装相同版本的 Plasma/NetworkManagerQt 开发依赖，用 CMake/Ninja 编译 applet，保留系统网络管理库。打包：
 
@@ -81,9 +81,9 @@ bash scripts/build-hotspot-panel-package.sh /path/to/org.kde.plasma.networkmanag
 sudo apt-get install -y build-essential pkg-config libinput-dev libudev-dev
 mkdir -p out/bin out/packages
 g++ -std=c++17 -O2 -Wall -Wextra -Werror device/recents/gesture-bridge.cpp \
-  -o out/bin/piano-task-gestures $(pkg-config --cflags --libs libinput libudev)
-python3 device/recents/build-device-package.py out/bin/piano-task-gestures out/packages/piano-task-gestures_1.0-1_arm64.deb
-sudo apt-get install ./out/packages/piano-task-gestures_1.0-1_arm64.deb
+  -o out/bin/sheng-task-gestures $(pkg-config --cflags --libs libinput libudev)
+python3 device/recents/build-device-package.py out/bin/sheng-task-gestures out/packages/sheng-task-gestures_1.0-1_arm64.deb
+sudo apt-get install ./out/packages/sheng-task-gestures_1.0-1_arm64.deb
 python3 scripts/build-task-cards.py --install
 python3 device/recents/install-native-tabbox.py
 ```
@@ -93,17 +93,17 @@ python3 device/recents/install-native-tabbox.py
 ### 3. 桌面策略与隐私
 
 ```bash
-gcc -std=gnu11 -O2 -Wall -Wextra -Werror device/privacy/device-guard.c -o out/bin/piano-privacy-bpf
-sudo out/bin/piano-privacy-bpf probe
-python3 device/desktop-policy/build-device-package.py out/bin/piano-privacy-bpf out/packages/piano-tablet-controls_1.0-6_arm64.deb
-sudo apt-get install ./out/packages/piano-tablet-controls_1.0-6_arm64.deb
+gcc -std=gnu11 -O2 -Wall -Wextra -Werror device/privacy/device-guard.c -o out/bin/sheng-privacy-bpf
+sudo out/bin/sheng-privacy-bpf probe
+python3 device/desktop-policy/build-device-package.py out/bin/sheng-privacy-bpf out/packages/sheng-tablet-controls_1.0-6_arm64.deb
+sudo apt-get install ./out/packages/sheng-tablet-controls_1.0-6_arm64.deb
 ```
 
-包安装用户会话服务、隐私过滤器及桌面手势部件；还需将 `org.piano.desktop-gesture` 添加到桌面，并加载上一步 KWin 效果（其 `DesktopPolicy.qml` 通知最大化/全屏）。Dock 按 `PianoThemeRole=dock` 或底部任务面板识别，不依赖作者面板 ID。
+包安装用户会话服务、隐私过滤器及桌面手势部件；还需将 `org.sheng.desktop-gesture` 添加到桌面，并加载上一步 KWin 效果（其 `DesktopPolicy.qml` 通知最大化/全屏）。Dock 按 `ShengThemeRole=dock` 或底部任务面板识别，不依赖作者面板 ID。
 
 使用当前 Linexin Dock/抽屉时，先完成下面的主题面板，再按[抽屉专用说明](DESKTOP_DRAWER.md)构建启动器、运行迁移助手和编译原生桌面触控插件；助手自动添加手势部件、备份和迁移固定项。原生插件必须与当前 KWin/Qt ABI 匹配，它同时负责防框选和真正全屏抽屉上的 Dock 叠层；仅安装 QML 不够。
 
-隐私开关默认为允许访问；先读 [拦截范围](../device/privacy/README.md)。root 运行 `/usr/libexec/piano-privacyctl off` 可恢复；本地活跃用户通过 `piano-privacy on/off` 请求有限权限。冻结既有采集进程可能暂停整个相关应用，验收使用测试进程。
+隐私开关默认为允许访问；先读 [拦截范围](../device/privacy/README.md)。root 运行 `/usr/libexec/sheng-privacyctl off` 可恢复；本地活跃用户通过 `sheng-privacy on/off` 请求有限权限。冻结既有采集进程可能暂停整个相关应用，验收使用测试进程。
 
 ### 4. 控制中心
 
@@ -112,7 +112,7 @@ sudo apt-get install ./out/packages/piano-tablet-controls_1.0-6_arm64.deb
 ```bash
 python3 scripts/build-control-center.py
 # 以下以平板桌面用户执行
-kpackagetool6 --type Plasma/Applet --install out/packages/piano-control-center.plasmoid
+kpackagetool6 --type Plasma/Applet --install out/packages/sheng-control-center.plasmoid
 # 已安装时使用 --upgrade
 ```
 
@@ -124,7 +124,7 @@ kpackagetool6 --type Plasma/Applet --install out/packages/piano-control-center.p
 
 当前配置、插件角色、显示模式和有效全局样式见[桌面配置同步](DESKTOP_PROFILE.md)及其 JSON 快照；按本机部件重新映射，不复制作者的实例 ID。导出脚本只读，校验器无需连接设备。
 
-该脚本会迁移现有任务面板并创建顶栏，**不是可重复执行的配置管理器**；先备份并读取脚本，已存在 Piano 顶栏时它会停止。默认壁纸路径需先放置你有权使用的图片，或改成自己的路径。不要从作者设备导出整份配置。
+该脚本会迁移现有任务面板并创建顶栏，**不是可重复执行的配置管理器**；先备份并读取脚本，已存在 Sheng 顶栏时它会停止。默认壁纸路径需先放置你有权使用的图片，或改成自己的路径。不要从作者设备导出整份配置。
 
 在系统设置选择 BreezeLight、Breeze 样式、Colloid-Light、Breeze_Light 24px；关闭壁纸强调色，设置内屏 200% 缩放。Panel Colorizer：顶栏 ChromeOS 预设关闭背景，普通部件和托盘前景白色；Dock 使用 Translucent；按新 widget ID 将电池图标设为白色符号遮罩。配置未全部自动化，须人工/AI检查。`WeatherData.qml` 替换 Redmi Clock 对应组件，再在其根目录应用 `weather-ui.patch`。
 
@@ -134,18 +134,18 @@ kpackagetool6 --type Plasma/Applet --install out/packages/piano-control-center.p
 
 Burp 官方安装及 6 GiB/170%/OpenGL 参数见 [burp-tablet.md](burp-tablet.md)。水杉/Fcitx5 OSK 的固定来源与未完成验收见 [input-method](../device/input-method/README.md)，不能作为默认稳定安装步骤。安装新输入法前保留可用的 Plasma Keyboard 回退入口。
 
-实验 [FUTO Linux 移植](../device/futo-keyboard/README.md)需要用 `--futo-ui` 构建并安装 `piano-msime-integration 0.2.1-8`，再编译原生英文词典/候选模块、准备原版图标/字体/布局并执行用户级 setup。核心 UI/UX 通过 Rust 原生渲染；FUTO 的非商业 Source First 许可、实际范围与回退单独记录。未移植完整 Android 应用、滑行或语音，不替换水杉中文引擎。不要将仅打包 `.deb` 等同于已完成 C++ 构建。
+实验 [FUTO Linux 移植](../device/futo-keyboard/README.md)需要用 `--futo-ui` 构建并安装 `sheng-msime-integration 0.2.1-8`，再编译原生英文词典/候选模块、准备原版图标/字体/布局并执行用户级 setup。核心 UI/UX 通过 Rust 原生渲染；FUTO 的非商业 Source First 许可、实际范围与回退单独记录。未移植完整 Android 应用、滑行或语音，不替换水杉中文引擎。不要将仅打包 `.deb` 等同于已完成 C++ 构建。
 
 ## 回退与故障定位
 
 | 层 | 诊断/回退 |
 | --- | --- |
 | 无法启动 | fastboot 检查槽位；必要时 `fastboot set_active a`、`fastboot reboot recovery`。恢复 Android 需本机型原厂固件/recovery 重建 userdata，会删除 Kali；A 槽不是用户数据备份 |
-| PIN | 查看 `modinfo`、`journalctl -u piano-devauth`、只读握手计数；卸载修复包后重装匹配原内核包，不能只删除唯一模块 |
-| 热点 | `journalctl -u piano-hotspot`、`iw dev`、专用 nft 表；停服务后重新测试原 wlan 上网，勿 flush 全局防火墙 |
+| PIN | 查看 `modinfo`、`journalctl -u sheng-devauth`、只读握手计数；卸载修复包后重装匹配原内核包，不能只删除唯一模块 |
+| 热点 | `journalctl -u sheng-hotspot`、`iw dev`、专用 nft 表；停服务后重新测试原 wlan 上网，勿 flush 全局防火墙 |
 | 网络 applet | 卸载补丁并重装匹配 plasma-nm，下一次会话加载原版 |
-| 三指 | 停止 `piano-task-gestures`，停用本 KWin 效果并恢复备份；bridge 退出会释放虚拟 Alt |
-| 隐私 | `sudo /usr/libexec/piano-privacyctl off`，核对冻结进程恢复后再卸载 |
+| 三指 | 停止 `sheng-task-gestures`，停用本 KWin 效果并恢复备份；bridge 退出会释放虚拟 Alt |
+| 隐私 | `sudo /usr/libexec/sheng-privacyctl off`，核对冻结进程恢复后再卸载 |
 | 桌面 | 使用自己部署前的备份恢复；作者 `restore.py` 的备份路径不适用于新设备 |
 
 部署完成按 [验证清单](VALIDATION.md) 逐项验收。保留新设备日志于本地，公开 issue 使用去敏摘要。

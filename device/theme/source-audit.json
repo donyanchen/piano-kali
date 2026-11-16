@@ -45,16 +45,16 @@
   },
   "nativeGuardArtifactMatchesLocalBuild": true,
   "differences": [],
-  "activePianoEffects": [
-    "piano-task-cards-35ed679b1408",
-    "piano_desktop_touch_guard_049d7d7951b7"
+  "activeShengEffects": [
+    "sheng-task-cards-35ed679b1408",
+    "sheng_desktop_touch_guard_049d7d7951b7"
   ],
   "nativeGuardArtifactSha256": "95345179605d1a1675aa9ee8ae56cc99a903af549bcff8322fd68f9b3dece26f",
   "activePlasmaPlugins": [
     "org.kontrol.center",
-    "org.piano.desktop-gesture.drawer-b16bf14a74",
-    "org.piano.linexin.launcher.c268de5fecf4",
-    "org.piano.panel-style.dcc5a4976502"
+    "org.sheng.desktop-gesture.drawer-b16bf14a74",
+    "org.sheng.linexin.launcher.c268de5fecf4",
+    "org.sheng.panel-style.dcc5a4976502"
   ],
   "inputArtifacts": {
     "nativeModuleMatchesLocalBuild": true,
@@ -73,9 +73,9 @@
     {
       "upstream": "https://github.com/Petexy/Linexin-Launcher",
       "commit": "43da5eab6e367f96f8e1aca9a90867a4289a9557",
-      "plugin": "org.piano.linexin.launcher.c268de5fecf4",
+      "plugin": "org.sheng.linexin.launcher.c268de5fecf4",
       "revision": "c268de5fecf4",
-      "artifact": "piano-desktop-drawer.plasmoid",
+      "artifact": "sheng-desktop-drawer.plasmoid",
       "sha256": "3d43f74a9f2cda9e6fa845d013235f2e0ad5857db972066f4c9d5e9b0a60db53"
     },
     {
@@ -83,12 +83,12 @@
       "commit": "137ba6c3b441c69dd3e59052ac9e8124367f40b4",
       "upstream_archive_sha256": "c5d085c4cec2cc54cde54ee6d7619f5b75d65961d76bf5f848a86cb75d3e88d2",
       "patch_sha256": "fed3560bf8fd6812144f603533b63640a23aeeb9d0b658f46b3c10d618287059",
-      "artifact": "piano-control-center.plasmoid",
+      "artifact": "sheng-control-center.plasmoid",
       "sha256": "4cd2ac1a740744728d6c07d5f00caea4c532c3332c7c54397108d034bd46493d"
     },
     {
-      "id": "piano-task-cards-35ed679b1408",
-      "artifact": "piano-task-cards-35ed679b1408.zip",
+      "id": "sheng-task-cards-35ed679b1408",
+      "artifact": "sheng-task-cards-35ed679b1408.zip",
       "sha256": "fcab15c08292cbe7b081b6b85349b16f335d987fafd5fe780cd38e90ff89053e"
     }
   ],

@@ -14,7 +14,7 @@ for profile in AC Battery LowBattery; do
     # Entering the lock screen blanks immediately; user activity still wakes it.
     kwriteconfig6 --file powerdevilrc --group "$profile" --group Display --key TurnOffDisplayIdleTimeoutWhenLockedSec 0
     kwriteconfig6 --file powerdevilrc --group "$profile" --group Display --key LockBeforeTurnOffDisplay true
-    kwriteconfig6 --file powerdevilrc --group "$profile" --group RunScript --key ProfileLoadCommand "/usr/libexec/piano-set-screen-lock-timeout $idle_minutes"
+    kwriteconfig6 --file powerdevilrc --group "$profile" --group RunScript --key ProfileLoadCommand "/usr/libexec/sheng-set-screen-lock-timeout $idle_minutes"
 done
 kwriteconfig6 --file kscreenlockerrc --group Daemon --key Autolock true
 kwriteconfig6 --file kscreenlockerrc --group Daemon --key Timeout 60
@@ -23,5 +23,5 @@ if [[ ${1:-} != --config-only ]]; then
     systemctl --user restart plasma-powerdevil.service
     profile=$(qdbus6 org.kde.Solid.PowerManagement /org/kde/Solid/PowerManagement org.kde.Solid.PowerManagement.currentProfile)
     if [[ $profile == AC ]]; then idle_minutes=60; else idle_minutes=30; fi
-    /usr/libexec/piano-set-screen-lock-timeout "$idle_minutes"
+    /usr/libexec/sheng-set-screen-lock-timeout "$idle_minutes"
 fi

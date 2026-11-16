@@ -6,7 +6,7 @@ import pathlib
 import subprocess
 
 source = pathlib.Path('/usr/share/kwin-wayland/tabbox/thumbnail_grid')
-plugin_id = 'piano-native-tabbox-spatial1'
+plugin_id = 'sheng-native-tabbox-spatial1'
 target = pathlib.Path.home()/'.local/share/kwin-wayland/tabbox'/plugin_id
 qml = (source/'contents/ui/main.qml').read_bytes()
 assert qml.count(b'keyNavigationWraps: true') == 1
@@ -16,7 +16,7 @@ patched = qml.replace(b'keyNavigationWraps: true', b'keyNavigationWraps: false')
 metadata = json.loads((source/'metadata.json').read_text())
 metadata['KPlugin']['Id'] = plugin_id
 (target/'metadata.json').write_text(json.dumps(metadata, ensure_ascii=False, indent=2)+'\n')
-state = pathlib.Path.home()/'.local/state/piano-recents/native-tabbox-manifest.json'
+state = pathlib.Path.home()/'.local/state/sheng-recents/native-tabbox-manifest.json'
 state.write_text(json.dumps({'id':plugin_id, 'source':str(source), 'source_sha256':hashlib.sha256(qml).hexdigest(),
                              'installed_sha256':hashlib.sha256(patched).hexdigest(),
                              'changes':['keyNavigationWraps: true -> false'],

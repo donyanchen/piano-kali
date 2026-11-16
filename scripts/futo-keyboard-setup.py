@@ -34,7 +34,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--restore', action='store_true')
     parser.add_argument('--refresh', action='store_true', help='Reload upgraded UI while retaining the original rollback backup')
-    parser.add_argument('--compact', action='store_true', help='Use 400/300 logical-pixel floating widths on the Piano tablet')
+    parser.add_argument('--compact', action='store_true', help='Use 400/300 logical-pixel floating widths on the Sheng tablet')
     args = parser.parse_args()
     if os.geteuid() == 0:
         raise SystemExit('Run as the desktop user, without sudo')
@@ -43,10 +43,10 @@ def main():
     if saver.GetActive():
         raise SystemExit('Unlock normally before changing the input panel')
     method = subprocess.check_output(['kreadconfig6', '--file', 'kwinrc', '--group', 'Wayland', '--key', 'InputMethod'], text=True).strip()
-    if not method.endswith('/piano-msime-fcitx5.desktop'):
-        raise SystemExit('First install the existing Piano Fcitx integration; no changes made')
+    if not method.endswith('/sheng-msime-fcitx5.desktop'):
+        raise SystemExit('First install the existing Sheng Fcitx integration; no changes made')
     config = pathlib.Path.home() / '.config/fcitx5-osk/config.toml'
-    state = pathlib.Path.home() / '.local/state/piano-futo-keyboard'
+    state = pathlib.Path.home() / '.local/state/sheng-futo-keyboard'
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
     record = state / 'installed.json'
     original = config.read_text(encoding='utf-8')
@@ -57,14 +57,14 @@ def main():
             raise SystemExit('OSK settings changed after setup; inspect your private backup before restoring')
         updated = pathlib.Path(installed['backup']).read_text(encoding='utf-8')
     else:
-        subprocess.run(['piano-futo-tool', '--self-test', '/usr/share/piano-futo-keyboard/en_US'], check=True)
-        for relative in ('layouts/piano-futo-landscape.toml', 'layouts/piano-futo-portrait.toml', 'themes/piano-futo-light.toml', 'themes/piano-futo-dark.toml'):
+        subprocess.run(['sheng-futo-tool', '--self-test', '/usr/share/sheng-futo-keyboard/en_US'], check=True)
+        for relative in ('layouts/sheng-futo-landscape.toml', 'layouts/sheng-futo-portrait.toml', 'themes/sheng-futo-light.toml', 'themes/sheng-futo-dark.toml'):
             if not (pathlib.Path('/usr/share/fcitx5-osk') / relative).is_file():
                 raise SystemExit('Install the native FUTO package and layouts first')
-        if not (args.refresh or args.compact) and record.exists() and json.loads(record.read_text()).get('completed') and previous.get('default_landscape_layout') == 'piano-futo-landscape':
+        if not (args.refresh or args.compact) and record.exists() and json.loads(record.read_text()).get('completed') and previous.get('default_landscape_layout') == 'sheng-futo-landscape':
             print('FUTO keyboard settings are already enabled; no input process was restarted.')
             return
-        values = {'default_landscape_layout': 'piano-futo-landscape', 'default_portrait_layout': 'piano-futo-portrait',
+        values = {'default_landscape_layout': 'sheng-futo-landscape', 'default_portrait_layout': 'sheng-futo-portrait',
                   'theme': 'Auto', 'light_theme': 'FUTO Light', 'dark_theme': 'FUTO Dark', 'default_font': 'Roboto'}
         if args.compact and previous.get('placement') == 'Float':
             values.update(landscape_width=400.0, portrait_width=300.0)
@@ -87,7 +87,7 @@ def main():
         old_engine = str(old_controller.CurrentInputMethod())
     if not args.restore:
         rollback_backup = str(backup)
-        if (args.refresh or args.compact) and record.exists() and previous.get('default_landscape_layout') == 'piano-futo-landscape':
+        if (args.refresh or args.compact) and record.exists() and previous.get('default_landscape_layout') == 'sheng-futo-landscape':
             rollback_backup = json.loads(record.read_text(encoding='utf-8'))['backup']
         # Write recovery metadata before touching the running panel, so a failed
         # discovery/reload can still be reverted with --restore.
@@ -109,23 +109,23 @@ def main():
     controller = dbus.Interface(bus.get_object('org.fcitx.Fcitx5', '/controller'), 'org.fcitx.Fcitx.Controller1')
     group = controller.CurrentInputMethodGroup()
     layout, items = controller.InputMethodGroupInfo(group)
-    new_items = [(str(name), str(item_layout)) for name, item_layout in items if str(name) != 'piano-futo']
+    new_items = [(str(name), str(item_layout)) for name, item_layout in items if str(name) != 'sheng-futo']
     if not args.restore:
         available = {str(item[0]) for item in controller.AvailableInputMethods()}
-        if 'piano-futo' not in available:
+        if 'sheng-futo' not in available:
             raise SystemExit('FUTO engine was not discovered; use --restore to return to the saved OSK settings')
-        new_items.append(('piano-futo', ''))
+        new_items.append(('sheng-futo', ''))
     controller.SetInputMethodGroupInfo(group, layout, dbus.Array([dbus.Struct(item, signature='ss') for item in new_items], signature='(ss)'))
     if not args.restore:
         # Listing a .conf is not proof that the compiled addon can actually load.
         # Probe activation, then restore the original engine for this context.
         current = old_engine if old_engine in {name for name, _ in new_items} else str(controller.CurrentInputMethod())
         try:
-            controller.SetCurrentIM('piano-futo')
-            if str(controller.CurrentInputMethod()) != 'piano-futo':
+            controller.SetCurrentIM('sheng-futo')
+            if str(controller.CurrentInputMethod()) != 'sheng-futo':
                 raise SystemExit('FUTO addon activation failed; appearance can be reverted with --restore')
         finally:
-            if current and current != 'piano-futo':
+            if current and current != 'sheng-futo':
                 controller.SetCurrentIM(current)
     if args.restore:
         record.unlink()

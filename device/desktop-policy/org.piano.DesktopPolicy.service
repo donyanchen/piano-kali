@@ -1,4 +1,0 @@
-[D-BUS Service]
-Name=org.piano.DesktopPolicy
-Exec=/usr/libexec/piano-desktop-policy
-SystemdService=piano-desktop-policy.service

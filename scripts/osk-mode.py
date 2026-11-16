@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Switch the Piano Fcitx5 OSK between draggable float and bottom dock."""
+"""Switch the Sheng Fcitx5 OSK between draggable float and bottom dock."""
 import argparse
 import datetime
 import json
@@ -17,13 +17,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=['float', 'dock'])
     parser.add_argument('--font-defaults', action='store_true', help='Use installed Noto CJK and Material Design symbol fonts')
-    parser.add_argument('--piano-ui', action='store_true', help='Select the installed Piano touch layout and automatic light/dark themes')
+    parser.add_argument('--sheng-ui', action='store_true', help='Select the installed Sheng touch layout and automatic light/dark themes')
     args = parser.parse_args()
     if os.geteuid() == 0:
         raise SystemExit('Run as the desktop user, without sudo')
     method = subprocess.check_output(['kreadconfig6', '--file', 'kwinrc', '--group', 'Wayland', '--key', 'InputMethod'], text=True).strip()
-    if not method.endswith('/piano-msime-fcitx5.desktop'):
-        raise SystemExit('The Piano Fcitx5 input method is not selected; no changes made')
+    if not method.endswith('/sheng-msime-fcitx5.desktop'):
+        raise SystemExit('The Sheng Fcitx5 input method is not selected; no changes made')
     locked = subprocess.check_output(['qdbus6', 'org.freedesktop.ScreenSaver', '/ScreenSaver', 'org.freedesktop.ScreenSaver.GetActive'], text=True).strip()
     if locked != 'false':
         raise SystemExit('Unlock the desktop before switching OSK placement')
@@ -39,12 +39,12 @@ def main():
             if family not in found:
                 raise SystemExit('Missing font: ' + family + '; install fonts-noto-cjk and fonts-materialdesignicons-legacy')
         values.update(default_font='Noto Sans CJK SC', default_nerd_font='Material Design Icons version 6')
-    if args.piano_ui:
-        if not pathlib.Path('/usr/share/fcitx5-osk/layouts/piano-hyperos-landscape.toml').is_file():
-            raise SystemExit('Install the Piano UI assets and patched OSK first')
-        values.update(default_landscape_layout='piano-hyperos-landscape',
-                      default_portrait_layout='piano-hyperos-portrait',
-                      theme='Auto', light_theme='Piano Light', dark_theme='Piano Dark')
+    if args.sheng_ui:
+        if not pathlib.Path('/usr/share/fcitx5-osk/layouts/sheng-hyperos-landscape.toml').is_file():
+            raise SystemExit('Install the Sheng UI assets and patched OSK first')
+        values.update(default_landscape_layout='sheng-hyperos-landscape',
+                      default_portrait_layout='sheng-hyperos-portrait',
+                      theme='Auto', light_theme='Sheng Light', dark_theme='Sheng Dark')
         for key, category in [('key_area_layout_folders', 'layouts'), ('key_set_folders', 'key_sets'), ('theme_folders', 'themes')]:
             defaults = [str(pathlib.Path(p)/'fcitx5-osk'/category) for p in os.environ.get('XDG_CONFIG_DIRS', '/etc/xdg').split(':') if p]
             defaults.append(str(pathlib.Path.home()/'.config/fcitx5-osk'/category))
@@ -61,7 +61,7 @@ def main():
     parsed = tomllib.loads(updated)
     if any(parsed.get(k) != v for k, v in values.items()):
         raise SystemExit('Could not update root TOML keys; no changes made')
-    state = pathlib.Path.home() / '.local/state/piano-input-method'
+    state = pathlib.Path.home() / '.local/state/sheng-input-method'
     state.mkdir(parents=True, exist_ok=True)
     backup = state / ('osk-before-' + args.mode + '-' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f') + '.toml')
     shutil.copy2(config, backup)

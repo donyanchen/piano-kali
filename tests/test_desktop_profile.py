@@ -20,12 +20,12 @@ class DesktopProfileTests(unittest.TestCase):
             'id': 9876, 'plugin': 'Redmi.Clock',
             'geometry': {'x': 32, 'y': 104, 'width': 304, 'height': 304},
             'settings': {'General': {'colorHex': '#ffffff', 'weatherLatitude': 41.234, 'cachedWeather': 'private-cache'}},
-        }, {'id': 9988, 'plugin': 'org.piano.desktop-gesture.drawer-test', 'settings': {'Appearance': {'pointerPresent': True}}}]}]
+        }, {'id': 9988, 'plugin': 'org.sheng.desktop-gesture.drawer-test', 'settings': {'Appearance': {'pointerPresent': True}}}]}]
         output = json.dumps(profile_tools.sanitize_layout(raw))
         for unexpected in ['9876', '9988', '41.234', 'private-cache', 'pointerPresent']:
             self.assertNotIn(unexpected, output)
         self.assertIn('#ffffff', output)
-        self.assertIn('org.piano.desktop-gesture#1', output)
+        self.assertIn('org.sheng.desktop-gesture#1', output)
 
     def test_style_removes_file_sources_and_unused_branches(self):
         raw = {'enabled': True, 'foregroundColor': {'enabled': True, 'custom': '#ffffff'},

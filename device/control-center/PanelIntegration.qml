@@ -26,7 +26,7 @@ Item {
     Component {
         id: touchBlocker
         MultiPointTouchArea {
-            objectName: "piano-mouse-only-tray"
+            objectName: "sheng-mouse-only-tray"
             anchors.fill: parent
             z: 99999
             mouseEnabled: false
@@ -97,7 +97,7 @@ Item {
                 }
                 if (!item.visible || item.width < 2 || item.height < 2) continue
                 var found = false
-                for (var j = 0; j < item.children.length; j++) if (item.children[j].objectName === "piano-mouse-only-tray") found = true
+                for (var j = 0; j < item.children.length; j++) if (item.children[j].objectName === "sheng-mouse-only-tray") found = true
                 if (!found) ownedBlockers.push(touchBlocker.createObject(item))
                 if (name === "org.kde.plasma.bluetooth") bluetoothBlocked = true
                 else if (name === "org.kde.plasma.networkmanagement") wifiBlocked = true
@@ -125,7 +125,7 @@ Item {
         onTriggered: {
             integration.sync()
             if ((integration.clockItem && integration.bluetoothBlocked && integration.wifiBlocked && integration.brightnessBlocked) || integration.attempts >= 12) {
-                console.info("PIANO_PANEL_TOUCH_FILTER", integration.bluetoothBlocked, integration.wifiBlocked, integration.brightnessBlocked, integration.filteredHandlers.length)
+                console.info("SHENG_PANEL_TOUCH_FILTER", integration.bluetoothBlocked, integration.wifiBlocked, integration.brightnessBlocked, integration.filteredHandlers.length)
                 stop()
             }
         }

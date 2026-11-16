@@ -9,7 +9,7 @@ import re
 import time
 
 DEVFREQ = pathlib.Path('/sys/class/devfreq/3d00000.gpu')
-OUTPUT = pathlib.Path('/run/piano-gpu-monitor/metrics.json')
+OUTPUT = pathlib.Path('/run/sheng-gpu-monitor/metrics.json')
 
 
 def read_number(path):
@@ -63,8 +63,8 @@ def graphics_memory():
 
 
 def main():
-    if b'xiaomi,piano' not in pathlib.Path('/proc/device-tree/compatible').read_bytes():
-        raise SystemExit('This collector is intended for Xiaomi piano only')
+    if b'xiaomi,sheng' not in pathlib.Path('/proc/device-tree/compatible').read_bytes():
+        raise SystemExit('This collector is intended for Xiaomi sheng only')
     OUTPUT.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
     previous, previous_time = {}, None
     while True:
@@ -84,7 +84,7 @@ def main():
             runtime = 'unknown'
         metrics = {
             'timestamp_ms': int(time.time() * 1000),
-            'driver': 'msm', 'model': 'Adreno 830', 'memory_type': 'unified',
+            'driver': 'msm', 'model': 'Adreno 740', 'memory_type': 'unified',
             'usage_percent': usage,
             'frequency_hz': read_number(DEVFREQ / 'cur_freq'),
             'runtime_status': runtime,

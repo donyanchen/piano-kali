@@ -70,18 +70,11 @@ for line in open(exclude_file):
     if line and not line.startswith('#'):
         excluded.append(line.rstrip('/'))
 
-REWRITES = [
-    ('sheng-kali-linux', 'piano-kali'),
-    ('xiaomi-sheng', 'xiaomi-piano'),
-    ('sheng', 'piano'),
-    ('Sheng', 'Piano'),
-    ('SHENG', 'PIANO'),
-    ('24018RPACC', '25091RP04C'),
-    ('6S Pro', '8 Pro'),
-    ('Adreno 740', 'Adreno 830'),
-]
-KEEP_LINE = ('LuKeyC-NetSEC', 'THIRD_PARTY.md')
-
+# The Kali layer is copied VERBATIM. Do not rewrite identifiers: names like
+# sheng-msime-fcitx5.desktop, sheng-hyperos-landscape.toml or
+# ~/.local/state/sheng-input-method are contracts with the files installed on
+# the device, and a blanket sheng->piano rename silently breaks the OSK,
+# D-Bus services and the input-method state (that bug shipped once).
 def is_excluded(rel):
     return any(rel == e or rel.startswith(e + '/') for e in excluded)
 
@@ -94,7 +87,7 @@ for root, dirs, files in os.walk(src):
         rel = os.path.relpath(full, src)
         if is_excluded(rel) or name.endswith('.png') or name.endswith('.jpg'):
             continue
-        target = os.path.join(dst, rel.replace('sheng', 'piano'))
+        target = os.path.join(dst, rel)
         os.makedirs(os.path.dirname(target), exist_ok=True)
         try:
             text = open(full, encoding='utf-8').read()
@@ -104,13 +97,7 @@ for root, dirs, files in os.walk(src):
             continue
         out = []
         for line in text.split('\n'):
-            if any(k in line for k in KEEP_LINE):
-                out.append(line)
-                continue
-            for a, b in REWRITES:
-                line = line.replace(a, b)
-            out.append(line)
-        new = '\n'.join(out)
+        new = text
         if os.path.exists(target) and open(target, encoding='utf-8').read() == new:
             continue
         open(target, 'w', encoding='utf-8').write(new)

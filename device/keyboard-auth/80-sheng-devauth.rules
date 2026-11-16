@@ -1,0 +1,2 @@
+ACTION=="add|change", SUBSYSTEM=="misc", KERNEL=="nanosic_auth", TAG+="systemd", ENV{SYSTEMD_WANTS}+="sheng-devauth.service"
+ACTION=="add|change", SUBSYSTEM=="tee", KERNEL=="tee0", TAG+="systemd", ENV{SYSTEMD_WANTS}+="sheng-devauth.service"

@@ -5,12 +5,12 @@
  PlasmoidItem {
      id: mainWindow
 +
-+    PianoHotspotController {
-+        id: pianoHotspot
++    ShengHotspotController {
++        id: shengHotspot
 +        wirelessEnabled: enabledConnections.wirelessEnabled && enabledConnections.wirelessHwEnabled
 +    }
-+    readonly property var hotspotControl: pianoHotspot.available ? pianoHotspot : handler
-+    readonly property bool hotspotBusy: pianoHotspot.available && pianoHotspot.busy
++    readonly property var hotspotControl: shengHotspot.available ? shengHotspot : handler
++    readonly property bool hotspotBusy: shengHotspot.available && shengHotspot.busy
  
      readonly property string kcm: "kcm_networkmanagement"
      readonly property bool kcmAuthorized: KConfig.KAuthorized.authorizeControlModule("kcm_networkmanagement")

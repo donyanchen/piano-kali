@@ -24,7 +24,7 @@ def digest(data):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--archive', type=pathlib.Path, help='Optional locally downloaded pinned tar.gz')
-    parser.add_argument('--output', type=pathlib.Path, default=PROJECT / 'out/packages/piano-control-center.plasmoid')
+    parser.add_argument('--output', type=pathlib.Path, default=PROJECT / 'out/packages/sheng-control-center.plasmoid')
     args = parser.parse_args()
     pin = json.loads((SOURCE / 'provenance.json').read_text(encoding='utf-8'))
     url = pin['upstream'].replace('https://github.com/', 'https://codeload.github.com/') + '/tar.gz/' + pin['commit']
@@ -38,7 +38,7 @@ def main():
     patch = (SOURCE / 'upstream-integration.patch').read_bytes().replace(b'\r\n', b'\n')
     if digest(patch) != pin['upstream_patch_sha256']:
         raise SystemExit('Patch SHA-256 mismatch; review and update provenance.json')
-    with tempfile.TemporaryDirectory(prefix='piano-control-center-') as temporary:
+    with tempfile.TemporaryDirectory(prefix='sheng-control-center-') as temporary:
         stage = pathlib.Path(temporary)
         with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as archive:
             for member in archive.getmembers():
@@ -67,17 +67,17 @@ def main():
             if name.endswith('.qml'):
                 target = stage / 'contents/ui' / name
             elif name.endswith('.svg'):
-                target = stage / 'contents/icons' / ('piano-' + name)
+                target = stage / 'contents/icons' / ('sheng-' + name)
             else:
                 raise SystemExit('Unsupported local asset')
             shutil.copyfile(SOURCE / name, target)
         metadata = json.loads((stage / 'metadata.json').read_text(encoding='utf-8'))
-        metadata['KPlugin']['Version'] = '0.7.7-piano-privacy4'
+        metadata['KPlugin']['Version'] = '0.7.7-sheng-privacy4'
         (stage / 'metadata.json').write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-        (stage / 'NOTICE.piano').write_text(
+        (stage / 'NOTICE.sheng').write_text(
             'Kontrol Center by ItsNotMeBro87 (Agon A.), GPL-3.0-or-later.\n'
             'Upstream: ' + pin['upstream'] + '\nCommit: ' + pin['commit'] + '\n'
-            'Modified by Piano Kali contributors: tablet touch UI, services, privacy, panel integration.\n'
+            'Modified by Sheng Kali contributors: tablet touch UI, services, privacy, panel integration.\n'
             'Source: https://github.com/LuKeyC-NetSEC/sheng-kali-linux\n', encoding='utf-8')
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with zipfile.ZipFile(args.output, 'w', zipfile.ZIP_DEFLATED) as output:

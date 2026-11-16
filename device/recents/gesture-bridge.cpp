@@ -54,7 +54,7 @@ public:
         for (int key : {KEY_LEFTALT, KEY_LEFTSHIFT, KEY_TAB, KEY_ESC, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN})
             ioctl(fd, UI_SET_KEYBIT, key);
         uinput_setup setup{};
-        snprintf(setup.name, sizeof(setup.name), "Piano Task Gesture Keys");
+        snprintf(setup.name, sizeof(setup.name), "Sheng Task Gesture Keys");
         setup.id.bustype = BUS_VIRTUAL;
         setup.id.vendor = 0x1209;
         setup.id.product = 0x5347;
@@ -135,13 +135,13 @@ public:
             else if (!intent && std::abs(x) >= 32 && std::abs(x) >= std::abs(y) * 1.8) intent = 1;
             if (intent != 1 || std::abs(x) < std::abs(y) * 1.8
                 || Clock::now() - started < std::chrono::milliseconds(60)) return;
-            action("Piano Leave Task Cards");
+            action("Sheng Leave Task Cards");
             keys.begin(x > 0);
             switching = true;
             navX = navY = 0;
             selected = Clock::now();
             lastDirection = x > 0 ? 1 : -1;
-            puts("PIANO_NATIVE_TABBOX opened"); fflush(stdout);
+            puts("SHENG_NATIVE_TABBOX opened"); fflush(stdout);
             return;
         }
         // Once native Alt+Tab is open, either axis navigates its frozen MRU
@@ -165,7 +165,7 @@ public:
             candidate = 0;
             selected = Clock::now();
             lastDirection = proposed;
-            printf("PIANO_NATIVE_TABBOX navigate %s %s\n", horizontal ? "horizontal" : "vertical", direction > 0 ? "positive" : "negative");
+            printf("SHENG_NATIVE_TABBOX navigate %s %s\n", horizontal ? "horizontal" : "vertical", direction > 0 ? "positive" : "negative");
             fflush(stdout);
         }
     }
@@ -174,7 +174,7 @@ public:
         if (switching) {
             const bool abort = cancelled || std::hypot(x, y) < 40;
             keys.finish(abort);
-            printf("PIANO_NATIVE_TABBOX %s\n", abort ? "cancelled" : "accepted");
+            printf("SHENG_NATIVE_TABBOX %s\n", abort ? "cancelled" : "accepted");
         }
         armed = switching = false;
         source = nullptr;
@@ -213,13 +213,13 @@ int main(int argc, char **argv) {
                     // dispatch. The map owns one independent reference.
                     libinput_device_ref(input);
                     const std::string name = libinput_device_get_name(input);
-                    if (!allowTest && name == "Piano Gesture Verification Touchpad") {
+                    if (!allowTest && name == "Sheng Gesture Verification Touchpad") {
                         libinput_path_remove_device(input);
                         libinput_device_unref(input);
                         ignored.insert(path);
                     } else {
                         devices[path] = input;
-                        printf("PIANO_GESTURE_DEVICE %s %s\n", node.c_str(), name.c_str()); fflush(stdout);
+                        printf("SHENG_GESTURE_DEVICE %s %s\n", node.c_str(), name.c_str()); fflush(stdout);
                     }
                 }
             } else if (device && udev_device_get_is_initialized(device)) {

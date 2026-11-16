@@ -1,0 +1,1 @@
+SUBSYSTEM=="net", KERNEL=="sheng-ap", ENV{NM_UNMANAGED}="1"

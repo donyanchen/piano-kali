@@ -10,19 +10,19 @@
 #include <systemstats/SensorPlugin.h>
 #include <systemstats/SensorProperty.h>
 
-class PianoGpuPlugin : public KSysGuard::SensorPlugin
+class ShengGpuPlugin : public KSysGuard::SensorPlugin
 {
     Q_OBJECT
 public:
-    PianoGpuPlugin(QObject *parent, const QVariantList &args) : SensorPlugin(parent, args)
+    ShengGpuPlugin(QObject *parent, const QVariantList &args) : SensorPlugin(parent, args)
     {
         QFile compatible(QStringLiteral("/proc/device-tree/compatible"));
-        if (!compatible.open(QIODevice::ReadOnly) || !compatible.readAll().contains("xiaomi,piano")) {
+        if (!compatible.open(QIODevice::ReadOnly) || !compatible.readAll().contains("xiaomi,sheng")) {
             return;
         }
         auto container = new KSysGuard::SensorContainer(QStringLiteral("gpu"), QStringLiteral("GPU"), this);
         for (const auto &id : {QStringLiteral("gpu0"), QStringLiteral("all")}) {
-            auto object = new KSysGuard::SensorObject(id, QStringLiteral("Adreno 830（共享 RAM）"));
+            auto object = new KSysGuard::SensorObject(id, QStringLiteral("Adreno 740（共享 RAM）"));
             container->addObject(object);
             QHash<QString, KSysGuard::SensorProperty *> properties;
             auto make = [&](const QString &key, const QString &label, KSysGuard::Unit unit) {
@@ -35,7 +35,7 @@ public:
                 return property;
             };
             auto name = make(QStringLiteral("name"), QStringLiteral("名称"), KSysGuard::UnitInvalid);
-            name->setValue(QStringLiteral("Qualcomm Adreno 830（统一共享内存）"));
+            name->setValue(QStringLiteral("Qualcomm Adreno 740（统一共享内存）"));
             auto usage = make(QStringLiteral("usage"), QStringLiteral("GPU 使用率"), KSysGuard::UnitPercent);
             usage->setMax(100);
             usage->setDescription(QStringLiteral("内核 DRM fdinfo 引擎运行时间增量；按 DRM 客户端去重。"));
@@ -56,7 +56,7 @@ public:
 
     void update() override
     {
-        QFile file(QStringLiteral("/run/piano-gpu-monitor/metrics.json"));
+        QFile file(QStringLiteral("/run/sheng-gpu-monitor/metrics.json"));
         QJsonObject data;
         if (file.open(QIODevice::ReadOnly)) {
             data = QJsonDocument::fromJson(file.readAll()).object();
@@ -82,5 +82,5 @@ private:
     QList<QHash<QString, KSysGuard::SensorProperty *>> m_properties;
 };
 
-K_PLUGIN_CLASS_WITH_JSON(PianoGpuPlugin, "metadata.json")
+K_PLUGIN_CLASS_WITH_JSON(ShengGpuPlugin, "metadata.json")
 #include "plugin.moc"

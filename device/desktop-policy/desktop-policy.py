@@ -9,14 +9,14 @@ from gi.repository import GLib
 
 DBusGMainLoop(set_as_default=True)
 BUS = dbus.SessionBus()
-STATE = pathlib.Path.home()/'.local/state/piano-desktop-policy'
+STATE = pathlib.Path.home()/'.local/state/sheng-desktop-policy'
 STATE.mkdir(parents=True, exist_ok=True)
 
 
 class Policy(dbus.service.Object):
     def __init__(self):
-        self.name = dbus.service.BusName('org.piano.DesktopPolicy', BUS)
-        super().__init__(self.name, '/org/piano/DesktopPolicy')
+        self.name = dbus.service.BusName('org.sheng.DesktopPolicy', BUS)
+        super().__init__(self.name, '/org/sheng/DesktopPolicy')
         try: previous = json.loads((STATE/'state.json').read_text())
         except (OSError,ValueError): previous = {}
         self.dock_hidden = bool(previous.get('dock_hidden',False))
@@ -106,7 +106,7 @@ class Policy(dbus.service.Object):
         if self.published != present:
             self.PointerPresenceChanged(present)
             value = 'true' if present else 'false'
-            result = self.script('var n=0; panels().concat(desktops()).forEach(function(p){p.widgets().forEach(function(w){if(w.type==="org.kontrol.center" || w.type.indexOf("org.piano.desktop-gesture")===0){w.currentConfigGroup=["Appearance"];w.writeConfig("pointerPresent",'+value+');w.reloadConfig();n++;}})}); print(n);')
+            result = self.script('var n=0; panels().concat(desktops()).forEach(function(p){p.widgets().forEach(function(w){if(w.type==="org.kontrol.center" || w.type.indexOf("org.sheng.desktop-gesture")===0){w.currentConfigGroup=["Appearance"];w.writeConfig("pointerPresent",'+value+');w.reloadConfig();n++;}})}); print(n);')
             if result.strip() not in ('', '0'):
                 self.published = present
             elif not self.sync_pending:
@@ -122,23 +122,23 @@ class Policy(dbus.service.Object):
         self.sync_pending = 0
         return self.sync()
 
-    @dbus.service.signal('org.piano.DesktopPolicy', signature='b')
+    @dbus.service.signal('org.sheng.DesktopPolicy', signature='b')
     def PointerPresenceChanged(self, present):
         pass
 
-    @dbus.service.signal('org.piano.DesktopPolicy', signature='b')
+    @dbus.service.signal('org.sheng.DesktopPolicy', signature='b')
     def DockVisibilityChanged(self, hidden):
         pass
 
     def apply_dock(self):
         effective_hidden = self.dock_hidden and not self.dock_revealed and not self.showing_desktop
         hiding = 'autohide' if effective_hidden else 'windowsgobelow'
-        self.script('panels().forEach(function(p){p.currentConfigGroup=["General"];if(p.readConfig("PianoThemeRole","")==="dock" && p.hiding!=="'+hiding+'")p.hiding="'+hiding+'";});')
+        self.script('panels().forEach(function(p){p.currentConfigGroup=["General"];if(p.readConfig("ShengThemeRole","")==="dock" && p.hiding!=="'+hiding+'")p.hiding="'+hiding+'";});')
         if self.visibility_published != effective_hidden:
             self.visibility_published = effective_hidden
             self.DockVisibilityChanged(effective_hidden)
 
-    @dbus.service.method('org.piano.DesktopPolicy', in_signature='b', out_signature='')
+    @dbus.service.method('org.sheng.DesktopPolicy', in_signature='b', out_signature='')
     def SetDockHidden(self, hidden):
         if self.dock_hidden != bool(hidden):
             self.cancel_reveal()
@@ -152,7 +152,7 @@ class Policy(dbus.service.Object):
             self.reveal_timeout = 0
         self.dock_revealed = False
 
-    @dbus.service.method('org.piano.DesktopPolicy', in_signature='', out_signature='')
+    @dbus.service.method('org.sheng.DesktopPolicy', in_signature='', out_signature='')
     def RevealDock(self):
         if not self.dock_hidden:
             return
@@ -161,14 +161,14 @@ class Policy(dbus.service.Object):
         self.apply_dock()
         self.reveal_timeout = GLib.timeout_add(8000, self.finish_reveal)
 
-    @dbus.service.method('org.piano.DesktopPolicy', in_signature='', out_signature='')
+    @dbus.service.method('org.sheng.DesktopPolicy', in_signature='', out_signature='')
     def DismissDock(self):
         if not self.dock_revealed:
             return
         self.cancel_reveal()
         self.apply_dock()
 
-    @dbus.service.method('org.piano.DesktopPolicy', in_signature='', out_signature='')
+    @dbus.service.method('org.sheng.DesktopPolicy', in_signature='', out_signature='')
     def ShowDesktop(self):
         if not (self.dock_hidden and self.dock_revealed):
             return
@@ -186,20 +186,20 @@ class Policy(dbus.service.Object):
         self.apply_dock()
         return False
 
-    @dbus.service.method('org.piano.DesktopPolicy', in_signature='', out_signature='s')
+    @dbus.service.method('org.sheng.DesktopPolicy', in_signature='', out_signature='s')
     def GetState(self):
         return json.dumps({'pointer_present':bool(self.pointers), 'pointer_devices':self.pointers, 'dock_hidden':self.dock_hidden, 'dock_revealed':self.dock_revealed, 'showing_desktop':self.showing_desktop},ensure_ascii=False)
 
-    @dbus.service.method('org.piano.DesktopPolicy', in_signature='', out_signature='')
+    @dbus.service.method('org.sheng.DesktopPolicy', in_signature='', out_signature='')
     def OpenControlCenter(self):
         identifier = self.script('var id=0;panels().forEach(p=>p.widgets().forEach(w=>{if(w.type==="org.kontrol.center")id=w.id}));print(id);').strip()
         if not identifier.isdigit() or identifier == '0': return
         obj = BUS.get_object('org.kde.kglobalaccel','/component/plasmashell')
         dbus.Interface(obj,'org.kde.kglobalaccel.Component').invokeShortcut('activate widget '+identifier)
 
-    @dbus.service.method('org.piano.DesktopPolicy', in_signature='', out_signature='')
+    @dbus.service.method('org.sheng.DesktopPolicy', in_signature='', out_signature='')
     def OpenAppDrawer(self):
-        identifier = self.script('var id=0;panels().concat(desktops()).forEach(p=>p.widgets().forEach(w=>{if(w.type.indexOf("org.piano.linexin.launcher")===0)id=w.id}));print(id);').strip()
+        identifier = self.script('var id=0;panels().concat(desktops()).forEach(p=>p.widgets().forEach(w=>{if(w.type.indexOf("org.sheng.linexin.launcher")===0)id=w.id}));print(id);').strip()
         if not identifier.isdigit() or identifier == '0':
             return
         obj = BUS.get_object('org.kde.kglobalaccel','/component/plasmashell')

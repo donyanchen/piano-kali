@@ -1,6 +1,6 @@
 # 设备与版本兼容矩阵
 
-参考实机：Xiaomi Pad 8 Pro 12.4，代号 `piano`，型号 `25091RP04C`，本次测试约 12 GB RAM。其他容量/SKU、键盘固件、其他平板未独立验证。
+参考实机：Xiaomi Pad 6S Pro 12.4，代号 `sheng`，型号 `24018RPACC`，本次测试约 12 GB RAM。其他容量/SKU、键盘固件、其他平板未独立验证。
 
 | 层 | 本次参考版本 | 约束 |
 | --- | --- | --- |
@@ -9,10 +9,10 @@
 | 内核源码 | `ianchb/sm8550-mainline@87ac0f2347eb433933841e6854950dd90e96e6b2` | 工具链 Clang 21.1.8-13、相同配置/导出符号 |
 | Plasma/KWin | 6.7.4，Wayland | QML 效果及内部面板对象依赖此接口，升级需复测 |
 | 原生网络 applet | `plasma-nm 4:6.7.4-2+b1` | 补丁包严格绑定此 Debian 包版本 |
-| 图形 | Adreno 830、Mesa 26.1.6、主线 drm/msm | freedreno GL、Turnip Vulkan；无 Android KGSL |
-| 触屏 | `xiaomi-piano-thp 0.3.9`、libssc | 固定资产与哈希见 sources.json |
-| PIN | `piano-dock-fix 1.2-2`、模块 `1.2-pianofix` | 必须配合安全存储认证服务 |
-| 控制中心 | `0.7.7-piano-privacy4` | 固定 Kontrol Center 上游 + 本地 patch |
+| 图形 | Adreno 740、Mesa 26.1.6、主线 drm/msm | freedreno GL、Turnip Vulkan；无 Android KGSL |
+| 触屏 | `xiaomi-sheng-thp 0.3.9`、libssc | 固定资产与哈希见 sources.json |
+| PIN | `sheng-dock-fix 1.2-2`、模块 `1.2-shengfix` | 必须配合安全存储认证服务 |
+| 控制中心 | `0.7.7-sheng-privacy4` | 固定 Kontrol Center 上游 + 本地 patch |
 | 输入法集成 | msime-linux 0.16.1、Fcitx5 5.1.23、OSK 0.2.1 + 集成包 0.2.1-3 | PIN/触屏中文、抑制软键盘、连续弹出及新界面拖动/模式切换已确认；锁屏/挂起恢复待验收 |
 
 ## 硬件范围

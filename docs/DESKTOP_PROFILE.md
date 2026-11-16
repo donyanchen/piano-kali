@@ -1,6 +1,6 @@
 # 当前桌面配置与源码对应关系
 
-本次同步的是已经在 piano 运行的 Plasma 桌面与源码。配置见 [desktop-profile.json](../device/theme/desktop-profile.json)，代码核对结果见 [source-audit.json](../device/theme/source-audit.json)。配置从当前用户会话只读导出，不退出应用或重启桌面。
+本次同步的是已经在 sheng 运行的 Plasma 桌面与源码。配置见 [desktop-profile.json](../device/theme/desktop-profile.json)，代码核对结果见 [source-audit.json](../device/theme/source-audit.json)。配置从当前用户会话只读导出，不退出应用或重启桌面。
 
 ## 配置内容
 
@@ -18,7 +18,7 @@
 
 FUTO 增量已从固定源码构建并安装：原生英文候选核心、原版图标/配色和 Linux UI/UX 集成；中文继续使用水杉。构建、范围和回退见 [FUTO 说明](../device/futo-keyboard/README.md)。语音、滑行与完整 Android 设置未移植，不能将当前版本称为完整 Android 应用移植。
 
-Profile 包含允许导出的 KDE 配置项、面板属性、部件参数、Panel Colorizer 全局有效样式、显示模式与软键盘外观。面板/部件的实例 ID 已替换为插件角色，例如 `org.piano.linexin.launcher#1`；Dock 固定应用使用 `file-manager`、`browser`、`burp-suite`、`terminal` 等角色，不保存自定义启动器路径或 Exec。
+Profile 包含允许导出的 KDE 配置项、面板属性、部件参数、Panel Colorizer 全局有效样式、显示模式与软键盘外观。面板/部件的实例 ID 已替换为插件角色，例如 `org.sheng.linexin.launcher#1`；Dock 固定应用使用 `file-manager`、`browser`、`burp-suite`、`terminal` 等角色，不保存自定义启动器路径或 Exec。
 
 顶栏时钟由 `PanelIntegration.qml` 移到独立居中层，因此它列于 `detachedApplets`，没有放回线性 `appletOrder`。不要把它缺席线性排列误认为时钟被删。Dock 的固定项顺序与运行窗口的临时手动排序不同，后者不作为跨会话配置发布。
 
@@ -34,7 +34,7 @@ python3 scripts/export-desktop-profile.py --output out/desktop-profile.json
 python3 scripts/export-desktop-profile.py --validate device/theme/desktop-profile.json
 ```
 
-通过 SSH 时先设置当前用户的 `XDG_RUNTIME_DIR`、`DBUS_SESSION_BUS_ADDRESS`、`WAYLAND_DISPLAY` 与 `QT_QPA_PLATFORM=wayland`。导出器只接受 piano 型号；读取配置项和已安装包版本，不改动会话。KConfig 数据、字体及外观选项均使用代码中的允许列表。
+通过 SSH 时先设置当前用户的 `XDG_RUNTIME_DIR`、`DBUS_SESSION_BUS_ADDRESS`、`WAYLAND_DISPLAY` 与 `QT_QPA_PLATFORM=wayland`。导出器只接受 sheng 型号；读取配置项和已安装包版本，不改动会话。KConfig 数据、字体及外观选项均使用代码中的允许列表。
 
 这是公开的可复现配置，不是 HOME 备份。不包括账号、Wi-Fi、浏览器/应用会话、输入学习库、天气坐标、截图、密码、设备 UUID、桌面实例 ID 或用户路径。壁纸只引用已有来源清单；需自行准备有权使用的图片。原始配置备份继续保留在自己的设备中。
 

@@ -29,7 +29,7 @@ PlasmoidItem {
                 if ("opacity" in original[i]) bindings.push(hideOriginal.createObject(root, {target: original[i]}))
             glyphComponent.createObject(item, {battery: item})
             installed.push(item)
-            console.info("PIANO_BATTERY_GLYPH_READY")
+            console.info("SHENG_BATTERY_GLYPH_READY")
             return
         }
         var children = Array.from(item.children || [])
@@ -47,7 +47,7 @@ PlasmoidItem {
         for (var i = 0; i < installed.length; i++) if (installed[i]) {
             var children = Array.from(installed[i].children)
             for (var j = 0; j < children.length; j++)
-                if (children[j].objectName === "piano-battery-glyph") children[j].destroy()
+                if (children[j].objectName === "sheng-battery-glyph") children[j].destroy()
         }
     }
 }

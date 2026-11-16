@@ -17,7 +17,7 @@
 #include <errno.h>
 #include <limits.h>
 
-#define ROOT "/sys/fs/bpf/piano-privacy"
+#define ROOT "/sys/fs/bpf/sheng-privacy"
 #define MAJORS ROOT "/sensor-majors"
 #define ALLOW ROOT "/allowed-devices"
 #define DENY ROOT "/denied-devices"
@@ -84,7 +84,7 @@ static int load_guard(int majors,int allowed,int denied) {
     a.prog_type=BPF_PROG_TYPE_CGROUP_DEVICE;a.expected_attach_type=BPF_CGROUP_DEVICE;
     a.insn_cnt=n;a.insns=(uintptr_t)p;a.license=(uintptr_t)license;
     a.log_level=1;a.log_size=sizeof(log);a.log_buf=(uintptr_t)log;
-    snprintf(a.prog_name,sizeof(a.prog_name),"piano_privacy");
+    snprintf(a.prog_name,sizeof(a.prog_name),"sheng_privacy");
     int fd=bpf_call(BPF_PROG_LOAD,&a);if(fd<0){fprintf(stderr,"%s\n",log);fail("load privacy guard");}return fd;
 }
 static int cgroup(void) {int fd=open("/sys/fs/cgroup",O_RDONLY|O_DIRECTORY|O_CLOEXEC);if(fd<0)fail("open root cgroup");return fd;}
@@ -160,7 +160,7 @@ int main(int argc,char **argv) {
     umask(0077);
     if(!strcmp(argv[1],"prepare")){ensure_mount();return 0;}
     if(!strcmp(argv[1],"probe")){
-        int m=new_map(4,64,"piano_major"),a=new_map(8,1024,"piano_allowed"),d=new_map(8,1024,"piano_denied"),p=load_guard(m,a,d);
+        int m=new_map(4,64,"sheng_major"),a=new_map(8,1024,"sheng_allowed"),d=new_map(8,1024,"sheng_denied"),p=load_guard(m,a,d);
         attach(p);detach(p);close(p);close(d);close(a);close(m);puts("cgroup device guard supported");return 0;
     }
     if(!strcmp(argv[1],"disable")){
@@ -186,6 +186,6 @@ int main(int argc,char **argv) {
     ensure_mount();if(mkdir(ROOT,0700)&&errno!=EEXIST)fail("create privacy pin directory");
     int m=object_get(MAJORS),a=object_get(ALLOW),d=object_get(DENY),p=object_get(PROGRAM);
     if(m>=0||a>=0||d>=0||p>=0){if(m<0||a<0||d<0||p<0){fprintf(stderr,"Incomplete privacy pins\n");return 1;}}
-    else{m=new_map(4,64,"piano_major");a=new_map(8,1024,"piano_allowed");d=new_map(8,1024,"piano_denied");p=load_guard(m,a,d);object_pin(m,MAJORS);object_pin(a,ALLOW);object_pin(d,DENY);object_pin(p,PROGRAM);}
+    else{m=new_map(4,64,"sheng_major");a=new_map(8,1024,"sheng_allowed");d=new_map(8,1024,"sheng_denied");p=load_guard(m,a,d);object_pin(m,MAJORS);object_pin(a,ALLOW);object_pin(d,DENY);object_pin(p,PROGRAM);}
     populate(m,a,d);attach(p);close(p);close(d);close(a);close(m);puts("process device access blocked");return 0;
 }

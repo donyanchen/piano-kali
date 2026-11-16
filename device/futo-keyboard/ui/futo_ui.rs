@@ -19,7 +19,7 @@ struct EmojiData { categories: Vec<EmojiCategory> }
 pub struct UiState { pub page: Page, pub actions: bool, pub emoji_category: usize, categories: Vec<EmojiCategory> }
 impl Default for UiState {
     fn default() -> Self {
-        let categories = std::fs::read_to_string("/usr/share/piano-futo-keyboard/emoji.toml").ok()
+        let categories = std::fs::read_to_string("/usr/share/sheng-futo-keyboard/emoji.toml").ok()
             .filter(|data| data.len() < 262144).and_then(|data| toml::from_str::<EmojiData>(&data).ok()).map(|data| data.categories).unwrap_or_default();
         Self { page: Page::Keyboard, actions: false, emoji_category: 0, categories }
     }
@@ -36,7 +36,7 @@ pub fn key_style(theme: &Theme, pressed: bool, functional: bool, enter: bool) ->
         border: iced::border::rounded(if enter { 128 } else { 9 }), ..Default::default() }
 }
 pub fn icon<'a>(name: &str, size: f32, enter: bool) -> Element<'a, Message> {
-    let path = std::path::PathBuf::from("/usr/share/piano-futo-keyboard/icons").join(format!("{name}.svg"));
+    let path = std::path::PathBuf::from("/usr/share/sheng-futo-keyboard/icons").join(format!("{name}.svg"));
     Svg::new(iced::advanced::svg::Handle::from_path(path)).width(size).height(size)
         .style(move |theme: &Theme, _| iced::widget::svg::Style { color: Some(if enter { key_style(theme, false, true, true).text_color } else { theme.palette().text }) }).into()
 }
@@ -70,7 +70,7 @@ fn symbol_key<'a>(params: &ToElementCommonParams<'a>, c: char, width: f32, heigh
 }
 fn language(params: &ToElementCommonParams<'_>) -> Message {
     let chinese = params.state.im().im_name().map(|s| s.as_str()) == Some("msime");
-    ImEvent::SelectIm(if chinese { "piano-futo" } else { "msime" }.to_string()).into()
+    ImEvent::SelectIm(if chinese { "sheng-futo" } else { "msime" }.to_string()).into()
 }
 fn hide(params: &ToElementCommonParams<'_>) -> Message {
     if params.state.window_manager_mode() == WindowManagerMode::KwinLockScreen {

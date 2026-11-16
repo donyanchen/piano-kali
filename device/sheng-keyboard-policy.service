@@ -1,0 +1,14 @@
+[Unit]
+Description=Suppress virtual keyboard while a physical keyboard is connected
+After=plasma-kwin_wayland.service
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/libexec/sheng-keyboard-policy.py
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=graphical-session.target

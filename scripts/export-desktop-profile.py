@@ -38,18 +38,18 @@ WIDGETS = {
     'org.kde.plasma.windowlist': {}, 'org.kde.plasma.appmenu': {}, 'org.kde.plasma.panelspacer': {},
     'luisbocanegra.panel.colorizer': {'General': ['hideWidget', 'isEnabled', 'globalSettings']},
     'org.kontrol.center': {'Appearance': ['panelWidth', 'panelHeight', 'opacity', 'transparency', 'showButton', 'hideButton']},
-    'org.piano.linexin.launcher': {'General': ['appNameFormat', 'alphaSort', 'recentOrdering', 'showRecentApps', 'showRecentDocs', 'showRecentFolders', 'useExtraRunners', 'appsIconSize', 'favsIconSize', 'systemIconSize', 'categoryFontSize', 'dashboardFontSize', 'allAppsFontSize', 'recentAppsFontSize', 'recentFilesFontSize', 'animationDuration', 'iconEntranceDuration', 'hoverEffectDuration', 'folderPopupDuration', 'appLaunchDuration', 'dragMoveDuration', 'folderCreateDuration', 'folderAddDuration', 'folderRemoveDuration', 'backgroundOpacity', 'useCustomBackgroundColor', 'backgroundColor', 'defaultCategory', 'showActiveApps', 'showAllAppsInDashboard']},
-    'org.piano.panel-style': {}, 'org.piano.desktop-gesture': {},
+    'org.sheng.linexin.launcher': {'General': ['appNameFormat', 'alphaSort', 'recentOrdering', 'showRecentApps', 'showRecentDocs', 'showRecentFolders', 'useExtraRunners', 'appsIconSize', 'favsIconSize', 'systemIconSize', 'categoryFontSize', 'dashboardFontSize', 'allAppsFontSize', 'recentAppsFontSize', 'recentFilesFontSize', 'animationDuration', 'iconEntranceDuration', 'hoverEffectDuration', 'folderPopupDuration', 'appLaunchDuration', 'dragMoveDuration', 'folderCreateDuration', 'folderAddDuration', 'folderRemoveDuration', 'backgroundOpacity', 'useCustomBackgroundColor', 'backgroundColor', 'defaultCategory', 'showActiveApps', 'showAllAppsInDashboard']},
+    'org.sheng.panel-style': {}, 'org.sheng.desktop-gesture': {},
     'Redmi.Clock': {'General': ['colorHex', 'boldfonts', 'showSeconds', 'fontSize', 'timeFormat', 'dateFormat', 'use24hFormat']},
 }
 OSK_KEYS = ['placement', 'landscape_width', 'portrait_width', 'default_font', 'default_nerd_font', 'default_landscape_layout', 'default_portrait_layout', 'theme', 'light_theme', 'dark_theme', 'ignore_fcitx_show']
-PACKAGES = ['kwin-wayland', 'plasma-workspace', 'plasma-desktop', 'libqt6core6t64', 'piano-tablet-controls', 'piano-msime-integration', 'piano-futo-keyboard', 'fcitx5', 'fonts-noto-core', 'fonts-noto-cjk', 'fonts-materialdesignicons-legacy', 'fonts-roboto']
+PACKAGES = ['kwin-wayland', 'plasma-workspace', 'plasma-desktop', 'libqt6core6t64', 'sheng-tablet-controls', 'sheng-msime-integration', 'sheng-futo-keyboard', 'fcitx5', 'fonts-noto-core', 'fonts-noto-cjk', 'fonts-materialdesignicons-legacy', 'fonts-roboto']
 PRIVATE = re.compile(r'/(?:home|root|run/user|tmp|var/tmp)/|file://|\b[A-Za-z]:[\\/]|[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}', re.I)
 STYLE_KEY = re.compile(r'password|secret|token|path|filename|image|url|uri|uuid|latitude|longitude|location|cache', re.I)
 
 
 def canonical(plugin):
-    for prefix in ['org.piano.linexin.launcher', 'org.piano.panel-style', 'org.piano.desktop-gesture']:
+    for prefix in ['org.sheng.linexin.launcher', 'org.sheng.panel-style', 'org.sheng.desktop-gesture']:
         if plugin == prefix or plugin.startswith(prefix + '.'):
             return prefix
     return plugin
@@ -124,7 +124,7 @@ def sanitize_layout(raw):
             entry = {'role': role, 'plugin': plugin, 'settings': settings}
             if containment['kind'] == 'desktop' and plugin == 'Redmi.Clock':
                 entry['geometry'] = widget['geometry']
-            if plugin == 'org.piano.linexin.launcher':
+            if plugin == 'org.sheng.linexin.launcher':
                 launchers = widget.get('launchers', [])
                 if isinstance(launchers, str):
                     launchers = launchers.split(',')
@@ -180,8 +180,8 @@ def export_profile():
     device_tree = pathlib.Path('/sys/firmware/devicetree/base')
     compatible = (device_tree / 'compatible').read_bytes() if (device_tree / 'compatible').exists() else b''
     model = (device_tree / 'model').read_text(errors='replace') if (device_tree / 'model').exists() else ''
-    if b'xiaomi,piano' not in compatible and 'pad 6s pro' not in model.lower():
-        raise SystemExit('This profile exporter is scoped to Xiaomi piano; target model did not match')
+    if b'xiaomi,sheng' not in compatible and 'pad 6s pro' not in model.lower():
+        raise SystemExit('This profile exporter is scoped to Xiaomi sheng; target model did not match')
     home = pathlib.Path.home()
     bus = dbus.SessionBus()
     plasma = dbus.Interface(bus.get_object('org.kde.plasmashell', '/PlasmaShell'), 'org.kde.PlasmaShell')
@@ -192,11 +192,11 @@ panels().concat(desktops()).forEach(function(p){
     var c={kind:panel?"panel":"desktop",widgets:[],order:p.readConfig("AppletOrder","")};
     if(panel){c.position=p.location;c.height=p.height;c.alignment=p.alignment;c.lengthMode=p.lengthMode;c.maximumLength=p.maximumLength;c.minimumLength=p.minimumLength;c.floating=p.floating;}
     p.widgets().forEach(function(w){
-        var plugin=w.type;Object.keys(spec).forEach(function(k){if(k.indexOf("org.piano.")===0&&(plugin===k||plugin.indexOf(k+".")===0))plugin=k;});
+        var plugin=w.type;Object.keys(spec).forEach(function(k){if(k.indexOf("org.sheng.")===0&&(plugin===k||plugin.indexOf(k+".")===0))plugin=k;});
         if(!(plugin in spec))return;
         var entry={id:w.id,plugin:plugin,settings:{},geometry:w.geometry};
         Object.keys(spec[plugin]).forEach(function(group){w.currentConfigGroup=[group];var keys=w.configKeys;var values={};spec[plugin][group].forEach(function(key){if(keys.indexOf(key)>=0)values[key]=w.readConfig(key);});entry.settings[group]=values;});
-        if(plugin==="org.piano.linexin.launcher"){w.currentConfigGroup=["General"];entry.launchers=w.readConfig("launchers",[]);}
+        if(plugin==="org.sheng.linexin.launcher"){w.currentConfigGroup=["General"];entry.launchers=w.readConfig("launchers",[]);}
         c.widgets.push(entry);
     });result.push(c);
 });print(JSON.stringify(result));
@@ -217,7 +217,7 @@ panels().concat(desktops()).forEach(function(p){
         config = tomllib.loads(path.read_text(encoding='utf-8'))
         osk = {key: config[key] for key in OSK_KEYS if key in config}
     profile = {'schemaVersion': 1, 'capturedAtUTC': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
-               'platform': {'device': 'piano', 'architecture': subprocess.check_output(['dpkg', '--print-architecture'], text=True).strip(), 'kernel': subprocess.check_output(['uname', '-r'], text=True).strip(), 'packages': versions},
+               'platform': {'device': 'sheng', 'architecture': subprocess.check_output(['dpkg', '--print-architecture'], text=True).strip(), 'kernel': subprocess.check_output(['uname', '-r'], text=True).strip(), 'packages': versions},
                'kconfig': read_kconfig(home), 'layout': layout, 'displays': displays, 'screenKeyboard': osk,
                'wallpapers': {'desktopSource': 'device/theme/wallpaper.json', 'lockscreenSource': 'device/theme/lockscreen-wallpaper.json'}}
     validate(profile)

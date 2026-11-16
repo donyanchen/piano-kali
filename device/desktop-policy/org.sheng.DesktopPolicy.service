@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.sheng.DesktopPolicy
+Exec=/usr/libexec/sheng-desktop-policy
+SystemdService=sheng-desktop-policy.service

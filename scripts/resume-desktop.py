@@ -9,7 +9,7 @@ import subprocess
 import sys
 import time
 
-STATE = pathlib.Path('/run/piano-desktop-resume.json')
+STATE = pathlib.Path('/run/sheng-desktop-resume.json')
 
 
 def output(*args):
@@ -50,7 +50,7 @@ def user_restore():
     for _ in range(15):
         time.sleep(0.2)
         if subprocess.run(['pgrep', '-x', 'plasma-keyboard'], stdout=subprocess.DEVNULL).returncode == 0:
-            policy = subprocess.run(['/usr/bin/python3', '/usr/libexec/piano-keyboard-policy.py', '--apply-once'],
+            policy = subprocess.run(['/usr/bin/python3', '/usr/libexec/sheng-keyboard-policy.py', '--apply-once'],
                                     env=environment, timeout=10, capture_output=True, text=True, check=False)
             try:
                 physical_keyboard = json.loads(policy.stdout)['physical_keyboard_present']
@@ -80,7 +80,7 @@ def restore():
         subprocess.run(['loginctl', 'activate', session], check=True)
     owner = pwd.getpwuid(state['uid'])
     subprocess.run(['runuser', '-u', owner.pw_name, '--', '/usr/bin/python3',
-                    '/usr/libexec/piano-desktop-resume.py', 'user'], check=True)
+                    '/usr/libexec/sheng-desktop-resume.py', 'user'], check=True)
 
 
 if __name__ == '__main__':

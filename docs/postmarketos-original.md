@@ -7,7 +7,7 @@ All the files here have been contributed by other users, here you will find a gu
 
 # Status
 
-You can check [Here](https://wiki.postmarketos.org/wiki/Xiaomi_Pad_6S_Pro_12.4_(xiaomi-piano))
+You can check [Here](https://wiki.postmarketos.org/wiki/Xiaomi_Pad_6S_Pro_12.4_(xiaomi-sheng))
 
 # Installation Guide
 Please follow the guide carefully
@@ -15,13 +15,13 @@ Please follow the guide carefully
 1. Make sure you have unlocked the bootloader on your device and make sure only Android OS is installed.
 2. Look for the latest workflow run (marked with 🟢)
 3. Download the desired image:
- - xiaomi-piano-none_*.zip (minimal system)
- - xiaomi-piano-plasma_*.zip (KDE Plasma)
- - xiaomi-piano-gnome_*.zip (GNOME Shell)
- - xiaomi-piano-gnome_mobile_*.zip (GNOME Shell Mobile)
- - xiaomi-piano-plasma_mobile_*.zip (KDE Plasma Mobile)
- - xiaomi-piano-lomiri_*.zip (KDE Plasma Mobile)
- - xiaomi-piano-kernel_*.zip (kernel packages)
+ - xiaomi-sheng-none_*.zip (minimal system)
+ - xiaomi-sheng-plasma_*.zip (KDE Plasma)
+ - xiaomi-sheng-gnome_*.zip (GNOME Shell)
+ - xiaomi-sheng-gnome_mobile_*.zip (GNOME Shell Mobile)
+ - xiaomi-sheng-plasma_mobile_*.zip (KDE Plasma Mobile)
+ - xiaomi-sheng-lomiri_*.zip (KDE Plasma Mobile)
+ - xiaomi-sheng-kernel_*.zip (kernel packages)
 4. Extract ZIP
 
 
@@ -38,12 +38,12 @@ Please follow the guide carefully
 
 3. Flash boot image
     ```bash
-	fastboot flash boot_ab boot-xiaomi-piano.img
+	fastboot flash boot_ab boot-xiaomi-sheng.img
 	```
 
 4. Flash rootfs image
     ```bash
-	fastboot flash userdata rootfs-xiaomi-piano-*.img
+	fastboot flash userdata rootfs-xiaomi-sheng-*.img
 	```
 
 5. Reboot
@@ -108,12 +108,12 @@ Please follow the guide carefully
 
 15. Flash boot image
     ```bash
-	fastboot flash boot_b boot-xiaomi-piano.img
+	fastboot flash boot_b boot-xiaomi-sheng.img
 	```
 
 16. Flash rootfs image
     ```bash
-	fastboot flash linux rootfs-xiaomi-piano-*.img
+	fastboot flash linux rootfs-xiaomi-sheng-*.img
 	```
 
 17. Slot B activation
@@ -127,7 +127,7 @@ Please follow the guide carefully
 	```
 
 # Fix Sensor
-1. Download all apk files from [Here](https://github.com/alghiffaryfa19/piano-pmos-builds/releases/tag/sensor)
+1. Download all apk files from [Here](https://github.com/alghiffaryfa19/sheng-pmos-builds/releases/tag/sensor)
 2. Run this command
 	```bash
 	sudo apk add *apk

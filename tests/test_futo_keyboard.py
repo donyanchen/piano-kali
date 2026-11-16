@@ -31,8 +31,8 @@ class FutoPreparationTest(unittest.TestCase):
     def test_layout_mapping_and_explicit_support(self):
         rows = PREP.layout_rows('name: QWERTY\nrows:\n  - letters: q w e r t y u i o p\n  - letters: a s d f g h j k l\n  - letters: z x c v b n m\n')
         layout = PREP.make_layout(rows, 'portrait')
-        self.assertIn('name = "piano-futo-portrait"', layout)
-        self.assertIn('k_q = "piano-futo:k_q"', layout)
+        self.assertIn('name = "sheng-futo-portrait"', layout)
+        self.assertIn('k_q = "sheng-futo:k_q"', layout)
         self.assertIn('k_left_shift:15', layout)
         with self.assertRaises(ValueError):
             PREP.layout_rows('rows:\n  - letters: a z e r t y\n')

@@ -1,6 +1,6 @@
 import datetime, json, os, subprocess
 from pathlib import Path
-state=Path('/home/kali/.local/state/piano-gpu-bench')
+state=Path('/home/kali/.local/state/sheng-gpu-bench')
 gpu=Path('/sys/class/devfreq/3d00000.gpu')
 old={k:(gpu/k).read_text() for k in ['min_freq','max_freq']}
 jre=Path('/home/kali/.local/opt/BurpSuite/jre')

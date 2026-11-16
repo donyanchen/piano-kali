@@ -3,7 +3,7 @@ import QtQuick
 
 Item {
     id: glyph
-    objectName: "piano-battery-glyph"
+    objectName: "sheng-battery-glyph"
     required property Item battery
     readonly property int percent: Math.max(0, Math.min(100, Number(battery.batteryPercent)))
     anchors.fill: parent

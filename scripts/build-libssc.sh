@@ -4,7 +4,7 @@ set -euo pipefail
 source_dir=$1
 output_dir=$2
 [[ $(dpkg --print-architecture) == arm64 ]]
-work_dir=$(mktemp -d /tmp/piano-libssc.XXXXXX)
+work_dir=$(mktemp -d /tmp/sheng-libssc.XXXXXX)
 # The optional test server uses git submodules. Only the library and CLI are
 # needed by the touchscreen service; their source is unchanged.
 sed -i "/^subdir('mocking')$/d; /^subdir('tests')$/d" "$source_dir/meson.build"
@@ -20,9 +20,9 @@ Version: 0.4.4-1
 Section: libs
 Priority: optional
 Architecture: arm64
-Maintainer: Piano Kali builders <noreply@localhost>
+Maintainer: Sheng Kali builders <noreply@localhost>
 Depends: libc6, libglib2.0-0t64, libprotobuf-c1, libqmi-glib5
-Description: Qualcomm Sensor Core library for the piano touch processor
+Description: Qualcomm Sensor Core library for the sheng touch processor
  Built from Dylan Van Assche's libssc 0.4.4, pinned in configs/sources.json.
 EOF
 dpkg-deb --build --root-owner-group "$work_dir/package" "$output_dir/libssc_0.4.4-1_arm64.deb"

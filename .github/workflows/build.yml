@@ -1,4 +1,4 @@
-name: Xiaomi Pad 8 Pro Kali ARM64 KDE
+name: Xiaomi Pad 6S Pro Kali ARM64 KDE
 
 on:
   workflow_dispatch:
@@ -24,7 +24,7 @@ jobs:
       - name: Upload images and validation results
         uses: actions/upload-artifact@v4
         with:
-          name: kali-arm64-kde-xiaomi-piano
+          name: kali-arm64-kde-xiaomi-sheng
           path: out/
           if-no-files-found: error
           retention-days: 7

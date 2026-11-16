@@ -1,0 +1,13 @@
+[Unit]
+Description=Set up persistent swap after expanding the sheng root filesystem
+After=local-fs.target sheng-grow-root.service
+Wants=sheng-grow-root.service
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/sheng-setup-swap
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

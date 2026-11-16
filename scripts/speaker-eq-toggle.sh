@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 dir="${XDG_CONFIG_HOME:-$HOME/.config}/pipewire/filter-chain.conf.d"
-enabled="$dir/50-piano-speaker-balanced.conf"
-disabled="$dir/50-piano-speaker-balanced.conf.disabled"
+enabled="$dir/50-sheng-speaker-balanced.conf"
+disabled="$dir/50-sheng-speaker-balanced.conf.disabled"
 if test "${1:-}" = --status; then
     if test -f "$enabled"; then echo enabled; else echo disabled; fi
     exit 0
@@ -14,7 +14,7 @@ elif test -f "$disabled" && ! test -e "$enabled"; then
     mv -- "$disabled" "$enabled"
     message='已启用均衡扬声器音质'
 else
-    echo 'Piano speaker EQ configuration missing or ambiguous' >&2
+    echo 'Sheng speaker EQ configuration missing or ambiguous' >&2
     exit 1
 fi
 systemctl --user restart filter-chain.service

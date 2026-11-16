@@ -100,7 +100,7 @@ struct VKBench {
         VkShaderModule result; VKCHECK(vkCreateShaderModule(device,&ci,nullptr,&result)); return result;
     }
     VKBench(const std::string &workload):ui(workload=="ui") {
-        VkApplicationInfo app={VK_STRUCTURE_TYPE_APPLICATION_INFO}; app.pApplicationName="piano matched GPU benchmark"; app.apiVersion=VK_API_VERSION_1_1;
+        VkApplicationInfo app={VK_STRUCTURE_TYPE_APPLICATION_INFO}; app.pApplicationName="sheng matched GPU benchmark"; app.apiVersion=VK_API_VERSION_1_1;
         VkInstanceCreateInfo ici={VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO}; ici.pApplicationInfo=&app; VKCHECK(vkCreateInstance(&ici,nullptr,&instance));
         uint32_t count; VKCHECK(vkEnumeratePhysicalDevices(instance,&count,nullptr)); std::vector<VkPhysicalDevice> devices(count); VKCHECK(vkEnumeratePhysicalDevices(instance,&count,devices.data()));
         physical=VK_NULL_HANDLE;

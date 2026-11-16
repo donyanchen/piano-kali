@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-state=Path('/home/kali/.local/state/piano-gpu-bench')
+state=Path('/home/kali/.local/state/sheng-gpu-bench')
 snapshot=state/'limits-before.json'
 if snapshot.exists():
     old=json.loads(snapshot.read_text())

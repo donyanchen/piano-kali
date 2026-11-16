@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
             return 0;
         }
         if (args.size() != 3 || args[1] != "--stdio") {
-            err << "Usage: piano-futo-tool --import WORDS.tsv NEW_DIRECTORY | --self-test DICTIONARY | --stdio DICTIONARY\n";
+            err << "Usage: sheng-futo-tool --import WORDS.tsv NEW_DIRECTORY | --self-test DICTIONARY | --stdio DICTIONARY\n";
             return 2;
         }
         FutoDictionary dictionary(args[2]);

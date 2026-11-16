@@ -8,9 +8,9 @@
 
 首次桌面触摸移动达到 3 逻辑像素时，向桌面发送 Wayland touch cancel，避免 Folder View 的模拟鼠标路径启动框选。手势结束仍向下层 KWin 过滤器传递 touch up，清理屏幕边缘及多指跟踪状态；多指序列不触发抽屉/控制中心。点击与长按仍使用桌面原有规则。这里只拦截桌面表面的移动，因此桌面部件上的触屏拖动也会受限；编辑布局请使用鼠标/触摸板。
 
-它调用 `org.piano.DesktopPolicy` 的 `OpenAppDrawer` / `OpenControlCenter`，缓存服务发布的指针状态；没有添加另一个主屏幕，也没有全局应用内导航入口。QML 桌面手势部件保留原有长按防误触保护。
+它调用 `org.sheng.DesktopPolicy` 的 `OpenAppDrawer` / `OpenControlCenter`，缓存服务发布的指针状态；没有添加另一个主屏幕，也没有全局应用内导航入口。QML 桌面手势部件保留原有长按防误触保护。
 
-全屏 Piano 抽屉存在时，还为同一输出的底部 Plasma 面板添加 KWin stacking constraint，使真实 Dock 保持在抽屉上方；关闭抽屉后移除。Dock 不进入抽屉自身的缩放/淡入动画，不再显示两份。输入命中也使用同一窗口堆叠顺序。
+全屏 Sheng 抽屉存在时，还为同一输出的底部 Plasma 面板添加 KWin stacking constraint，使真实 Dock 保持在抽屉上方；关闭抽屉后移除。Dock 不进入抽屉自身的缩放/淡入动画，不再显示两份。输入命中也使用同一窗口堆叠顺序。
 
 ## 构建与加载
 
@@ -27,14 +27,14 @@ sudo cmake --install out/build-desktop-touch-guard
 guard_id=$(cat out/build-desktop-touch-guard/touch-guard-id.txt)
 kwriteconfig6 --file kwinrc --group Plugins --key "${guard_id}Enabled" true
 qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.loadEffect "$guard_id"
-qdbus6 org.piano.DesktopTouch /org/piano/DesktopTouch org.piano.DesktopTouch.GetStatus
+qdbus6 org.sheng.DesktopTouch /org/sheng/DesktopTouch org.sheng.DesktopTouch.GetStatus
 ```
 
 先按[抽屉部署说明](../../docs/DESKTOP_DRAWER.md)安装用户会话服务和启动器。`GetStatus` 仅返回次数、范围、指针和 Dock 约束状态，不记录输入内容或坐标。热加载无需重启 KWin。构建从 C++、元数据和 CMake 内容生成不同的插件 ID/文件名，避开 Qt 插件工厂缓存；升级先卸载并将旧 ID 的 Enabled 写成 false，再启用新 ID，不能同时加载两个 guard，也不在同一路径覆盖已映射的二进制。
 
 ## 验收与回退
 
-已获用户确认：原桌面左/中/右上滑打开抽屉；触屏无框选；临时 Dock 点击外部立即向下收起、原点击生效、Dock 本身不误收起；第三次底边上滑返回桌面及重新打开应用后 Dock 自动隐藏均正常。当前构建为 piano ARM64 / KWin 6.7.4 / Qt 6.11.2，启用的源码散列 ID 为 `piano_desktop_touch_guard_049d7d7951b7`。鼠标/触摸板的新按下观察路径已编译，未独立实测；横竖屏、挂起恢复仍待回归。
+已获用户确认：原桌面左/中/右上滑打开抽屉；触屏无框选；临时 Dock 点击外部立即向下收起、原点击生效、Dock 本身不误收起；第三次底边上滑返回桌面及重新打开应用后 Dock 自动隐藏均正常。当前构建为 sheng ARM64 / KWin 6.7.4 / Qt 6.11.2，启用的源码散列 ID 为 `sheng_desktop_touch_guard_049d7d7951b7`。鼠标/触摸板的新按下观察路径已编译，未独立实测；横竖屏、挂起恢复仍待回归。
 
 停用后恢复原生桌面触控行为，用户应用继续运行：
 

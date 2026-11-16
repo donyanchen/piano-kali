@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+case "$1" in
+  pre)
+    /usr/bin/python3 /usr/libexec/sheng-desktop-resume.py capture
+    ;;
+  post)
+    # User services are still frozen during system-sleep hooks. Schedule the
+    # refresh on the system manager instead of blocking on the user's D-Bus.
+    systemd-run --quiet --collect --unit="sheng-desktop-resume-$(date +%s%N)" \
+      --on-active=3s --timer-property=AccuracySec=1s \
+      --timer-property=RemainAfterElapse=no \
+      /usr/bin/python3 /usr/libexec/sheng-desktop-resume.py restore
+    ;;
+esac

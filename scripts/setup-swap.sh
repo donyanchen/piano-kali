@@ -28,9 +28,9 @@ fi
 if ! awk '$1 == "/swapfile" && $3 == "swap" {found=1} END {exit !found}' /etc/fstab; then
     printf '/swapfile none swap defaults,pri=10 0 0\n' >> /etc/fstab
 fi
-if [[ ! -e /etc/sysctl.d/80-piano-swap.conf ]]; then
-    printf 'vm.swappiness = 160\nvm.page-cluster = 0\n' > /etc/sysctl.d/80-piano-swap.conf
-    sysctl -p /etc/sysctl.d/80-piano-swap.conf
+if [[ ! -e /etc/sysctl.d/80-sheng-swap.conf ]]; then
+    printf 'vm.swappiness = 160\nvm.page-cluster = 0\n' > /etc/sysctl.d/80-sheng-swap.conf
+    sysctl -p /etc/sysctl.d/80-sheng-swap.conf
 fi
 sysctl vm.swappiness
 systemctl daemon-reload

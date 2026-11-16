@@ -1,0 +1,20 @@
+[Unit]
+Description=Sheng concurrent Wi-Fi hotspot
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/python3 /usr/libexec/sheng-hotspot/setup.py
+ExecStart=/usr/bin/python3 /usr/libexec/sheng-hotspot/hotspot.py
+Restart=on-failure
+RestartSec=5
+RuntimeDirectory=sheng-hotspot
+RuntimeDirectoryMode=0755
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

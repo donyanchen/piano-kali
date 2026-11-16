@@ -1,8 +1,8 @@
 {
   "KPackageStructure": "Plasma/Applet",
   "KPlugin": {
-    "Id": "org.piano.panel-style",
-    "Name": "Piano battery appearance",
+    "Id": "org.sheng.panel-style",
+    "Name": "Sheng battery appearance",
     "Version": "1.0.0",
     "License": "GPL-3.0-or-later",
     "Category": "System Information"

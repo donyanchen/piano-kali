@@ -1,6 +1,6 @@
-# piano 的 freedreno / Turnip 实机对比
+# sheng 的 freedreno / Turnip 实机对比
 
-日期：2026-11-14。设备：小米平板 8 Pro 12.4，Adreno 830，Kali ARM64，Mesa 26.1.6。结论限于本次工作负载：原生 Vulkan 的重着色器场景中，Turnip 三轮均快约 22%–24%；将现有 OpenGL 程序经 Zink 转到 Turnip，没有获得同样的收益。当前 KDE 和 Burp 使用 freedreno/OpenGL，原生 Vulkan 应用可使用已安装的 Turnip。后续应用配置调整未改变下列测试数据和结论。
+日期：2026-11-14。设备：小米平板 6S Pro 12.4，Adreno 740，Kali ARM64，Mesa 26.1.6。结论限于本次工作负载：原生 Vulkan 的重着色器场景中，Turnip 三轮均快约 22%–24%；将现有 OpenGL 程序经 Zink 转到 Turnip，没有获得同样的收益。当前 KDE 和 Burp 使用 freedreno/OpenGL，原生 Vulkan 应用可使用已安装的 Turnip。后续应用配置调整未改变下列测试数据和结论。
 
 freedreno 是 OpenGL 路径，Turnip 是 Vulkan 路径，当前同时存在。原生 Vulkan 的结果也包含 API 与应用代码实现差异；对现有 OpenGL 程序更直接的比较是 freedreno 与 Zink/Turnip。[Mesa 路径说明](https://docs.mesa3d.org/drivers/freedreno.html)，[Zink 说明](https://docs.mesa3d.org/drivers/zink.html)。
 
@@ -28,12 +28,12 @@ freedreno 是 OpenGL 路径，Turnip 是 Vulkan 路径，当前同时存在。�
 
 ## Java2D 补充测试
 
-使用 Burp 自带的 ARM64 Java 26.0.2，测试 1600×1000 的表格、文字和透明图形绘制，两组都启用 Java2D OpenGL，分别由 freedreno 与 Zink/Turnip 承载。每批 120 次绘制，批末读回以等待 GPU；每次运行五批，排除首批，三次运行交替先后顺序。GLX 诊断确认 Zink 组实际运行在 Turnip/Adreno 830。
+使用 Burp 自带的 ARM64 Java 26.0.2，测试 1600×1000 的表格、文字和透明图形绘制，两组都启用 Java2D OpenGL，分别由 freedreno 与 Zink/Turnip 承载。每批 120 次绘制，批末读回以等待 GPU；每次运行五批，排除首批，三次运行交替先后顺序。GLX 诊断确认 Zink 组实际运行在 Turnip/Adreno 740。
 
 平均每次绘制耗时的三次运行中位数是 freedreno 3.390 ms、Zink/Turnip 3.069 ms；但 Zink 的第三次运行升至 3.805 ms，慢于对应 freedreno 的 3.390 ms。这个小样本的局部中位数改善不能作为完整 Burp UI 稳定加速的证据。两组的进程 CPU 时间中位数均约 2.146 ms/次。测试结束时保留原驱动；后续按用户要求完成的 Burp 切换见 [应用配置](burp-tablet.md)，其验证记录为本机 `out/default-colors-turnip-verification.json`。
 
 ## 记录与恢复
 
-源码及复现方法见 [device/gpu-bench](../device/gpu-bench/README.md)。本机原始逐帧数据、遥测、图像校验和摘要位于 `out/gpu-bench-verified/`，摘要为 `summary.json`；图像原件仍在平板 `~/.local/state/piano-gpu-bench/results-verified/`。仅使用通过写入检查、完整运行和图像校验的 `verified` 系列生成主表。
+源码及复现方法见 [device/gpu-bench](../device/gpu-bench/README.md)。本机原始逐帧数据、遥测、图像校验和摘要位于 `out/gpu-bench-verified/`，摘要为 `summary.json`；图像原件仍在平板 `~/.local/state/sheng-gpu-bench/results-verified/`。仅使用通过写入检查、完整运行和图像校验的 `verified` 系列生成主表。
 
 测试结束后已核对 GPU 范围恢复为 220–680 MHz、governor 恢复原来的 `simple_ondemand`；测试服务及临时睡眠抑制均已结束。测试本身未更改 KDE/Burp 的默认驱动；Burp 后续调整过应用专用渲染环境，现已按用户最新要求恢复 OpenGL。完整 Metal → metal2vulkan → Turnip 路径不在本次测试中，详见 [UniXNU 路径说明](unixnu-gpu-comparison.md)。

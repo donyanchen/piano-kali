@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Sheng Wi-Fi 热点开关
+Comment=通过独立热点接口分享当前 Wi-Fi 连接
+Exec=/usr/local/bin/sheng-hotspot-toggle
+Icon=network-wireless-hotspot
+Terminal=false
+Categories=Network;
+Actions=Info;
+
+[Desktop Action Info]
+Name=查看热点名称和密码
+Exec=/usr/local/bin/sheng-hotspot-toggle info

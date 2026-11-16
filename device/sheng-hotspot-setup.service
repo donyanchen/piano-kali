@@ -1,0 +1,12 @@
+[Unit]
+Description=Prepare per-device hotspot credentials
+After=local-fs.target
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/libexec/sheng-hotspot/setup.py
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

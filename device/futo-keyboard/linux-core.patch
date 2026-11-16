@@ -4,7 +4,7 @@
                mWeightOfLangModelVsSpatialModel(NOT_A_WEIGHT_OF_LANG_MODEL_VS_SPATIAL_MODEL),
                mSuggestedWords() {}
  
-+    // Piano Linux port: native result access without a JVM or JNI arrays.
++    // Sheng Linux port: native result access without a JVM or JNI arrays.
 +    std::vector<SuggestedWord> linuxSuggestions() const {
 +        auto heap = mSuggestedWords;
 +        std::vector<SuggestedWord> output;
@@ -24,7 +24,7 @@
              const jintArray keyYCoordinates, const jintArray keyWidths, const jintArray keyHeights,
              const jintArray keyCharCodes, const jfloatArray sweetSpotCenterXs,
              const jfloatArray sweetSpotCenterYs, const jfloatArray sweetSpotRadii);
-+    // Piano Linux port: normalized layout arrays, no Android/JVM object.
++    // Sheng Linux port: normalized layout arrays, no Android/JVM object.
 +    ProximityInfo(int keyboardWidth, int keyboardHeight, int keyCount,
 +            const int *xs, const int *ys, const int *widths, const int *heights,
 +            const int *codes);
@@ -37,7 +37,7 @@
      initializeG();
  }
  
-+// Piano Linux port. Keep the original Android constructor unchanged.
++// Sheng Linux port. Keep the original Android constructor unchanged.
 +ProximityInfo::ProximityInfo(int keyboardWidth, int keyboardHeight, int keyCount,
 +        const int *xs, const int *ys, const int *widths, const int *heights,
 +        const int *codes)

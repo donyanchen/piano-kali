@@ -1,4 +1,4 @@
-# piano 上的 OpenGL / Vulkan 实机对比
+# sheng 上的 OpenGL / Vulkan 实机对比
 
 测试三条路径：Mesa freedreno 的原生 OpenGL、Mesa Turnip 的原生 Vulkan，以及同一 OpenGL 程序通过 Zink 调用 Turnip。二者属于不同 API，通常同时安装。原生 Vulkan 的成绩不能直接作为现有 OpenGL 程序的迁移收益；Zink 组用于观察后一种情况。
 
@@ -8,16 +8,16 @@
 
 每次进程先预热 1 秒，再计时 4 秒，共重复三轮。`run.py` 在每个负载内轮换三种路径的先后顺序，并轮换负载顺序；各路径分别占据一次第一、第二、第三测试位置。GPU 限制临时设为已有合法档位 550 MHz，记录实际频率及 GPU 温度；CPU 保持原有 governor，进程使用核心 4–7。脚本的 `finally` 和服务的 `ExecStopPost` 都会恢复原先 GPU 范围。测试程序以普通 kali 用户运行。
 
-在平板准备依赖，将本目录文件复制到 `~/.local/state/piano-gpu-bench/`，然后运行：
+在平板准备依赖，将本目录文件复制到 `~/.local/state/sheng-gpu-bench/`，然后运行：
 
 ```sh
 sudo apt-get install --no-install-recommends libegl-dev libepoxy-dev libvulkan-dev glslang-tools pkg-config g++
-bash ~/.local/state/piano-gpu-bench/build.sh
-sudo bash ~/.local/state/piano-gpu-bench/start.sh balanced
-journalctl -fu piano-gpu-benchmark.service
+bash ~/.local/state/sheng-gpu-bench/build.sh
+sudo bash ~/.local/state/sheng-gpu-bench/start.sh balanced
+journalctl -fu sheng-gpu-benchmark.service
 ```
 
-服务结束后运行 `python3 ~/.local/state/piano-gpu-bench/verify-images.py balanced`。结果位于 `results-balanced/`、`run-report-balanced.json`、`telemetry-balanced.json` 和 `image-validation-balanced.json`。仅在生成原始结果后分析；本机导出目录使用不含 `-balanced` 后缀的报告名称，再以 `python device/gpu-bench/analyze.py out/gpu-bench-balanced` 生成摘要，需要 NumPy。
+服务结束后运行 `python3 ~/.local/state/sheng-gpu-bench/verify-images.py balanced`。结果位于 `results-balanced/`、`run-report-balanced.json`、`telemetry-balanced.json` 和 `image-validation-balanced.json`。仅在生成原始结果后分析；本机导出目录使用不含 `-balanced` 后缀的报告名称，再以 `python device/gpu-bench/analyze.py out/gpu-bench-balanced` 生成摘要，需要 NumPy。
 
 `Java2DDriverBench.java` 补充测试 Java2D 的表格、文字和透明图形绘制。它通过进程环境分别使用 freedreno 和 Zink/Turnip，保持现有桌面配置不变，并在每个 120 帧批次末尾读回图像以等待 GPU 完成。每次五个批次，第一个排除，重复三次；它仍不是完整 Burp 操作延迟测试。运行前应确认 C++ 测试已经完成，避免并发测试相互干扰。
 

@@ -12,7 +12,7 @@ Item {
     property int lastMode: -1
     function update() {
         var win = watched
-        var hidden = !!(win && win.caption !== "Piano Application Drawer" && !win.deleted && !win.minimized && !win.desktopWindow
+        var hidden = !!(win && win.caption !== "Sheng Application Drawer" && !win.deleted && !win.minimized && !win.desktopWindow
             && (win.normalWindow || win.dialog) && (win.fullScreen || Number(win.maximizeMode) === 3))
         if (lastMode === Number(hidden)) return
         lastMode = Number(hidden)
@@ -21,9 +21,9 @@ Item {
     }
     KWin.DBusCall {
         id: request
-        service: "org.piano.DesktopPolicy"
-        path: "/org/piano/DesktopPolicy"
-        dbusInterface: "org.piano.DesktopPolicy"
+        service: "org.sheng.DesktopPolicy"
+        path: "/org/sheng/DesktopPolicy"
+        dbusInterface: "org.sheng.DesktopPolicy"
         method: "SetDockHidden"
     }
     onWatchedChanged: settle.restart()

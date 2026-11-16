@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+case "$1" in
+  pre)
+    if systemctl is-active --quiet sheng-hotspot.service; then
+        touch /run/sheng-hotspot-resume
+        systemctl stop sheng-hotspot.service
+    fi
+    ;;
+  post)
+    if [ -f /run/sheng-hotspot-resume ]; then
+        rm -f /run/sheng-hotspot-resume
+        systemctl start --no-block sheng-hotspot.service
+    fi
+    ;;
+esac

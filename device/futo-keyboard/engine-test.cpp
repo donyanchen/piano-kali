@@ -11,7 +11,7 @@
 namespace {
 class Context final : public fcitx::InputContext {
 public:
-    explicit Context(fcitx::InputContextManager &manager) : InputContext(manager, "piano-futo-test") {}
+    explicit Context(fcitx::InputContextManager &manager) : InputContext(manager, "sheng-futo-test") {}
     ~Context() override { destroy(); }
     const char *frontend() const override { return "test"; }
     void commitStringImpl(const std::string &value) override { committed += value; }
@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     qputenv("XDG_CONFIG_HOME", (data.path() + "/config").toUtf8());
     qputenv("XDG_DATA_HOME", (data.path() + "/data").toUtf8());
     qputenv("XDG_CACHE_HOME", (data.path() + "/cache").toUtf8());
-    char name[] = "piano-futo-test", disable[] = "--disable=all";
+    char name[] = "sheng-futo-test", disable[] = "--disable=all";
     char *options[] = {name, disable};
     try {
         fcitx::Instance instance(2, options);
@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
         Context first(instance.inputContextManager()), second(instance.inputContextManager());
         first.setCapabilityFlags(fcitx::CapabilityFlag::Preedit);
         second.setCapabilityFlags(fcitx::CapabilityFlag::Preedit);
-        fcitx::InputMethodEntry entry("piano-futo", "FUTO test", "en_US", "piano-futo");
+        fcitx::InputMethodEntry entry("sheng-futo", "FUTO test", "en_US", "sheng-futo");
         auto send = [&](Context &context, const std::string &key, bool release = false) {
             fcitx::KeyEvent event(&context, fcitx::Key(key), release);
             engine.keyEvent(entry, event);

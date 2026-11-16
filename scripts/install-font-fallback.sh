@@ -7,8 +7,8 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 project_dir=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 apt-get install -y fonts-noto-core fonts-noto-ui-core fonts-liberation
-install -m 0644 "$project_dir/device/theme/fonts/31-piano-material-icons-charset.conf" \
-    /etc/fonts/conf.d/31-piano-material-icons-charset.conf
+install -m 0644 "$project_dir/device/theme/fonts/31-sheng-material-icons-charset.conf" \
+    /etc/fonts/conf.d/31-sheng-material-icons-charset.conf
 fc-cache -f
 printf '%s\n' 'Text fonts installed; MDI private-use icons retained. Refresh affected pages.'
 fc-match 'Noto Sans:charset=0061'

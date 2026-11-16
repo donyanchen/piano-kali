@@ -23,13 +23,13 @@ def main():
     launcher=args.launcher_id
     if not launcher:
         root=pathlib.Path.home()/'.local/share/plasma/plasmoids'
-        found=[p for p in root.glob('org.piano.linexin.launcher*') if (p/'metadata.json').is_file()]
+        found=[p for p in root.glob('org.sheng.linexin.launcher*') if (p/'metadata.json').is_file()]
         if not found:raise SystemExit('Install the built Linexin package first')
         launcher=json.loads((max(found,key=lambda p:p.stat().st_ctime)/'metadata.json').read_text(encoding='utf-8'))['KPlugin']['Id']
-    if not launcher.startswith('org.piano.linexin.launcher'):raise SystemExit('Unexpected launcher ID')
+    if not launcher.startswith('org.sheng.linexin.launcher'):raise SystemExit('Unexpected launcher ID')
     bus=dbus.SessionBus()
     plasma=dbus.Interface(bus.get_object('org.kde.plasmashell','/PlasmaShell'),'org.kde.PlasmaShell')
-    old_shortcut=json.loads(str(plasma.evaluateScript('var key="";panels().concat(desktops()).forEach(p=>p.widgets().forEach(w=>{if(w.type.indexOf("org.piano.linexin.launcher")===0||w.type==="org.linexin.launcher"||w.type==="org.kde.plasma.kickerdash")key=String(w.globalShortcut||"");}));print(JSON.stringify(key));',timeout=10)))
+    old_shortcut=json.loads(str(plasma.evaluateScript('var key="";panels().concat(desktops()).forEach(p=>p.widgets().forEach(w=>{if(w.type.indexOf("org.sheng.linexin.launcher")===0||w.type==="org.linexin.launcher"||w.type==="org.kde.plasma.kickerdash")key=String(w.globalShortcut||"");}));print(JSON.stringify(key));',timeout=10)))
     shortcut=old_shortcut
     if not shortcut:
         accel=dbus.Interface(bus.get_object('org.kde.kglobalaccel','/kglobalaccel'),'org.kde.KGlobalAccel')
@@ -40,13 +40,13 @@ def main():
         if not shortcut:raise SystemExit('No free drawer activation shortcut; configure the Dashboard shortcut first')
     here=pathlib.Path(__file__).resolve().parents[1]
     source=args.gesture_source or here/'device/desktop-policy/desktop-gesture'
-    if not source.is_dir():source=pathlib.Path('/usr/share/plasma/plasmoids/org.piano.desktop-gesture')
-    if not (source/'contents/ui/main.qml').is_file():raise SystemExit('Install piano-tablet-controls first')
+    if not source.is_dir():source=pathlib.Path('/usr/share/plasma/plasmoids/org.sheng.desktop-gesture')
+    if not (source/'contents/ui/main.qml').is_file():raise SystemExit('Install sheng-tablet-controls first')
     metadata=json.loads((source/'metadata.json').read_text(encoding='utf-8'))
-    if metadata['KPlugin']['Id']!='org.piano.desktop-gesture':raise SystemExit('Unexpected source widget')
+    if metadata['KPlugin']['Id']!='org.sheng.desktop-gesture':raise SystemExit('Unexpected source widget')
     revision=hashlib.sha256((source/'contents/ui/main.qml').read_bytes().replace(b'\r\n',b'\n')).hexdigest()[:10]
-    plugin='org.piano.desktop-gesture.drawer-'+revision
-    state=pathlib.Path.home()/'.local/state/piano-desktop-drawer'
+    plugin='org.sheng.desktop-gesture.drawer-'+revision
+    state=pathlib.Path.home()/'.local/state/sheng-desktop-drawer'
     backup=state/('backup-'+datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
     backup.mkdir(parents=True,exist_ok=True);backup.chmod(0o700)
     for name in ['plasma-org.kde.plasma.desktop-appletsrc','plasmashellrc']:
@@ -54,7 +54,7 @@ def main():
         if path.exists():shutil.copy2(path,backup/name)
     installed=pathlib.Path.home()/'.local/share/plasma/plasmoids'/plugin
     if not installed.is_dir():
-        with tempfile.TemporaryDirectory(prefix='piano-desktop-gesture-') as tmp:
+        with tempfile.TemporaryDirectory(prefix='sheng-desktop-gesture-') as tmp:
             stage=pathlib.Path(tmp)/plugin;shutil.copytree(source,stage)
             metadata['KPlugin']['Id']=plugin
             (stage/'metadata.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
@@ -62,11 +62,11 @@ def main():
     script='''
 var all=panels();
 var preferences={};
-var previous=[];panels().concat(desktops()).forEach(p=>p.widgets().forEach(w=>{if(w.type===TARGET)return;if(w.type==="org.kde.plasma.kickerdash"||w.type==="org.linexin.launcher"||w.type.indexOf("org.piano.linexin.launcher")===0){if(w.type.indexOf("org.piano.linexin.launcher")===0){w.currentConfigGroup=["General"];Array.from(w.configKeys).forEach(k=>preferences[k]=w.readConfig(k));}w.globalShortcut="";previous.push(w);}}));
-var dock=all.find(function(p){p.currentConfigGroup=["General"];return p.readConfig("PianoThemeRole","")==="dock";});
+var previous=[];panels().concat(desktops()).forEach(p=>p.widgets().forEach(w=>{if(w.type===TARGET)return;if(w.type==="org.kde.plasma.kickerdash"||w.type==="org.linexin.launcher"||w.type.indexOf("org.sheng.linexin.launcher")===0){if(w.type.indexOf("org.sheng.linexin.launcher")===0){w.currentConfigGroup=["General"];Array.from(w.configKeys).forEach(k=>preferences[k]=w.readConfig(k));}w.globalShortcut="";previous.push(w);}}));
+var dock=all.find(function(p){p.currentConfigGroup=["General"];return p.readConfig("ShengThemeRole","")==="dock";});
 if(!dock)dock=all.find(p=>p.location==="bottom"&&p.widgets().some(w=>w.type==="org.kde.plasma.icontasks"));
 if(!dock)throw new Error("Existing Dock panel not found");
-dock.currentConfigGroup=["General"];dock.writeConfig("PianoThemeRole","dock");
+dock.currentConfigGroup=["General"];dock.writeConfig("ShengThemeRole","dock");
 var oldTasks=dock.widgets().filter(w=>w.type==="org.kde.plasma.icontasks"||w.type==="org.kde.plasma.taskmanager");
 var inherited=[];
 oldTasks.forEach(function(w){w.currentConfigGroup=["General"];var raw=w.readConfig("launchers",[]);if(typeof raw==="string")raw=raw.split(",");Array.from(raw).forEach(l=>{if(l&&inherited.indexOf(l)<0)inherited.push(l);});});
@@ -117,7 +117,7 @@ dock.widgets().forEach(function(w){
 });
 var gestures=[];
 desktops().forEach(function(d){
-    var old=d.widgets().filter(w=>w.type.indexOf("org.piano.desktop-gesture")===0);
+    var old=d.widgets().filter(w=>w.type.indexOf("org.sheng.desktop-gesture")===0);
     var current=old.find(w=>w.type===PLUGIN);
     if(!current){current=d.addWidget(PLUGIN);if(!current||current.type!==PLUGIN)throw new Error("Gesture widget failed to load");}
     old.forEach(w=>{if(w.id!==current.id)w.remove();});
@@ -127,7 +127,7 @@ print(JSON.stringify({dashboard:dashboard.id,dock:dock.id,gestures:gestures}));
 '''.replace('PLUGIN',json.dumps(plugin)).replace('ACTIVATION',json.dumps(shortcut)).replace('TARGET',json.dumps(launcher))
     result=json.loads(str(plasma.evaluateScript(script,timeout=15)).strip())
     (state/'installed.json').write_text(json.dumps({'plugin':plugin,'revision':revision,'backup':str(backup),'activationShortcut':shortcut,**result},indent=2)+'\n',encoding='utf-8')
-    subprocess.run(['systemctl','--user','restart','piano-desktop-policy.service'],check=True)
+    subprocess.run(['systemctl','--user','restart','sheng-desktop-policy.service'],check=True)
     print(json.dumps(result,ensure_ascii=False,indent=2))
 
 

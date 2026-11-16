@@ -27,7 +27,7 @@ All Apps / Alphabetically 等上游长列表沿用其滚动方式，没有 Dashb
 | --- | --- |
 | [drawer-provenance.json](../device/desktop-policy/drawer-provenance.json) | Linexin 固定提交、归档哈希与许可证 |
 | [build-desktop-drawer.py](../scripts/build-desktop-drawer.py) | 校验上游、应用补丁、打包并输出 manifest；源码散列生成新插件 ID |
-| [PianoDock.qml](../device/linexin-dock/PianoDock.qml) | 从 Linexin 提取的运行应用 Dock，增加持久固定项、菜单和九点入口 |
+| [ShengDock.qml](../device/linexin-dock/ShengDock.qml) | 从 Linexin 提取的运行应用 Dock，增加持久固定项、菜单和九点入口 |
 | [CompactRepresentation.qml](../device/linexin-dock/CompactRepresentation.qml) | 承载唯一 Dock 和全屏抽屉窗口 |
 | [touch-edit.patch](../device/linexin-dock/touch-edit.patch) | 全面板导航、触屏长按编辑；滑动时接管触摸，取消上游背景点击关闭 |
 | [install-desktop-drawer.py](../scripts/install-desktop-drawer.py) | 备份、迁移固定应用/抽屉布局、添加手势部件、关闭 Dock 宿主原生背景 |
@@ -35,7 +35,7 @@ All Apps / Alphabetically 等上游长列表沿用其滚动方式，没有 Dashb
 | [desktop-policy.py](../device/desktop-policy/desktop-policy.py) | 指针检测、D-Bus 激活入口和面板显隐 |
 | [DesktopPolicy.qml](../device/recents/contents/ui/DesktopPolicy.qml) | 监视活动应用最大化/全屏；抽屉被排除，不触发 Dock 隐藏 |
 
-KWin 的 stacking constraint 同时用于绘制与输入顺序，因此全屏抽屉中的 Dock 仍能正常点击。约束只针对同一输出上的 Piano 抽屉和底部 Plasma 面板，关闭后移除；不提升其他应用或锁屏。原生插件与 QML 都不抢占应用窗口的 evdev 输入。
+KWin 的 stacking constraint 同时用于绘制与输入顺序，因此全屏抽屉中的 Dock 仍能正常点击。约束只针对同一输出上的 Sheng 抽屉和底部 Plasma 面板，关闭后移除；不提升其他应用或锁屏。原生插件与 QML 都不抢占应用窗口的 evdev 输入。
 
 Linexin 来源为 [Petexy/Linexin-Launcher](https://github.com/Petexy/Linexin-Launcher)，固定 `43da5eab6e367f96f8e1aca9a90867a4289a9557`（1.2.1），GPL-3.0-or-later。包中保留上游 LICENSE/NOTICE。新增代码不复制 Android 资源。
 
@@ -47,9 +47,9 @@ Linexin 来源为 [Petexy/Linexin-Launcher](https://github.com/Petexy/Linexin-La
 # 任意 Python 3 + Git 构建机；没有作者缓存也会下载固定归档并校验
 python3 scripts/build-desktop-drawer.py
 # 把产物转移到目标后，以 Plasma 用户安装
-kpackagetool6 --type Plasma/Applet --install out/packages/piano-desktop-drawer.plasmoid
+kpackagetool6 --type Plasma/Applet --install out/packages/sheng-desktop-drawer.plasmoid
 python3 scripts/install-desktop-drawer.py --launcher-id "$(python3 -c \
-  'import json;print(json.load(open("out/packages/piano-desktop-drawer.manifest.json"))["plugin"])')"
+  'import json;print(json.load(open("out/packages/sheng-desktop-drawer.manifest.json"))["plugin"])')"
 ```
 
 构建器支持 `--archive /path/to/pinned.tar.gz` 离线使用，仍强制校验 SHA-256。升级生成不同插件 ID；安装器迁移旧实例的固定项和 General 配置后删除旧部件实例，不退出用户应用。首次分配一个空闲的内部全局快捷键供桌面手势通过 KGlobalAccel 激活。
@@ -61,9 +61,9 @@ python3 scripts/install-desktop-drawer.py --launcher-id "$(python3 -c \
 ## 排查与回退
 
 ```bash
-systemctl --user status piano-desktop-policy.service
-qdbus6 org.piano.DesktopPolicy /org/piano/DesktopPolicy org.piano.DesktopPolicy.GetState
-qdbus6 org.piano.DesktopTouch /org/piano/DesktopTouch org.piano.DesktopTouch.GetStatus
+systemctl --user status sheng-desktop-policy.service
+qdbus6 org.sheng.DesktopPolicy /org/sheng/DesktopPolicy org.sheng.DesktopPolicy.GetState
+qdbus6 org.sheng.DesktopTouch /org/sheng/DesktopTouch org.sheng.DesktopTouch.GetStatus
 journalctl --user -u plasma-plasmashell.service --since '5 minutes ago'
 ```
 
@@ -71,10 +71,10 @@ journalctl --user -u plasma-plasmashell.service --since '5 minutes ago'
 
 Dock 尖角来自宿主背景时，必须关闭 Panel Colorizer 的 `nativePanel.background.enabled`，仅设 opacity=0 不够。安装器只改变底部 Dock 的背景/阴影/模糊，上方白色状态栏保留。
 
-每次迁移在 `~/.local/state/piano-desktop-drawer/backup-*`（0700）备份自己的 `plasma-org.kde.plasma.desktop-appletsrc` / `plasmashellrc`，`installed.json` 指向本次备份。回退先关闭抽屉，停用原生 guard，再通过面板编辑器移除 Linexin、加回系统图标任务管理器。需要完整配置回退时，在下一次正常退出会话后恢复自己的备份；不在 Plasma 运行中覆盖配置、不重启用户当前会话。旧构建包可留作本地回退，不公开用户配置。
+每次迁移在 `~/.local/state/sheng-desktop-drawer/backup-*`（0700）备份自己的 `plasma-org.kde.plasma.desktop-appletsrc` / `plasmashellrc`，`installed.json` 指向本次备份。回退先关闭抽屉，停用原生 guard，再通过面板编辑器移除 Linexin、加回系统图标任务管理器。需要完整配置回退时，在下一次正常退出会话后恢复自己的备份；不在 Plasma 运行中覆盖配置、不重启用户当前会话。旧构建包可留作本地回退，不公开用户配置。
 
 ## 验证范围
 
-2026-11-15，piano / ARM64 / KWin `4:6.7.4-2+b1` / Qt `6.11.2`：已从公开源码编译原生插件、热加载，未重启会话。用户确认桌面三处上滑、防触屏框选、长按编辑和圆角背景；随后确认覆盖式最大化隐藏/还原显示；最终确认抽屉真正全屏、原 Dock 在开关时不闪烁/移动、左右翻页与下滑收起正常。检查中没有新增 QML 加载错误。
+2026-11-15，sheng / ARM64 / KWin `4:6.7.4-2+b1` / Qt `6.11.2`：已从公开源码编译原生插件、热加载，未重启会话。用户确认桌面三处上滑、防触屏框选、长按编辑和圆角背景；随后确认覆盖式最大化隐藏/还原显示；最终确认抽屉真正全屏、原 Dock 在开关时不闪烁/移动、左右翻页与下滑收起正常。检查中没有新增 QML 加载错误。
 
 尚未独立完成新版本的横竖屏、多屏、休眠恢复和 USB/蓝牙外设回归；当前仅有 PIN 键盘/触摸板实机测试条件。不声明已实现完整 Android 导航系统。CI 校验源码和固定上游打包，不替代触屏验收；Ubuntu CI 没有本机精确的 KWin 开发 ABI，因此原生 guard 以目标机编译结果为准。

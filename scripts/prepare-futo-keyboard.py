@@ -74,7 +74,7 @@ def make_layout(rows, orientation):
     names = dict(zip('1234567890', ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'zero']))
     used = set()
     text = '# FUTO QWERTY layout, Apache-2.0; Linux mapping, MIT.\n'
-    text += f'name = "piano-futo-{orientation}"\nprimary_text_size = 3\nsecondary_text_size = 1\nmin_toolbar_height = 6\nspacing = 1\n'
+    text += f'name = "sheng-futo-{orientation}"\nprimary_text_size = 3\nsecondary_text_size = 1\nmin_toolbar_height = 6\nspacing = 1\n'
     for row in elements:
         values = []
         for key in row:
@@ -92,7 +92,7 @@ def make_layout(rows, orientation):
     used.update('k_' + c for c in 'abcdefghijklmnopqrstuvwxyz')
     used.update('k_u' + format(ord(c), 'x') for c in SYMBOLS if c.isascii())
     for key in sorted(used):
-        text += f'{key} = "piano-futo:{key}"\n'
+        text += f'{key} = "sheng-futo:{key}"\n'
     return text
 
 
@@ -113,7 +113,7 @@ def make_keyset():
         if c in codes:
             fields.append('kc = ' + str(codes[c]))
         return '{' + ', '.join(fields) + '}'
-    text = '# FUTO QWERTY hint/functional mapping; Linux adapter MIT.\nname = "piano-futo"\n'
+    text = '# FUTO QWERTY hint/functional mapping; Linux adapter MIT.\nname = "sheng-futo"\n'
     hints = dict(zip('qwertyuiopasdfghjklzxcvbnm', '1234567890@#$%&-+()*"\':;!'))
     for c in 'abcdefghijklmnopqrstuvwxyz':
         text += f'\n[keys.k_{c}]\nauto_case = true\np = {value(c)}\n'
@@ -241,8 +241,8 @@ def main():
     (generated / 'en_US.tsv').write_bytes(tsv.encode('utf-8'))
     rows = layout_rows((layouts_dir / pin['layout']).read_text(encoding='utf-8'))
     for orientation in ('landscape', 'portrait'):
-        (generated / f'piano-futo-{orientation}.toml').write_bytes(make_layout(rows, orientation).encode('utf-8'))
-    (generated / 'piano-futo-keys.toml').write_bytes(make_keyset().encode('utf-8'))
+        (generated / f'sheng-futo-{orientation}.toml').write_bytes(make_layout(rows, orientation).encode('utf-8'))
+    (generated / 'sheng-futo-keys.toml').write_bytes(make_keyset().encode('utf-8'))
     emojis = make_emoji((args.output_dir / 'java/res/values-v19/emoji-categories.xml').read_text(encoding='utf-8'))
     emoji_toml = '# Public FUTO/AOSP bundled emoji categories; original notices retained.\n'
     for category in emojis:
@@ -251,8 +251,8 @@ def main():
     make_icons(args.output_dir, generated / 'icons')
     palettes = args.output_dir / 'java/src/org/futo/inputmethod/latin/uix/theme/presets/DefaultLightDark.kt'
     for scheme, content in make_themes(palettes.read_text(encoding='utf-8')).items():
-        (generated / f'piano-futo-{scheme}.toml').write_bytes(content.encode('utf-8'))
-    (args.output_dir / 'NOTICE.piano').write_text(
+        (generated / f'sheng-futo-{scheme}.toml').write_bytes(content.encode('utf-8'))
+    (args.output_dir / 'NOTICE.sheng').write_text(
         'EXPERIMENTAL MODIFIED LINUX PORT; not an official FUTO product.\n'
         'Original FUTO Keyboard: ' + pin['repository'] + '\nCommit: ' + pin['commit'] + '\n'
         'FUTO Source First License 1.1-kb and all per-file notices apply.\n'

@@ -1,0 +1,20 @@
+[Unit]
+Description=Sheng three-finger native task switching
+After=systemd-udevd.service
+ConditionPathExists=/dev/uinput
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/sheng-task-gestures
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

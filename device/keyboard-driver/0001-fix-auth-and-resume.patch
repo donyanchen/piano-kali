@@ -235,7 +235,7 @@
  	}
  
 +	WRITE_ONCE(nanosic->ready, true);
-+	dev_info(nanosic->dev, "pianofix v1: asynchronous auth and resume keepalive\n");
++	dev_info(nanosic->dev, "shengfix v1: asynchronous auth and resume keepalive\n");
 +	if (READ_ONCE(nanosic->auth_open) && READ_ONCE(nanosic->keyboard_attached))
 +		mod_delayed_work(system_percpu_wq, &nanosic->auth_start_work, 0);
  	return 0;
@@ -308,4 +308,4 @@
  MODULE_DESCRIPTION("HID driver for Nanosic WN8030 keyboard MCU");
  MODULE_LICENSE("GPL v2");
 +
-+MODULE_VERSION("1.2-pianofix");
++MODULE_VERSION("1.2-shengfix");

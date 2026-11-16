@@ -42,7 +42,7 @@
 | 亮度或音量滑条上滑/拖动 | 实时调整数值，保持展开 |
 | Wi-Fi 或蓝牙列表内上滑 | 只滚动列表，保持展开 |
 | 点击面板外部 | 关闭 |
-| 热点开关 | 控制 `piano-hotspot.service`，与状态栏同步 |
+| 热点开关 | 控制 `sheng-hotspot.service`，与状态栏同步 |
 | 隐私开关 | 一次阻止/恢复摄像头、麦克风、定位请求 |
 
 UI 源码：[control-center](../device/control-center/README.md)。Wi-Fi、蓝牙状态由系统后端维护，加载 UI 不强制切换开关；关闭面板后不持续轮询。
