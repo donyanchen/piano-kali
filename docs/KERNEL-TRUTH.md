@@ -142,3 +142,12 @@ python3 scripts/dt-inventory.py /tmp/p0/real.dts --compat 'ufshc|mdss'
 
 理由：Android 那套固件是这台机器**唯一跑通过的实现**，它暴露的运行时参数就是硬件真值；
 原厂 DTB 缺的字段（GPU 的 iommus/power-domains/opp），Android 的 sysfs 全都有。
+
+### 跨版本取值的边界
+
+Android 跑的是 **6.6.118-android15**（厂商重度改造），我们的基线是 **linux-stable 7.3.4**。因此：
+
+- **可以取**：硬件常量（DSI `clk_rate`、分辨率、regulator 电压、GPIO 编号、频率表）
+- **不可照搬**：驱动行为、探测顺序、错误语义、日志格式 —— 版本和树都不一样
+
+一句话：**抄常量，不抄行为。**
