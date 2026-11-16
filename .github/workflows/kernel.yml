@@ -13,6 +13,10 @@ on:
         description: linux-stable tag to build against
         default: v7.3.4
         required: true
+      fast_only:
+        description: 'Image + dtb only, no modules (display bring-up)'
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -116,12 +120,19 @@ jobs:
           # modules must be built together with vmlinux: modpost resolves module
           # symbols against vmlinux's Module.symvers, which only exists after
           # vmlinux is linked.
-          make LLVM=1 CC="ccache clang" -j"$(nproc)" Image modules
+          if [ "${{ github.event.inputs.fast_only }}" = "true" ]; then
+            echo "fast path: Image only, no modules"
+            make LLVM=1 CC="ccache clang" -j"$(nproc)" Image
+          else
+            make LLVM=1 CC="ccache clang" -j"$(nproc)" Image modules
+          fi
           mkdir -p ../out/modules
           cp arch/arm64/boot/Image ../out/
           make -s LLVM=1 kernelrelease > ../out/kernel-release
           cp .config ../out/config
-          make LLVM=1 modules_install INSTALL_MOD_PATH=../out/modules INSTALL_MOD_STRIP=1
+          if [ "${{ github.event.inputs.fast_only }}" != "true" ]; then
+            make LLVM=1 modules_install INSTALL_MOD_PATH=../out/modules INSTALL_MOD_STRIP=1
+          fi
           # modules_install drops build/source symlinks that point at the whole
           # source tree; uploading them turns a 200 MB artifact into 3 GB.
           find ../out/modules -type l -delete
