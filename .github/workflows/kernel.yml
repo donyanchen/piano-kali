@@ -55,6 +55,21 @@ jobs:
           cp kernel/dts/sm8750-piano.dts linux/arch/arm64/boot/dts/qcom/
           echo 'dtb-$(CONFIG_ARCH_QCOM) += sm8750-piano.dtb' \
             >> linux/arch/arm64/boot/dts/qcom/Makefile
+          # Our edits make the tree dirty; pin the release string so the kernel
+          # and its module directory are called 7.3.4-piano, not 7.3.4-dirty.
+          echo -piano > linux/.scmversion
+
+      - &panel
+        name: Add the piano panel driver
+        run: |
+          # No upstream driver exists for the p81 panel: ours is built from the
+          # factory DT sequences under kernel/drivers/gpu/drm/panel/.
+          cp kernel/drivers/gpu/drm/panel/panel-xiaomi-p81.c \
+             kernel/drivers/gpu/drm/panel/panel-xiaomi-p81/p81-35-02-0b.h \
+             linux/drivers/gpu/drm/panel/
+          # DRM is modular here, so the panel must be a module too: a built-in
+          # driver would reference drm symbols that live in drm.ko.
+          echo 'obj-m += panel-xiaomi-p81.o' >> linux/drivers/gpu/drm/panel/Makefile
       - &configure
         name: Configure
         run: |
@@ -85,6 +100,7 @@ jobs:
       - *toolchain
       - *fetch
       - *dts
+      - *panel
       - *configure
       - name: ccache
         uses: actions/cache@v4
