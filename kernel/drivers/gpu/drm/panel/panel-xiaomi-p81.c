@@ -46,20 +46,25 @@ struct p81_panel {
 };
 
 static const struct drm_display_mode p81_144_mode = {
-	.clock = 549854,	/* (1600+21+16+16) * (2136+104+68+2) * 144 / 1000 */
-	.hdisplay = 1600,
-	.hsync_start = 1600 + 21,
-	.hsync_end = 1600 + 21 + 16,
-	.htotal = 1600 + 21 + 16 + 16,
+	/*
+	 * Measured on the running Android kernel (dsi_display_set_mode):
+	 *   clk_rate=1197500000, hactive=3200, vactive=2136, fps=144
+	 * The panel is dual-DSI bonded with DSC: 3200 wide is the logical mode,
+	 * each link carries half of it.
+	 */
+	.clock = 1197500,
+	.hdisplay = 3200,
+	.hsync_start = 3200 + 42,
+	.hsync_end = 3200 + 42 + 32,
+	.htotal = 3200 + 42 + 32 + 32,
 	.vdisplay = 2136,
 	.vsync_start = 2136 + 104,
 	.vsync_end = 2136 + 104 + 68,
 	.vtotal = 2136 + 104 + 68 + 2,
-	.width_mm = 148,
+	.width_mm = 296,
 	.height_mm = 198,
 	.type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED,
 };
-
 static inline struct p81_panel *to_p81(struct drm_panel *panel)
 {
 	return container_of(panel, struct p81_panel, panel);
