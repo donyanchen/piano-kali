@@ -105,7 +105,7 @@ jobs:
           cp arch/arm64/boot/Image ../out/
           make -s LLVM=1 kernelrelease > ../out/kernel-release
           cp .config ../out/config
-          make LLVM=1 modules_install INSTALL_MOD_PATH=../out/modules
+          make LLVM=1 modules_install INSTALL_MOD_PATH=../out/modules INSTALL_MOD_STRIP=1
           # modules_install drops build/source symlinks that point at the whole
           # source tree; uploading them turns a 200 MB artifact into 3 GB.
           find ../out/modules -type l -delete

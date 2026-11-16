@@ -18,7 +18,7 @@ set -euo pipefail
 
 SRC=${1:?usage: mk-bootimg.sh <kernel-artifact-dir> <out-dir> [cmdline]}
 OUT=${2:?}
-CMDLINE=${3:-"root=PARTLABEL=linux_rootfs rootwait ro console=ttyMSM0,115200n8"}
+CMDLINE=${3:-"root=PARTLABEL=linux_rootfs rootwait ro console=tty0 fbcon=map:0 console=ttyMSM0,115200n8"}
 
 KREL=$(tr -d '[:space:]' < "$SRC/kernel-release")
 [[ -n $KREL ]] || { echo "no kernel-release in $SRC" >&2; exit 1; }
