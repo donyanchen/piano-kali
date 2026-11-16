@@ -1,0 +1,98 @@
+name: Build piano kernel
+
+# Kernel-only pipeline: mainline v7.4-rc2 + the SM8750/piano device layer
+# (pinned) + our own patches from kernel/patches/*.patch.
+#
+# The tablet can build this too (scripts/build-kernel.sh), but CI gives a clean
+# toolchain, no thermal throttling and a downloadable artifact.
+
+on:
+  workflow_dispatch:
+    inputs:
+      kernel_commit:
+        description: "Commit in yzddmr6/linux-sm8750-piano"
+        required: false
+        default: "29eda7337ed1af7316ea93ea73465b10f8ebeaff"
+  push:
+    paths:
+      - "kernel/patches/**"
+      - ".github/workflows/kernel.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  kernel:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 240
+    env:
+      KERNEL_REPO: https://github.com/yzddmr6/linux-sm8750-piano
+      KERNEL_COMMIT: ${{ inputs.kernel_commit || '29eda7337ed1af7316ea93ea73465b10f8ebeaff' }}
+      LOCALVERSION: "-piano88"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL || true
+          sudo apt-get clean
+          df -h /
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential bc bison flex libssl-dev libelf-dev libncurses-dev \
+            clang lld llvm pahole rsync cpio kmod zstd device-tree-compiler \
+            dpkg-dev fakeroot python3 git ca-certificates
+
+      - name: Fetch kernel tree
+        run: |
+          git clone --filter=blob:none "$KERNEL_REPO" kernel
+          cd kernel
+          git checkout --force "$KERNEL_COMMIT"
+          git log --oneline -1
+
+      - name: Apply our patches
+        run: |
+          shopt -s nullglob
+          for p in "$GITHUB_WORKSPACE"/kernel/patches/*.patch; do
+            if git -C kernel apply --check "$p"; then
+              git -C kernel apply "$p"
+              echo "applied $(basename "$p")"
+            else
+              echo "SKIP $(basename "$p")"
+            fi
+          done
+
+      - name: Configure
+        run: |
+          cd kernel
+          make ARCH=arm64 LLVM=1 O=../out piano-diagnostic.config
+          for frag in sm8750-netfilter sm8750-peripherals sm8750-waydroid sm8750-snap \
+                      sm8750-virt piano-diagnostic piano-desktop-diag piano-persistent piano-release; do
+            ./scripts/kconfig/merge_config.sh -O ../out -m ../out/.config "arch/arm64/configs/$frag.config" >/dev/null
+          done
+          make ARCH=arm64 LLVM=1 O=../out olddefconfig
+          scripts/config --file ../out/.config --set-str LOCALVERSION "$LOCALVERSION"
+          make ARCH=arm64 LLVM=1 O=../out olddefconfig
+
+      - name: Build
+        run: |
+          make -C kernel ARCH=arm64 LLVM=1 O="$PWD/out" -j"$(nproc)" Image modules dtbs
+          ls -lh out/arch/arm64/boot/Image
+
+      - name: Package debs
+        run: |
+          make -C kernel ARCH=arm64 LLVM=1 O="$PWD/out" -j"$(nproc)" bindeb-pkg LOCALVERSION="$LOCALVERSION" KDEB_PKGVERSION="1.0"
+          mkdir -p artifacts
+          mv ./*.deb artifacts/ 2>/dev/null || true
+          cp out/arch/arm64/boot/Image artifacts/Image
+          cp -v out/arch/arm64/boot/dts/qcom/*piano*.dtb artifacts/ 2>/dev/null || true
+          ( cd artifacts && sha256sum * > SHA256SUMS && ls -lh )
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: piano-kernel-${{ github.run_number }}
+          path: artifacts/
+          retention-days: 14
