@@ -1,0 +1,34 @@
+# Paths this repo owns; sync-sheng-base.sh never overwrites them.
+# Everything else comes from LuKeyC-NetSEC/sheng-kali-linux verbatim (with the
+# device identifiers retargeted to piano).
+README.md
+LICENSE
+.gitignore
+.sheng-sync-exclude
+
+# our kernel work
+kernel/
+.github/workflows/kernel.yml
+.github/workflows/sync-sheng.yml
+
+# piano-specific build/flash chain (consumes our kernel artifacts)
+scripts/build-kali.sh
+scripts/flash-piano.sh
+scripts/package-release.sh
+scripts/mk-bootimg.sh
+scripts/ci-free-space.sh
+scripts/p0-unpack.sh
+scripts/dt-inventory.py
+scripts/extract-panel-seq.py
+scripts/patch-boot-cmdline.py
+configs/piano.json
+
+# docs that describe this device / this kernel
+docs/INSTALL.md
+docs/PARITY.md
+docs/KERNEL-TRUTH.md
+docs/KERNEL-GAP.md
+docs/KALI-KERNEL.md
+
+# the pinned upstream commit lives here
+vendor/sheng-kali.lock.json

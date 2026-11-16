@@ -1,73 +1,30 @@
-name: Build Kali for Xiaomi Pad 8 Pro (piano)
+name: Xiaomi Pad 8 Pro Kali ARM64 KDE
 
 on:
   workflow_dispatch:
-    inputs:
-      kali_password:
-        description: 'Password for the kali user (empty = repository secret or "kali")'
-        required: false
-        default: ''
-      kernel_run_id:
-        description: 'Run id of a successful kernel workflow (empty = third-party fallback)'
-        required: false
-        default: ''
-  push:
-    tags:
-      - 'v*'
 
 permissions:
-  contents: write
-
-concurrency:
-  group: kalibuild-${{ github.ref }}
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 360
+  kali-kde:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
-
-      - name: Free disk space
-        run: bash scripts/ci-free-space.sh
-
       - name: Install build tools and ARM64 emulation
         run: |
           sudo apt-get update
-          sudo apt-get install -y debootstrap \
-            android-sdk-libsparse-utils e2fsprogs zstd zip unzip curl \
-            ca-certificates gnupg python3
-          uname -m
-
-      - name: Fetch our kernel artifacts (optional)
-        if: inputs.kernel_run_id != ''
-        uses: actions/download-artifact@v4
-        with:
-          pattern: linux-*
-          path: .work/kernel-artifact
-          merge-multiple: true
-          run-id: ${{ inputs.kernel_run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Kali ARM64 KDE image
+          sudo apt-get install -y debootstrap qemu-user-static binfmt-support android-sdk-libsparse-utils e2fsprogs curl ca-certificates gnupg python3
+          sudo update-binfmts --enable qemu-aarch64
+      - name: Build native Kali ARM64 with KDE Plasma
         env:
-          PIANO_KERNEL_DIR: ${{ inputs.kernel_run_id != '' && format('{0}/.work/kernel-artifact', github.workspace) || '' }}
-          KALI_PASSWORD: ${{ inputs.kali_password != '' && inputs.kali_password || secrets.KALI_PASSWORD }}
-          THP_CSOT_B64: ${{ secrets.THP_CSOT_B64 }}
-          THP_BOE_B64: ${{ secrets.THP_BOE_B64 }}
-        run: sudo --preserve-env=KALI_PASSWORD,THP_CSOT_B64,THP_BOE_B64 bash scripts/build-kali.sh
-
-      - name: Fix output ownership
-        run: sudo chown -R "$(id -u):$(id -g)" out
-
-      - name: Package release assets
-        run: bash scripts/package-release.sh
-
-      - name: Upload build artifact
+          KALI_PASSWORD: ${{ secrets.KALI_PASSWORD }}
+        run: sudo --preserve-env=KALI_PASSWORD bash scripts/build-kali.sh
+      - name: Upload images and validation results
         uses: actions/upload-artifact@v4
         with:
-          name: kali-piano-${{ github.run_number }}
-          path: out/release/
+          name: kali-arm64-kde-xiaomi-piano
+          path: out/
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7
