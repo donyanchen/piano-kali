@@ -21,17 +21,27 @@ HOST=${1:?usage: push-kernel-to-device.sh <user@host> <artifact-dir> [--flash]}
 ART=${2:?artifact dir required}
 FLASH=${3:-}
 SUDO_PASS=${SUDO_PASS:-}
+SSH_PASS=${SSH_PASS:-$SUDO_PASS}
 
 PROJECT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+if [[ -n $SSH_PASS ]]; then
+    command -v sshpass >/dev/null || { echo "sshpass is required for password auth" >&2; exit 1; }
+    export SSHPASS=$SSH_PASS
+    rssh() { sshpass -e ssh $SSH_OPTS "$@"; }
+    rscp() { sshpass -e scp $SSH_OPTS "$@"; }
+else
+    rssh() { ssh $SSH_OPTS "$@"; }
+    rscp() { scp $SSH_OPTS "$@"; }
+fi
 
 # sudo on the device: passwordless if SUDO_PASS is empty, otherwise feed it once
 # per remote command (each ssh invocation is its own process).
 rsh() {
     if [[ -n $SUDO_PASS ]]; then
-        ssh $SSH_OPTS "$HOST" "printf '%s\n' '$SUDO_PASS' | sudo -S -p '' bash -c '$1'"
+        rssh "$HOST" "printf '%s\n' '$SUDO_PASS' | sudo -S -p '' bash -c '$1'"
     else
-        ssh $SSH_OPTS "$HOST" "sudo -n bash -c '$1'"
+        rssh "$HOST" "sudo -n bash -c '$1'"
     fi
 }
 
@@ -41,21 +51,21 @@ echo "kernel release: $KREL"
 
 echo "== 1/4 install modules into /lib/modules/$KREL"
 tar -C "$ART/modules" -czf /tmp/modules-$KREL.tgz "lib/modules/$KREL"
-scp $SSH_OPTS "/tmp/modules-$KREL.tgz" "$HOST:/tmp/" >/dev/null
+rscp "/tmp/modules-$KREL.tgz" "$HOST:/tmp/" >/dev/null
 rsh "tar -C / -xzf /tmp/modules-$KREL.tgz && depmod -a $KREL"
 rm -f "/tmp/modules-$KREL.tgz"
 
 echo "== 2/4 build initramfs on the device"
-ssh $SSH_OPTS "$HOST" "command -v mkinitramfs >/dev/null" || \
+rssh "$HOST" "command -v mkinitramfs >/dev/null" || \
     rsh "apt-get install -y --no-install-recommends kmod initramfs-tools"
 rsh "mkinitramfs -o /tmp/initrd-$KREL $KREL"
-scp $SSH_OPTS "$HOST:/tmp/initrd-$KREL" "/tmp/initrd-$KREL" >/dev/null
+rscp "$HOST:/tmp/initrd-$KREL" "/tmp/initrd-$KREL" >/dev/null
 
 echo "== 3/4 assemble the boot image set"
 OUT=$(mktemp -d)
 INITRD="/tmp/initrd-$KREL" bash "$PROJECT/scripts/mk-bootimg.sh" "$ART" "$OUT"
-ssh $SSH_OPTS "$HOST" "mkdir -p /tmp/piano-boot"
-scp $SSH_OPTS "$OUT"/boot.img "$OUT"/init_boot.img "$OUT"/vendor_boot.img "$HOST:/tmp/piano-boot/" >/dev/null
+rssh "$HOST" "mkdir -p /tmp/piano-boot"
+rscp "$OUT"/boot.img "$OUT"/init_boot.img "$OUT"/vendor_boot.img "$HOST:/tmp/piano-boot/" >/dev/null
 rm -rf "$OUT"
 
 if [[ $FLASH != --flash ]]; then

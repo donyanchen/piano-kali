@@ -135,3 +135,21 @@
 
 1. **官方 DTB 里的 `qcom,wsa884x` 是死代码**：`wsa-max-devs = 0`。任何照着 WSA SoundWire 去调音频的路线都会走死；必须走 TDM。
 2. **官方内核是 GKI + 449 个厂商模块**，所以「config 里没开 UFS/DRM/音频」是假象；判断官方用什么驱动只能看 vendor 模块清单（`KERNEL-TRUTH.md` §4）。
+
+## 9. 首次 RAM 启动实录（2026-11-16）
+
+`fastboot boot boot-new-7.3.4.img`（88.5 MB，`Image` 43 MB + initramfs 46 MB）：
+
+| 观察 | 结论 |
+|---|---|
+| `Sending 90576 KB ... OKAY` → `Booting OKAY` | 引导链通，header v4 + cmdline 格式没问题 |
+| 屏幕白底 + 几条横向白线，随后全黑 | 内核在跑，但**没有面板驱动**，没人接管 DSI；白屏是 bootloader 留下的 framebuffer |
+| 网络上完全找不到设备（全段扫 22 端口无响应） | 没走到用户态网络；rootfs 挂载或 ath12k 加载这一环没通 |
+
+**教训（下一版必须补）**：
+
+1. **没有 UART 就必须让屏幕能打日志**：`CONFIG_FB_SIMPLE`/`CONFIG_DRM_SIMPLEDRM` + `CONFIG_FRAMEBUFFER_CONSOLE`，
+   cmdline 加 `fbcon=map:0 console=tty0`。否则内核 panic 也只能看到黑屏。
+2. initramfs 46 MB 太大（`MODULES=dep` 仍把 DRM 全套拉进去），`boot` 分区只剩 7 MB 余量。
+   `modules_install` 应带 `INSTALL_MOD_STRIP=1`。
+3. 先用 `fastboot boot` 验证，**确认能看到日志再写分区**——这次先 dd 后重启是错的顺序。
