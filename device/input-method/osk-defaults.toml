@@ -1,0 +1,8 @@
+# Merge root keys into the user's config; do not replace their entire config.
+# Requires fonts-noto-cjk and fonts-materialdesignicons-legacy.
+default_font = "Noto Sans CJK SC"
+default_nerd_font = "Material Design Icons version 6"
+placement = "Float"
+landscape_width = 640.0
+portrait_width = 480.0
+ignore_fcitx_show = false

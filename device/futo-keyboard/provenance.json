@@ -1,0 +1,23 @@
+{
+  "repository": "https://github.com/futo-org/android-keyboard",
+  "canonical_repository": "https://gitlab.futo.org/keyboard/latinime",
+  "commit": "7d61ab4132cfcbb7aa713190d934f0125dc38b03",
+  "archive_sha256": "db33086343c9b7996a5db08194ca263999b03d54cced9f81b1e9818da38383e8",
+  "patch_sha256": "be4a795c9551ecd405ddb7c10823d8b5bc1593861deb88529da536db9c8aa837",
+  "base_files": {
+    "LICENSE.md": "1cb7bb3c9ff502c32aed996b3465d30aa7a0cc7e50f65a22d2512d51dc6ef6d7",
+    "native/jni/NativeFileList.cmake": "22d9d10a3c1f8e749085eddfabcf4577b5917f6f3687bb938de3e349af5bc66c",
+    "dictionaries/en_US_wordlist.combined.gz": "0f78dd455b532be169a23f233227b811fabced4b5bd7fc9c40cc05839793bcbd"
+  },
+  "layouts_repository": "https://github.com/futo-org/futo-keyboard-layouts",
+  "layouts_commit": "fb4dad270790d980c32417b60359104bd0c32c1c",
+  "layouts_archive_sha256": "a21e3ee343e413238956dc93440c6fd456de077ed5b41b00ec1c459f8328dc91",
+  "layout": "Default/qwerty.yaml",
+  "license": "FUTO Source First License 1.1-kb; upstream per-file notices retained. Layouts: Apache-2.0. Linux adapters: MIT.",
+  "port_status": "Experimental native typing engine and FUTO UI/UX adaptation on Fcitx5 OSK; no Android runtime, neural model, voice or swipe decoder.",
+  "ui_patch_sha256": "8e8900364a11936d187ea840abc4f7673e5412720f74a879516396d05bf67235",
+  "ui_files": {
+    "ui/futo_ui.rs": "eff241f805c01d2c9183b20e75f8a176760deae5f618c29f5eb9b7120c74412c",
+    "FUTO-LICENSE.md": "1cb7bb3c9ff502c32aed996b3465d30aa7a0cc7e50f65a22d2512d51dc6ef6d7"
+  }
+}

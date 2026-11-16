@@ -2,3 +2,7 @@
 out/
 *.deb
 vendor/sheng-kali/
+
+# python bytecode
+__pycache__/
+*.pyc

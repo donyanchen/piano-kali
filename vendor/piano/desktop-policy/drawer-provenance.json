@@ -1,0 +1,9 @@
+{
+  "upstream": "https://github.com/Petexy/Linexin-Launcher",
+  "commit": "43da5eab6e367f96f8e1aca9a90867a4289a9557",
+  "archive_sha256": "608bcfdaaaf7a3744d537e3a46bae69daf9356f83e213d4413f5c775d7e617e0",
+  "plugin": "org.linexin.launcher",
+  "upstream_version": "1.2.1",
+  "license": "GPL-3.0-or-later",
+  "package_directory": "package"
+}

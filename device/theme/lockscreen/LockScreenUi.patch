@@ -1,0 +1,72 @@
+--- a/LockScreenUi.qml
++++ b/LockScreenUi.qml
+@@ -118,10 +118,12 @@
+         hoverEnabled: true
+         cursorShape: uiVisible ? Qt.ArrowCursor : Qt.BlankCursor
+         drag.filterChildren: true
+-        onPressed: uiVisible = true;
+-        onPositionChanged: {
+-            uiVisible = seenPositionChange;
+-            seenPositionChange = true;
++        onPressed: mouse => { if (mouse.source === Qt.MouseEventNotSynthesized) uiVisible = true; }
++        onPositionChanged: mouse => {
++            if (mouse.source === Qt.MouseEventNotSynthesized) {
++                uiVisible = seenPositionChange;
++                seenPositionChange = true;
++            }
+         }
+         onUiVisibleChanged: {
+             if (uiVisible) {
+@@ -210,7 +212,7 @@
+             id: clockShadow
+             anchors.fill: clock
+             source: clock
+-            visible: !lockScreenUi.softwareRendering && config.alwaysShowClock
++            visible: clock.visible && !lockScreenUi.softwareRendering && config.alwaysShowClock
+             radius: 7
+             verticalOffset: 0.8
+             samples: 15
+@@ -225,13 +227,40 @@
+             }
+         }
+ 
+-        Clock {
++        PianoClock {
+             id: clock
++            availableWidth: lockScreenRoot.width
+             property Item shadow: clockShadow
+-            visible: y > 0 && config.alwaysShowClock
++            visible: !lockScreenRoot.uiVisible && y > 0 && config.alwaysShowClock
+             anchors.horizontalCenter: parent.horizontalCenter
+-            y: (mainBlock.userList.y + mainStack.y)/2 - height/2
++            y: Math.max(48, lockScreenRoot.height * 0.16)
+             Layout.alignment: Qt.AlignBaseline
++        }
++
++        // Touch reveals the password page only after a deliberate upward swipe.
++        // The original MainBlock/authenticator still performs all authentication.
++        MultiPointTouchArea {
++            anchors.fill: parent
++            z: 10000
++            enabled: !lockScreenRoot.uiVisible
++            mouseEnabled: false
++            minimumTouchPoints: 1
++            maximumTouchPoints: 1
++            touchPoints: [TouchPoint { id: unlockFinger }]
++            property real deltaX: 0
++            property real deltaY: 0
++            property bool tracking: false
++            onPressed: { tracking = true; deltaX = deltaY = 0; }
++            onUpdated: {
++                deltaX = unlockFinger.x - unlockFinger.startX;
++                deltaY = unlockFinger.y - unlockFinger.startY;
++            }
++            onReleased: {
++                if (tracking && deltaY < -56 && -deltaY > Math.abs(deltaX) * 1.25)
++                    lockScreenRoot.uiVisible = true;
++                tracking = false;
++            }
++            onCanceled: tracking = false
+         }
+ 
+         ListModel {

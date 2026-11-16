@@ -1,0 +1,8 @@
+# BEGIN piano tablet tuning
+-Xms128m
+-Xmx6g
+-XX:+UseG1GC
+-Dsun.java2d.opengl=True
+-Dflatlaf.uiScale=1.7
+-Xshare:auto
+# END piano tablet tuning

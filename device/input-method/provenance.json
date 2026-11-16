@@ -1,0 +1,20 @@
+{
+  "msime_version": "0.16.1",
+  "msime_arm64_deb_sha256": "1f2542ed775e9bbf74b86aa0a901ce02af8f3f3652ef8aee54392b2b62fa853c",
+  "osk_repository": "https://github.com/fortime/fcitx5-osk",
+  "osk_tag": "0.2.1",
+  "osk_commit": "76a33b65b1c72519788c09cfb9f94c1df0f61949",
+  "osk_archive_sha256": "8501c5fdc1c3ff7e8197c53437351284bd85335b4f69aacaddf7181157298b91",
+  "ui_patch_sha256": "0519a935f554a28aa5d22a97499453ae9c12d4a9c6968d05c605840fc45b28fb",
+  "base_files": {
+    "Cargo.toml": "be543aceb545aaf0a74d54c710a779bf84c85fcbe22b56c4ef140f15386ac31a",
+    "Cargo.lock": "b10389e35ea903a41e5707b05a694cabc536f8e57a12a60acc1cea9e48e8c1e2",
+    "fcitx5-osk/src/layout.rs": "dc6c00a32e8ab37e0c670831b3c4121b6a59fd1504624920bd30d7b8cc0b0804",
+    "fcitx5-osk/src/state/keyboard.rs": "3a90697ecc9cfe4144c915a2883757196721f61b011580b9f191f3d68dfb9afe",
+    "fcitx5-osk/src/state/layout.rs": "0311fe7a2ab418325a129b5b161f8f1cdf1b186bbfb59a66e77f252c86f0bf4f",
+    "fcitx5-osk/src/app.rs": "a30d2dc18c5fd9aebff6239cb191d6bc10b754ceb24da6c15f52e5fea20cb683",
+    "fcitx5-osk/src/dbus/client.rs": "b9b916fc0550d84096eff3c849b18ff93e72b065b9ac244b7ee4f7663116fb07"
+  },
+  "license": "MIT (upstream OSK and UI adaptation); integration helpers retain their SPDX licenses",
+  "fcitx_protocol_patch_sha256": "4ef71558f636202d292976c5225f1d658a706c820e22cec6c59cdedd69fefc56"
+}

@@ -1,0 +1,13 @@
+[Unit]
+Description=Set up persistent swap after expanding the piano root filesystem
+After=local-fs.target piano-grow-root.service
+Wants=piano-grow-root.service
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/piano-setup-swap
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

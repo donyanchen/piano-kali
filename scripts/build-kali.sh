@@ -352,29 +352,48 @@ e2fsck -f -n "$ROOT_IMG"
 img2simg "$ROOT_IMG" "$OUT_DIR/root.sparse.img"
 
 step "build the boot image set"
-mkdir -p "$BUILD_DIR/bootset"
-set +e
-unzip -o -q "$ASSET_DIR/piano-ubuntu-$RELEASE-boot.zip" 'boot/*.img' -d "$BUILD_DIR/bootset"
-set -e
-BOOT_SRC=$(find "$BUILD_DIR/bootset" -name boot.img -type f | head -n 1)
-INIT_SRC=$(find "$BUILD_DIR/bootset" -name init_boot.img -type f | head -n 1)
-VENDOR_SRC=$(find "$BUILD_DIR/bootset" -name vendor_boot.img -type f | head -n 1)
-# The upstream boot.img is AVB-signed. On this tablet a modified boot image
-# fails the bootloader verification screen, so ship it byte-identical and
-# rename the root partition to what its command line already expects
-# (root=PARTLABEL=linux_rootfs). See docs/INSTALL.md step 3a.
-cp "$BOOT_SRC" "$OUT_DIR/boot.img"
-python3 - "$OUT_DIR/boot.img" <<'PY2'
+if [[ -n "${PIANO_KERNEL_DIR:-}" ]]; then
+    # Our own kernel (docs/KERNEL-GAP.md §7): Image + sm8750-piano.dtb + modules
+    # come from .github/workflows/kernel.yml. Modules live in the rootfs, so the
+    # boot ramdisk is an ordinary Kali initramfs built inside the chroot.
+    echo "using piano kernel artifacts from $PIANO_KERNEL_DIR"
+    KREL=$(tr -d '[:space:]' < "$PIANO_KERNEL_DIR/kernel-release")
+    [[ -n "$KREL" ]] || { echo 'kernel-release is empty' >&2; exit 1; }
+    install -d "$ROOTFS/lib/modules/$KREL"
+    cp -a "$PIANO_KERNEL_DIR/modules/lib/modules/$KREL/." "$ROOTFS/lib/modules/$KREL/"
+    chroot "$ROOTFS" apt-get install -y --no-install-recommends initramfs-tools
+    chroot "$ROOTFS" depmod -a "$KREL"
+    chroot "$ROOTFS" mkinitramfs -o "/boot/initrd.img-$KREL" "$KREL"
+    INITRD="$ROOTFS/boot/initrd.img-$KREL" \
+        bash "$PROJECT/scripts/mk-bootimg.sh" "$PIANO_KERNEL_DIR" "$OUT_DIR"
+    rm -f "$ROOTFS/boot/initrd.img-$KREL"
+    echo "boot image set built from our kernel $KREL"
+else
+    step "build the boot image set (third-party fallback; set PIANO_KERNEL_DIR to drop this)"
+    mkdir -p "$BUILD_DIR/bootset"
+    set +e
+    unzip -o -q "$ASSET_DIR/piano-ubuntu-$RELEASE-boot.zip" 'boot/*.img' -d "$BUILD_DIR/bootset"
+    set -e
+    BOOT_SRC=$(find "$BUILD_DIR/bootset" -name boot.img -type f | head -n 1)
+    INIT_SRC=$(find "$BUILD_DIR/bootset" -name init_boot.img -type f | head -n 1)
+    VENDOR_SRC=$(find "$BUILD_DIR/bootset" -name vendor_boot.img -type f | head -n 1)
+    # The upstream boot.img is AVB-signed. On this tablet a modified boot image
+    # fails the bootloader verification screen, so ship it byte-identical and
+    # rename the root partition to what its command line already expects
+    # (root=PARTLABEL=linux_rootfs). See docs/INSTALL.md step 3a.
+    cp "$BOOT_SRC" "$OUT_DIR/boot.img"
+    python3 - "$OUT_DIR/boot.img" <<'PY2'
 import sys
 d = open(sys.argv[1], 'rb').read()
 cmd = d[0x2c:0x2c+1536].split(b'\0')[0].decode()
 print('boot.img cmdline:', cmd)
 assert 'root=PARTLABEL=linux_rootfs' in cmd, 'unexpected cmdline in upstream boot.img'
 PY2
-cp "$INIT_SRC" "$OUT_DIR/init_boot.img"
-cp "$VENDOR_SRC" "$OUT_DIR/vendor_boot.img"
-MAINT_SRC=$(find "$BUILD_DIR/bootset" -name boot-ram-maintenance.img -type f | head -n 1)
-[[ -n "$MAINT_SRC" ]] && cp "$MAINT_SRC" "$OUT_DIR/boot-ram-maintenance.img"
+    cp "$INIT_SRC" "$OUT_DIR/init_boot.img"
+    cp "$VENDOR_SRC" "$OUT_DIR/vendor_boot.img"
+    MAINT_SRC=$(find "$BUILD_DIR/bootset" -name boot-ram-maintenance.img -type f | head -n 1)
+    [[ -n "$MAINT_SRC" ]] && cp "$MAINT_SRC" "$OUT_DIR/boot-ram-maintenance.img"
+fi
 
 step "write manifest"
 python3 - "$CONFIG" "$OUT_DIR" <<'PY'

@@ -1,0 +1,5 @@
+#!/bin/sh
+cursor_theme=$(kreadconfig6 --file kcminputrc --group Mouse --key cursorTheme --default Breeze_Light)
+cursor_size=$(kreadconfig6 --file kcminputrc --group Mouse --key cursorSize --default 24)
+export XCURSOR_THEME="$cursor_theme" XCURSOR_SIZE="$cursor_size"
+exec /usr/bin/fcitx5-osk-kwin-launcher --fcitx5-reopen

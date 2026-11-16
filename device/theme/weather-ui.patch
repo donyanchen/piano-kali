@@ -1,0 +1,35 @@
+--- a/contents/ui/main.qml
++++ b/contents/ui/main.qml
+@@ -103,8 +103,11 @@
+             }
+         }
+         Row {
+-            visible: weatherData.datosweather.trim().split(/\s+/).length >= 4
+-                && isFinite(Number(weatherData.temperaturaActual))
++            visible: true
++            opacity: weatherData.stale ? 0.72 : 1
++            ToolTip.visible: weatherHover.hovered
++            ToolTip.text: weatherData.statusText
++            HoverHandler { id: weatherHover }
+             width: firsText.width
+             height: firsText.height
+             Item {
+@@ -118,7 +121,7 @@
+                     height: parent.height
+                     font.family: quicksand.name
+                     font.pixelSize: firsText.height*.8
+-                    text: Math.round(weatherData.temperaturaActual) + "° "
++                    text: weatherData.hasData ? Math.round(weatherData.temperaturaActual) + "° " : "—° "
+                     color: colorPlasmoid
+                 }
+             }
+--- a/contents/config/main.xml
++++ b/contents/config/main.xml
+@@ -27,6 +27,7 @@
+     <entry name="colorHex" type="color">
+       <default>#ffffff</default>
+       </entry>
++      <entry name="weatherCache" type="String"><default></default></entry>
+   </group>
+ 
+ </kcfg>

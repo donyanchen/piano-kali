@@ -1,0 +1,15 @@
+[Unit]
+Description=Piano Dock and pointer presence policy
+After=plasma-kwin_wayland.service plasma-plasmashell.service
+PartOf=plasma-workspace.target
+
+[Service]
+Type=dbus
+BusName=org.piano.DesktopPolicy
+ExecStart=/usr/libexec/piano-desktop-policy
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=plasma-workspace.target

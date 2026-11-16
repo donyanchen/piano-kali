@@ -1,0 +1,1 @@
+SUBSYSTEM=="net", KERNEL=="piano-ap", ENV{NM_UNMANAGED}="1"

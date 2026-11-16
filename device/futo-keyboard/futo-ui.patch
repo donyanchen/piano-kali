@@ -1,0 +1,365 @@
+--- a/fcitx5-osk/src/dbus/client.rs
++++ b/fcitx5-osk/src/dbus/client.rs
+@@ -441,3 +441,9 @@
+     #[tracing::instrument(level = "debug", skip(self), err, ret)]
+     fn read_one(&self, namespace: &str, key: &str) -> ZbusResult<OwnedValue>;
+ }
++
++// Native FUTO Unicode commit bridge. Arguments are intentionally not traced.
++#[zbus::proxy(default_service = "org.fcitx.Fcitx5", default_path = "/org/piano/FutoKeyboard", interface = "org.piano.FutoKeyboard1")]
++pub trait FutoUiBridge {
++    fn commit_text(&self, text: &str) -> ZbusResult<bool>;
++}
+--- a/fcitx5-osk/src/key_set.rs
++++ b/fcitx5-osk/src/key_set.rs
+@@ -73,6 +73,16 @@
+ 
+     pub fn font(&self) -> Option<Font> {
+         self.inner().font
++    }
++
++    pub fn from_keysym(keysym: u32) -> Self {
++        if let Some(c) = char::from_u32(keysym) {
++            if let Some(value) = Self::from_char(c) { return value; }
++        }
++        let keycode = match keysym { 0xffe3 => Some(37), 0xffe1 => Some(50), 0xff51 => Some(113),
++            0xff52 => Some(111), 0xff53 => Some(114), 0xff54 => Some(116), 0xff50 => Some(110),
++            0xff57 => Some(115), 0xff08 => Some(22), _ => None };
++        Self { inner: MaybeUninit::new(Arc::new(KeyValueInner { symbol: String::new(), keysym: Keysym::new(keysym), keycode, font: None })) }
+     }
+ 
+     pub fn from_char(c: char) -> Option<Self> {
+@@ -287,6 +297,8 @@
+ struct RawKey {
+     #[serde(alias = "p")]
+     primary: KeyValue,
++    #[serde(default)]
++    auto_case: bool,
+     #[serde(default, alias = "s")]
+     secondaries: Vec<KeyValue>,
+ }
+@@ -302,13 +314,22 @@
+     }
+ 
+     pub fn key_value(&self, shift: bool, caps_lock: bool) -> KeyValue {
+-        let key_value = if Self::is_shifted(shift, caps_lock) {
++        if self.raw.auto_case && Self::is_shifted(shift, caps_lock) {
++            if let Some(c) = self.raw.primary.symbol().chars().next() {
++                if c.is_ascii_lowercase() {
++                    if let Some(value) = KeyValue::from_char(c.to_ascii_uppercase()) { return value; }
++                }
++            }
++        }
++        let key_value = if !self.raw.auto_case && Self::is_shifted(shift, caps_lock) {
+             self.raw.secondaries.first().unwrap_or(&self.raw.primary)
+         } else {
+             &self.raw.primary
+         };
+         key_value.clone()
+     }
++
++    pub fn auto_case(&self) -> bool { self.raw.auto_case }
+ 
+     pub fn primary(&self) -> &KeyValue {
+         &self.raw.primary
+--- a/fcitx5-osk/src/main.rs
++++ b/fcitx5-osk/src/main.rs
+@@ -19,6 +19,7 @@
+ mod custom_action;
+ mod dbus;
+ mod font;
++mod futo_ui;
+ mod key_set;
+ mod layout;
+ mod misc;
+--- a/fcitx5-osk/src/state/keyboard.rs
++++ b/fcitx5-osk/src/state/keyboard.rs
+@@ -94,6 +94,8 @@
+ 
+ pub struct KeyboardState {
+     id: u8,
++    futo_ui: bool,
++    futo_shift: u8,
+     primary_text_size_u: u32,
+     secondary_text_size_u: u32,
+     font: Font,
+@@ -125,6 +127,8 @@
+     ) -> Self {
+         let mut res = Self {
+             id: 0,
++            futo_ui: false,
++            futo_shift: 0,
+             primary_text_size_u: Default::default(),
+             secondary_text_size_u: Default::default(),
+             font: Default::default(),
+@@ -149,6 +153,7 @@
+ 
+     pub fn update_key_area_layout(&mut self, key_area_layout: &KeyAreaLayout, store: &Store) {
+         self.id = self.id.wrapping_add(1);
++        self.futo_ui = key_area_layout.name().starts_with("piano-futo");
+         self.primary_text_size_u = key_area_layout.primary_text_size_u();
+         self.secondary_text_size_u = key_area_layout.secondary_text_size_u();
+         self.popup_key_width_u = key_area_layout.popup_key_width_u();
+@@ -188,6 +193,28 @@
+ 
+     pub fn on_event(&mut self, event: KeyboardEvent) -> Task<Message> {
+         match event {
++            KeyboardEvent::FutoShift => { self.futo_shift = (self.futo_shift + 1) % 3; Message::nothing() }
++            KeyboardEvent::FutoStroke(sym, ctrl, shift) => {
++                let mut keys = Vec::new();
++                if ctrl { keys.push(ComboKey::Key(KeyValue::from_keysym(0xffe3))); }
++                if shift { keys.push(ComboKey::Key(KeyValue::from_keysym(0xffe1))); }
++                keys.push(ComboKey::Key(KeyValue::from_keysym(sym)));
++                self.clear_fcitx5_hidden().chain(self.keyboard_backend.process_combo_keys(keys).map(|r| match r {
++                    Ok(_) => Message::Nothing, Err(e) => app::error_with_context(e, "FUTO editing action failed") }))
++            }
++            KeyboardEvent::FutoCommit(text) => {
++                let connection = self.keyboard_backend.futo_connection.clone();
++                self.clear_fcitx5_hidden().chain(Task::perform(async move {
++                    let connection = connection.ok_or_else(|| anyhow::anyhow!("No FUTO bridge connection"))?;
++                    let proxy = crate::dbus::client::FutoUiBridgeProxy::new(&connection).await?;
++                    let accepted = proxy.commit_text(&text).await?;
++                    Ok::<bool, anyhow::Error>(accepted)
++                }, |result| match result {
++                    Ok(true) => Message::Nothing,
++                    Ok(false) => app::KeyboardNotification::Info("请先完成当前候选选择；表情不用于密码或敏感输入框。".to_string()).into(),
++                    Err(e) => app::error_with_context(e, "FUTO text bridge unavailable"),
++                }))
++            }
+             KeyboardEvent::UnsetFcitx5Hidden => {
+                 if self.fcitx5_hidden == Fcitx5Hidden::Clearing {
+                     self.fcitx5_hidden = Fcitx5Hidden::Unset;
+@@ -358,7 +385,7 @@
+                         key_state.selected_key_value = key_value.clone();
+                     } else {
+                         // set key_value to the primary one.
+-                        let is_shift_set = ModifierState::Shift.is_set(self.view_flags);
++                        let is_shift_set = (self.futo_ui && self.futo_shift > 0) || ModifierState::Shift.is_set(self.view_flags);
+                         let is_caps_lock_set = ModifierState::CapsLock.is_set(self.view_flags);
+                         key_state.selected_key_value = holding_key_state
+                             .key
+@@ -370,6 +397,8 @@
+             tracing::warn!("not pressed: {}", common.key_name);
+         }
+     }
++
++    pub fn futo_shift(&self) -> u8 { self.futo_shift }
+ 
+     pub fn key(
+         &self,
+@@ -377,8 +406,19 @@
+         unit: KLength,
+         size: (KLength, KLength),
+     ) -> Element<'_, Message> {
++        self.key_with_case(key_name, unit, size, None)
++    }
++
++    pub fn key_with_case(
++        &self,
++        key_name: Arc<str>,
++        unit: KLength,
++        size: (KLength, KLength),
++        display_uppercase: Option<bool>,
++    ) -> Element<'_, Message> {
+         let (width, height) = size;
+         let enter_key = key_name.ends_with("k_enter");
++        let backspace_key = key_name.ends_with("k_backspace");
+         let utility_key = ["k_left_shift", "k_right_shift", "k_backspace", "k_tab", "k_space"]
+             .iter().any(|name| key_name.ends_with(name));
+         let (inner_width, inner_height) = (
+@@ -387,7 +427,7 @@
+         );
+ 
+         let (content, press_cb, release_cb) = if let Some(key) = self.keys.get(&*key_name) {
+-            let is_shift_set = ModifierState::Shift.is_set(self.view_flags);
++            let is_shift_set = (self.futo_ui && self.futo_shift > 0) || ModifierState::Shift.is_set(self.view_flags);
+             let is_caps_lock_set = ModifierState::CapsLock.is_set(self.view_flags);
+             let secondary_height = inner_height / 3;
+             let primary_height = inner_height - secondary_height;
+@@ -399,10 +439,14 @@
+             let primary_text_size = (primary_height - 1)
+                 .val()
+                 .min((self.primary_text_size_u * unit).val());
++            let primary_text_size = if self.futo_ui { height.val() * if key_name.ends_with("k_space") { 0.28 } else { 0.50 } } else { primary_text_size };
+             let mut column: Column<Message> = Column::new();
+             let primary_key_value = key.primary();
+             let secondary_key_values = key.secondaries();
+-            let (primary, secondary) = if is_shift_set ^ is_caps_lock_set {
++            let current = key.key_value(is_shift_set, is_caps_lock_set);
++            let (primary, secondary) = if key.auto_case() {
++                (&current, secondary_key_values.first())
++            } else if is_shift_set ^ is_caps_lock_set {
+                 (
+                     secondary_key_values.first().unwrap_or(primary_key_value),
+                     secondary_key_values.first().map(|_| primary_key_value),
+@@ -410,21 +454,29 @@
+             } else {
+                 (primary_key_value, secondary_key_values.first())
+             };
+-            let middle = Text::new(primary.symbol())
++            // Chinese keycaps are uppercase visually; the lower-case KeyValue
++            // still goes to the pinyin engine. Shift remains an explicit input action.
++            let label = if self.futo_ui && display_uppercase == Some(true)
++                && primary.symbol().len() == 1 && primary.symbol().chars().all(|c| c.is_ascii_alphabetic()) {
++                primary.symbol().to_ascii_uppercase()
++            } else { primary.symbol().to_string() };
++            let middle = Text::new(label)
+                 .shaping(Shaping::Advanced)
+                 .font(primary.font().unwrap_or(self.font));
+-            let middle = if enter_key { middle.color(iced::Color::WHITE) } else { middle };
++            let middle = if enter_key && !self.futo_ui { middle.color(iced::Color::WHITE) } else { middle };
+             let mut top = Row::new().spacing(unit / 2.);
+             let mut has_secondary = false;
+             for secondary in secondary
+                 .into_iter()
+                 .chain(secondary_key_values.iter().skip(1))
+             {
++                if self.futo_ui { continue; }
+                 // Shift case remains available without duplicating every letter's label.
+                 if primary.symbol().chars().all(|c| c.is_ascii_alphabetic())
+                     && primary.symbol().eq_ignore_ascii_case(secondary.symbol()) {
+                     continue;
+                 }
++                if self.futo_ui && has_secondary { continue; }
+                 has_secondary = true;
+                 let text = Text::new(secondary.symbol())
+                     .font(secondary.font().unwrap_or(self.font))
+@@ -481,6 +533,10 @@
+             tracing::debug!("{key_name} is not found");
+             (Element::from(Text::new("")), None, None)
+         };
++        let content = if self.futo_ui && (enter_key || backspace_key) {
++            Element::from(Container::new(crate::futo_ui::icon(if enter_key { "return" } else { "delete" }, height.val().min(width.val()) * 0.55, enter_key)).center_x(inner_width).center_y(inner_height))
++        } else { content };
++        let futo_ui = self.futo_ui;
+         KeyWidget::new(content)
+             .on_press_with(press_cb)
+             .on_release_with(release_cb)
+@@ -488,6 +544,7 @@
+             .width(width)
+             .height(height)
+             .style(move |theme, status| {
++                if futo_ui { return crate::futo_ui::key_style(theme, matches!(status, iced::widget::button::Status::Pressed), utility_key, enter_key); }
+                 let dark = theme.extended_palette().is_dark;
+                 let pressed = matches!(status, iced::widget::button::Status::Pressed);
+                 let color = if enter_key {
+@@ -770,6 +827,9 @@
+         };
+ 
+         if let Some(key_state) = self.pressed_keys.remove(&common.key_name) {
++            if self.futo_ui && self.futo_shift == 1 && common.key_value.symbol().chars().all(|c| c.is_ascii_alphabetic()) && !common.key_value.symbol().is_empty() {
++                self.futo_shift = 0;
++            }
+             self.holding_key_state
+                 .take_if(|s| s.name == common.key_name);
+ 
+@@ -1000,6 +1060,9 @@
+ 
+ #[derive(Clone, Debug)]
+ pub enum KeyboardEvent {
++    FutoShift,
++    FutoStroke(u32, bool, bool),
++    FutoCommit(String),
+     UnsetFcitx5Hidden,
+     ToggleComboMode,
+     InsertComboKeyRelease,
+@@ -1050,6 +1113,7 @@
+ #[derive(Clone, Debug, Getters)]
+ pub struct KeyboardBackend {
+     controller: Arc<dyn IFcitx5ControllerService + Send + Sync>,
++    futo_connection: Option<Connection>,
+     virtual_keyboard: Arc<dyn IFcitx5VirtualKeyboardService + Send + Sync>,
+     // Ensure the usage of virtual_keyboard_backend are serialized so that key events from
+     // different messages do not interfere with each other
+@@ -1063,6 +1127,7 @@
+         modifier_workaround_keycodes: Vec<u16>,
+     ) -> Result<Self> {
+         let connection = Connection::session().await?;
++        let _ = connection.request_name("org.piano.FutoKeyboard.UI").await;
+         let controller = Fcitx5ControllerServiceProxy::new(&connection).await?;
+         let virtual_keyboard = Fcitx5VirtualKeyboardServiceProxy::new(&connection).await?;
+         let virtual_keyboard_backend =
+@@ -1083,6 +1148,7 @@
+             ));
+             Ok(Self {
+                 controller: Arc::new(controller),
++                futo_connection: Some(connection.clone()),
+                 virtual_keyboard,
+                 virtual_keyboard_backend,
+             })
+@@ -1096,6 +1162,7 @@
+                 Arc::new(IcedFuturesMutex::new(virtual_keyboard_backend));
+             Ok(Self {
+                 controller: Arc::new(controller),
++                futo_connection: Some(connection.clone()),
+                 virtual_keyboard: Arc::new(virtual_keyboard),
+                 virtual_keyboard_backend,
+             })
+@@ -1111,6 +1178,7 @@
+     ) -> Self {
+         Self {
+             controller,
++            futo_connection: None,
+             virtual_keyboard,
+             virtual_keyboard_backend,
+         }
+--- a/fcitx5-osk/src/state/layout.rs
++++ b/fcitx5-osk/src/state/layout.rs
+@@ -24,6 +24,7 @@
+     key_area_layout: Rc<KeyAreaLayout>,
+     setting_layout: SettingLayout,
+     setting_shown: bool,
++    futo_ui: crate::futo_ui::UiState,
+     width: KLength,
+ }
+ 
+@@ -46,6 +47,7 @@
+             key_area_layout,
+             setting_layout: SettingLayout,
+             setting_shown: false,
++            futo_ui: Default::default(),
+             width,
+         };
+         res.calculate_size();
+@@ -69,6 +71,10 @@
+         let width = key_area_size.0 + 2 * unit;
+         // one padding is between toolbar and key_area, two paddings are of the keyboard.
+         let height = key_area_size.1 + (self.toolbar_layout.height_u() + 3) * unit;
++        let futo_scale = (width.val() / 393.0).clamp(0.8, 1.65);
++        let height = if self.key_area_layout.name().starts_with("piano-futo") {
++            KLength::from((205.6 + 40.0 + 28.0 + 12.0 + if self.futo_ui.actions { 40.0 } else { 0.0 }) * futo_scale)
++        } else { height };
+         self.size = (width, height);
+         self.padding = Padding::from([unit.val(), unit.val()]);
+         tracing::debug!(
+@@ -143,6 +149,10 @@
+         params: &'a ToElementCommonParams<'b>,
+     ) -> Element<'b, Message> {
+         let size = self.size();
++        if self.key_area_layout.name().starts_with("piano-futo") {
++            let settings = if self.setting_shown { Some(self.setting_layout.to_element(params, self.unit, 3)) } else { None };
++            return crate::futo_ui::view(&self.futo_ui, params, self.unit, size.width.val(), size.height.val(), settings);
++        }
+         let mut keyboard = Column::new()
+             .align_x(Horizontal::Center)
+             .width(size.width)
+@@ -184,6 +194,9 @@
+     pub fn on_event(&mut self, event: LayoutEvent) -> bool {
+         let mut changed = false;
+         match event {
++            LayoutEvent::FutoPage(page) => { self.futo_ui.page = page; self.futo_ui.actions = false; self.setting_shown = false; }
++            LayoutEvent::FutoEmojiCategory(index) => self.futo_ui.emoji_category = index,
++            LayoutEvent::FutoActions => { self.futo_ui.actions = !self.futo_ui.actions; changed = true; },
+             LayoutEvent::ToggleSetting => self.setting_shown = !self.setting_shown,
+             LayoutEvent::SyncLayout => {}
+             LayoutEvent::UpdateQuickActionBarState(quick_action_bar_state) => {
+@@ -209,6 +222,9 @@
+ 
+ #[derive(Clone, Debug)]
+ pub enum LayoutEvent {
++    FutoPage(crate::futo_ui::Page),
++    FutoActions,
++    FutoEmojiCategory(usize),
+     SyncLayout,
+     ToggleSetting,
+     UpdateQuickActionBarState(QuickActionBarState),

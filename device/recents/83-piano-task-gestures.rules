@@ -1,0 +1,1 @@
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="Piano Task Gesture Keys", OWNER="kali", MODE="0600"

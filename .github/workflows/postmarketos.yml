@@ -1,0 +1,277 @@
+name: Xiaomi Pad 6s Pro postmarketOS
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-image:
+    strategy:
+      matrix:
+        version: ["default"]
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out build configurations
+        uses: actions/checkout@v4
+
+      - name: Set current date variable
+        run: echo "CURRENT_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+
+      - name: Create artifact directory
+        run: |
+            mkdir out
+
+      - name: Substitute placeholders in configs
+        run: |
+           find . -type f -name "*.cfg" -exec sed -i "s|HOME|$(echo $HOME)|;s|NPROC|$(nproc)|" {} +
+
+      - name: Install pmbootstrap from git
+        run: |
+          git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
+          mkdir -p ~/.local/bin
+          ln -s "$PWD/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
+          pmbootstrap --version
+
+
+      - name: Set up pmaports
+        run: |
+          mkdir -p ~/.config
+          cp xiaomi-piano.cfg ~/.config/pmbootstrap_v3.cfg
+
+          PMB_WORK="$HOME/.local/var/pmbootstrap"
+          PMAPORTS="$PMB_WORK/cache_git/pmaports"
+
+          rm -rf "$PMAPORTS"
+          mkdir -p "$(dirname "$PMAPORTS")"
+
+          # Clone upstream resmi agar pmbootstrap tetap mengenali pmaports
+          git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmaports.git "$PMAPORTS"
+
+          cd "$PMAPORTS"
+
+          # Tambahkan fork kamu
+          git remote add piano https://gitlab.postmarketos.org/alghiffaryfa19/pmaports.git
+
+          # Ambil branch dari fork kamu
+          git fetch --depth=1 piano main
+
+          # Pakai isi fork kamu, tapi remote origin tetap upstream resmi
+          git checkout -B main FETCH_HEAD
+
+          git remote -v
+          git branch --show-current
+
+          test -d device/testing/device-xiaomi-piano || find device -maxdepth 3 -name "*piano*"
+
+          yes "" | pmbootstrap --details-to-stdout --aports "$PMAPORTS" init
+
+          pmbootstrap status
+
+
+      - name: Install zstd in chroot
+        run: |
+          pmbootstrap chroot -- apk add zstd
+
+      - name: Build the xiaomi-piano without DE
+        run: |
+           pmbootstrap checksum device-xiaomi-piano
+           pmbootstrap checksum firmware-xiaomi-piano
+           pmbootstrap checksum linux-postmarketos-qcom-sm8550
+           cat ~/.local/var/pmbootstrap/cache_git/pmaports/device/testing/linux-postmarketos-qcom-sm8550/APKBUILD
+           # Disable sparse image generation temporarily so pmbootstrap chroot can mount the raw image
+           sed -i 's/deviceinfo_flash_sparse="true"/deviceinfo_flash_sparse="false"/' ~/.local/var/pmbootstrap/cache_git/pmaports/device/testing/device-xiaomi-piano/deviceinfo
+
+           pmbootstrap install --password 147147
+
+           pmbootstrap chroot --image -r -- sh -s <<'EOF'
+           set -eu
+
+           fix_exec() {
+             path="$1"
+             label="$2"
+
+             if [ -f "$path" ]; then
+               chmod 0755 "$path"
+               echo "✓ $label permissions fixed"
+             else
+               echo "  $path not found, skipped"
+             fi
+           }
+
+           fix_exec "/usr/bin/adsprpcd" "adsprpcd"
+           fix_exec "/usr/libexec/iio-sensor-proxy" "iio-sensor-proxy"
+           fix_exec "/usr/bin/monitor-sensor" "monitor-sensor"
+           fix_exec "/usr/bin/ssccli" "ssccli"
+
+           if command -v systemctl >/dev/null 2>&1; then
+             if [ -f /usr/lib/systemd/system/adsprpcd-sensorspd.service ] || \
+                [ -f /etc/systemd/system/adsprpcd-sensorspd.service ]; then
+               systemctl enable adsprpcd-sensorspd.service
+               echo "✓ adsprpcd-sensorspd.service enabled"
+             else
+               echo "  adsprpcd-sensorspd.service not found, skipped"
+             fi
+           else
+             echo "  systemctl not found, skipped"
+           fi
+           EOF
+           pmbootstrap export
+           cp /tmp/postmarketOS-export/boot.img out/boot-xiaomi-piano.img
+
+           # Convert raw image back to sparse image before copying to output
+           pmbootstrap chroot -- img2simg /home/pmos/rootfs/xiaomi-piano.img /home/pmos/rootfs/xiaomi-piano-sparse.img
+           cp /tmp/postmarketOS-export/xiaomi-piano-sparse.img out/rootfs-xiaomi-piano-none.img
+
+      - name: Show log
+        if: always()
+        run: |
+          cat /home/runner/.local/var/pmbootstrap/log.txt
+
+      - name: Breakpoint if tests failed for xiaomi-piano without DE
+        if: failure()
+        uses: namespacelabs/breakpoint-action@v0
+        with:
+          duration: 30m
+          authorized-users: ${{ github.repository_owner }}
+
+      - name: Upload artifacts xiaomi-piano without DE
+        uses: actions/upload-artifact@v4
+        with:
+           name: xiaomi-piano-none_${{ env.CURRENT_DATE }}
+           path: out/*.img*
+           retention-days: 7
+
+      - name: Build the xiaomi-piano with KDE Plasma Desktop
+        run: |
+           yes | pmbootstrap zap
+           rm -r out/*
+           pmbootstrap install --password 147147 --add postmarketos-ui-plasma-desktop
+           cat /home/runner/.local/var/pmbootstrap/log.txt
+           pmbootstrap export
+           cp /tmp/postmarketOS-export/boot.img out/boot-xiaomi-piano.img
+           cp /tmp/postmarketOS-export/xiaomi-piano.img out/rootfs-xiaomi-piano-plasma.img
+
+      - name: Breakpoint if tests failed for xiaomi-piano with KDE Plasma Desktop
+        if: failure()
+        uses: namespacelabs/breakpoint-action@v0
+        with:
+          duration: 30m
+          authorized-users: ${{ github.repository_owner }}
+
+      - name: Upload artifacts xiaomi-piano with KDE Plasma Desktop
+        uses: actions/upload-artifact@v4
+        with:
+           name: xiaomi-piano-plasma_${{ env.CURRENT_DATE }}
+           path: out/*.img*
+           retention-days: 7
+
+
+      - name: Build the xiaomi-piano with KDE Plasma Mobile
+        run: |
+           yes | pmbootstrap zap
+           rm -r out/*
+           pmbootstrap install --password 147147 --add postmarketos-ui-plasma-mobile
+           cat /home/runner/.local/var/pmbootstrap/log.txt
+           pmbootstrap export
+           cp /tmp/postmarketOS-export/boot.img out/boot-xiaomi-piano.img
+           cp /tmp/postmarketOS-export/xiaomi-piano.img out/rootfs-xiaomi-piano-plasma-mobile.img
+
+      - name: Breakpoint if tests failed for xiaomi-piano with KDE Plasma Mobile
+        if: failure()
+        uses: namespacelabs/breakpoint-action@v0
+        with:
+          duration: 30m
+          authorized-users: ${{ github.repository_owner }}
+
+      - name: Upload artifacts xiaomi-piano with KDE Plasma Mobile
+        uses: actions/upload-artifact@v4
+        with:
+           name: xiaomi-piano-plasma_mobile_${{ env.CURRENT_DATE }}
+           path: out/*.img*
+           retention-days: 7
+
+      - name: Build the xiaomi-piano with Lomiri
+        run: |
+           yes | pmbootstrap zap
+           rm -r out/*
+           pmbootstrap install --password 147147 --add postmarketos-ui-lomiri
+           cat /home/runner/.local/var/pmbootstrap/log.txt
+           pmbootstrap export
+           cp /tmp/postmarketOS-export/boot.img out/boot-xiaomi-piano.img
+           cp /tmp/postmarketOS-export/xiaomi-piano.img out/rootfs-xiaomi-piano-lomiri.img
+
+      - name: Breakpoint if tests failed for xiaomi-piano with Lomiri
+        if: failure()
+        uses: namespacelabs/breakpoint-action@v0
+        with:
+          duration: 30m
+          authorized-users: ${{ github.repository_owner }}
+
+      - name: Upload artifacts xiaomi-piano with Lomiri
+        uses: actions/upload-artifact@v4
+        with:
+           name: xiaomi-piano-lomiri_${{ env.CURRENT_DATE }}
+           path: out/*.img*
+           retention-days: 7
+
+      - name: Build the xiaomi-piano with GNOME
+        run: |
+           yes | pmbootstrap zap
+           rm -r out/*
+           pmbootstrap install --password 147147 --add postmarketos-ui-gnome
+           pmbootstrap export
+           cp /tmp/postmarketOS-export/boot.img out/boot-xiaomi-piano.img
+           cp /tmp/postmarketOS-export/xiaomi-piano.img out/rootfs-xiaomi-piano-gnome.img
+
+      - name: Breakpoint if tests failed for xiaomi-piano with GNOME
+        if: failure()
+        uses: namespacelabs/breakpoint-action@v0
+        with:
+          duration: 30m
+          authorized-users: ${{ github.repository_owner }}
+
+      - name: Upload artifacts xiaomi-piano with GNOME
+        uses: actions/upload-artifact@v4
+        with:
+           name: xiaomi-piano-gnome_${{ env.CURRENT_DATE }}
+           path: out/*.img*
+           retention-days: 7
+
+
+
+      - name: Build the xiaomi-piano with GNOME Mobile
+        run: |
+           yes | pmbootstrap zap
+           rm -r out/*
+           pmbootstrap install --password 147147 --add postmarketos-ui-gnome-mobile
+           pmbootstrap export
+           cp /tmp/postmarketOS-export/boot.img out/boot-xiaomi-piano.img
+           cp /tmp/postmarketOS-export/xiaomi-piano.img out/rootfs-xiaomi-piano-gnome-mobile.img
+
+      - name: Breakpoint if tests failed for xiaomi-piano with GNOME Mobile
+        if: failure()
+        uses: namespacelabs/breakpoint-action@v0
+        with:
+          duration: 30m
+          authorized-users: ${{ github.repository_owner }}
+
+      - name: Upload artifacts xiaomi-piano with GNOME Mobile
+        uses: actions/upload-artifact@v4
+        with:
+           name: xiaomi-piano-gnome-mobile_${{ env.CURRENT_DATE }}
+           path: out/*.img*
+           retention-days: 7
+
+      - name: Copy xiaomi-piano kernel
+        run: |
+           rm -r out/*
+           cp ~/.local/var/pmbootstrap/packages/edge/aarch64/linux-postmarketos-qcom-sm8550-*.apk out/
+
+      - name: Upload artifacts xiaomi-piano kernel
+        uses: actions/upload-artifact@v4
+        with:
+           name: xiaomi-piano-kernel_${{ env.CURRENT_DATE }}
+           path: out/*.apk
+           retention-days: 7

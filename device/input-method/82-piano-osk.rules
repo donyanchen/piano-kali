@@ -1,0 +1,1 @@
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="fcitx5-osk-key-helper", OWNER="kali", MODE="0600"

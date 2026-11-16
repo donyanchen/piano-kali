@@ -1,0 +1,15 @@
+{
+  "KPackageStructure": "Plasma/Applet",
+  "KPlugin": {
+    "Id": "org.piano.desktop-gesture",
+    "Name": "Desktop touch gestures",
+    "Name[zh_CN]": "桌面触屏手势",
+    "Description": "Swipe up anywhere on the Plasma desktop for the application drawer",
+    "Version": "1.2.0",
+    "License": "MIT",
+    "Category": "System Information",
+    "Icon": "input-touchscreen"
+  },
+  "X-Plasma-API-Minimum-Version": "6.0",
+  "X-Plasma-API": "declarativeappletscript"
+}

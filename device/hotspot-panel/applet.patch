@@ -1,0 +1,56 @@
+--- a/applet/main.qml
++++ b/applet/main.qml
+@@ -16,6 +16,13 @@
+ 
+ PlasmoidItem {
+     id: mainWindow
++
++    PianoHotspotController {
++        id: pianoHotspot
++        wirelessEnabled: enabledConnections.wirelessEnabled && enabledConnections.wirelessHwEnabled
++    }
++    readonly property var hotspotControl: pianoHotspot.available ? pianoHotspot : handler
++    readonly property bool hotspotBusy: pianoHotspot.available && pianoHotspot.busy
+ 
+     readonly property string kcm: "kcm_networkmanagement"
+     readonly property bool kcmAuthorized: KConfig.KAuthorized.authorizeControlModule("kcm_networkmanagement")
+--- a/applet/Toolbar.qml
++++ b/applet/Toolbar.qml
+@@ -169,9 +169,9 @@
+         id: hotspotButton
+ 
+         visible: availableDevices.wirelessDeviceAvailable
+-        enabled: handler.hotspotSupported
++        enabled: mainWindow.hotspotControl.hotspotSupported && !mainWindow.hotspotBusy
+         checkable: true
+-        checked: handler.hotspotActive
++        checked: mainWindow.hotspotControl.hotspotActive
+ 
+         text: i18n("Hotspot")
+         icon.name: "network-wireless-hotspot"
+@@ -180,10 +180,10 @@
+         KeyNavigation.right: searchTextField
+ 
+         onClicked: {
+-            if (PlasmaNM.Configuration.hotspotConnectionPath) {
+-                handler.stopHotspot()
++            if (mainWindow.hotspotControl.hotspotActive) {
++                mainWindow.hotspotControl.stopHotspot()
+             } else {
+-                handler.createHotspot()
++                mainWindow.hotspotControl.createHotspot()
+             }
+         }
+ 
+@@ -191,9 +191,9 @@
+             text: {
+                 if (!wifiSwitchButton.checked) {
+                     return i18nc("@info:tooltip", "Cannot create a hotspot because Wi-Fi is disabled.")
+-                } else if (!handler.hotspotSupported) {
++                } else if (!mainWindow.hotspotControl.hotspotSupported) {
+                     return i18nc("@info:tooltip", "Cannot create a hotspot because all wireless radios are in use. Disconnect from the current Wi-Fi network or connect another wireless radio.")
+-                } else if (handler.hotspotActive) {
++                } else if (mainWindow.hotspotControl.hotspotActive) {
+                     return i18nc("@info:tooltip", "Disable Hotspot");
+                 } else {
+                     return i18nc("@info:tooltip", "Create Hotspot");

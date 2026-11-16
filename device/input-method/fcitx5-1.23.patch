@@ -1,0 +1,59 @@
+--- a/fcitx5-osk/src/dbus/client.rs
++++ b/fcitx5-osk/src/dbus/client.rs
+@@ -227,10 +227,10 @@
+     fn select_candidate(&self, index: i32) -> ZbusResult<()>;
+ 
+     #[tracing::instrument(level = "debug", skip(self), err, ret)]
+-    fn prev_page(&self, index: i32) -> ZbusResult<()>;
+-
+-    #[tracing::instrument(level = "debug", skip(self), err, ret)]
+-    fn next_page(&self, index: i32) -> ZbusResult<()>;
++    fn prev_page(&self) -> ZbusResult<()>;
++
++    #[tracing::instrument(level = "debug", skip(self), err, ret)]
++    fn next_page(&self) -> ZbusResult<()>;
+ }
+ 
+ #[async_trait::async_trait]
+@@ -256,13 +256,13 @@
+     }
+ 
+     #[tracing::instrument(level = "debug", skip(self), err, ret)]
+-    async fn prev_page(&self, index: i32) -> ZbusResult<()> {
+-        Fcitx5VirtualKeyboardBackendServiceProxy::prev_page(self, index).await
+-    }
+-
+-    #[tracing::instrument(level = "debug", skip(self), err, ret)]
+-    async fn next_page(&self, index: i32) -> ZbusResult<()> {
+-        Fcitx5VirtualKeyboardBackendServiceProxy::next_page(self, index).await
++    async fn prev_page(&self, _index: i32) -> ZbusResult<()> {
++        Fcitx5VirtualKeyboardBackendServiceProxy::prev_page(self).await
++    }
++
++    #[tracing::instrument(level = "debug", skip(self), err, ret)]
++    async fn next_page(&self, _index: i32) -> ZbusResult<()> {
++        Fcitx5VirtualKeyboardBackendServiceProxy::next_page(self).await
+     }
+ 
+     #[tracing::instrument(level = "debug", skip(self), err, ret)]
+@@ -410,13 +410,13 @@
+     }
+ 
+     #[tracing::instrument(level = "debug", skip(self), err, ret)]
+-    async fn prev_page(&self, index: i32) -> ZbusResult<()> {
+-        self.virtual_keyboard_backend.prev_page(index).await
+-    }
+-
+-    #[tracing::instrument(level = "debug", skip(self), err, ret)]
+-    async fn next_page(&self, index: i32) -> ZbusResult<()> {
+-        self.virtual_keyboard_backend.next_page(index).await
++    async fn prev_page(&self, _index: i32) -> ZbusResult<()> {
++        self.virtual_keyboard_backend.prev_page().await
++    }
++
++    #[tracing::instrument(level = "debug", skip(self), err, ret)]
++    async fn next_page(&self, _index: i32) -> ZbusResult<()> {
++        self.virtual_keyboard_backend.next_page().await
+     }
+ 
+     #[tracing::instrument(level = "debug", skip(self), err, ret)]

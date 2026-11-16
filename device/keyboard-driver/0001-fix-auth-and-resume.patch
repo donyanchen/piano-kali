@@ -1,0 +1,311 @@
+--- a/drivers/hid/hid-nanosic-wn8030.c
++++ b/drivers/hid/hid-nanosic-wn8030.c
+@@ -50,6 +50,13 @@
+ 	struct mutex conn_mutex;
+ 	struct delayed_work wake_worker;
+ 	struct work_struct input_state_work;
++	struct delayed_work auth_start_work;
++	struct work_struct auth_reply_work;
++	bool ready;
++	u64 auth_requests;
++	u64 auth_responses;
++	u64 keyboard_reports;
++	u64 touchpad_reports;
+ 	struct input_handler hall_handler;
+ 	struct input_handle hall_handle;
+ 
+@@ -547,6 +554,63 @@
+ 	return regmap_bulk_write(nanosic->regmap, 0x5c, buf, sizeof(buf));
+ }
+ 
++/* Never wait for a userspace/TEE response in the IRQ thread. */
++static void nanosic_wn8030_auth_start_worker(struct work_struct *work)
++{
++	struct nanosic_wn8030 *nanosic = container_of(work,
++		struct nanosic_wn8030, auth_start_work.work);
++	int ret;
++
++	if (!READ_ONCE(nanosic->ready) || !READ_ONCE(nanosic->auth_open) ||
++	    !READ_ONCE(nanosic->keyboard_attached) || READ_ONCE(nanosic->suspended))
++		return;
++	if (work_busy(&nanosic->auth_reply_work)) {
++		mod_delayed_work(system_percpu_wq, &nanosic->auth_start_work,
++				 msecs_to_jiffies(250));
++		return;
++	}
++	ret = nanosic_wn8030_xm_auth_init(nanosic);
++	if (ret) {
++		dev_warn_ratelimited(nanosic->dev, "keyboard auth start failed: %d\n", ret);
++		mod_delayed_work(system_percpu_wq, &nanosic->auth_start_work,
++				 msecs_to_jiffies(1000));
++	}
++}
++
++static void nanosic_wn8030_auth_reply_worker(struct work_struct *work)
++{
++	struct nanosic_wn8030 *nanosic = container_of(work,
++		struct nanosic_wn8030, auth_reply_work);
++	long completed;
++	int ret;
++
++	completed = wait_for_completion_interruptible_timeout(
++		&nanosic->auth_token_ready, msecs_to_jiffies(5000));
++	if (!READ_ONCE(nanosic->ready) || !READ_ONCE(nanosic->auth_open) ||
++	    !READ_ONCE(nanosic->keyboard_attached) || READ_ONCE(nanosic->suspended))
++		goto out;
++	if (completed <= 0) {
++		dev_warn_ratelimited(nanosic->dev, "keyboard auth response timed out\n");
++		mod_delayed_work(system_percpu_wq, &nanosic->auth_start_work,
++				 msecs_to_jiffies(1000));
++		goto out;
++	}
++	ret = nanosic_wn8030_xm_auth_s5t1(nanosic, nanosic->auth_token);
++	if (ret) {
++		dev_warn_ratelimited(nanosic->dev, "keyboard auth send failed: %d\n", ret);
++		mod_delayed_work(system_percpu_wq, &nanosic->auth_start_work,
++				 msecs_to_jiffies(1000));
++	} else {
++		nanosic->auth_responses++;
++		dev_info(nanosic->dev, "keyboard authentication response submitted\n");
++		mutex_lock(&nanosic->conn_mutex);
++		nanosic_wn8030_sync_kbd_backlight(nanosic);
++		mutex_unlock(&nanosic->conn_mutex);
++	}
++out:
++	WRITE_ONCE(nanosic->auth_request_pending, false);
++}
++
+ static int nanosic_wn8030_output_report(struct hid_device *hid, u8 *buf, size_t count)
+ {
+ 	struct nanosic_wn8030 *nanosic = hid->driver_data;
+@@ -659,8 +723,25 @@
+ }
+ static DEVICE_ATTR_RO(keyboard_attached);
+ 
++/* Counters only; never expose key usages, touch coordinates or auth material. */
++static ssize_t input_stats_show(struct device *dev,
++			       struct device_attribute *attr, char *buf)
++{
++	struct nanosic_wn8030 *nanosic = dev_get_drvdata(dev->parent);
++	return sysfs_emit(buf,
++		"enabled=%u suspended=%u auth_open=%u requests=%llu responses=%llu keyboard=%llu touchpad=%llu\n",
++		READ_ONCE(nanosic->input_enabled), READ_ONCE(nanosic->suspended),
++		READ_ONCE(nanosic->auth_open),
++		(unsigned long long)READ_ONCE(nanosic->auth_requests),
++		(unsigned long long)READ_ONCE(nanosic->auth_responses),
++		(unsigned long long)READ_ONCE(nanosic->keyboard_reports),
++		(unsigned long long)READ_ONCE(nanosic->touchpad_reports));
++}
++static DEVICE_ATTR_RO(input_stats);
++
+ static struct attribute *nanosic_hinge_attrs[] = {
+ 	&dev_attr_keyboard_attached.attr,
++	&dev_attr_input_stats.attr,
+ 	NULL,
+ };
+ ATTRIBUTE_GROUPS(nanosic_hinge);
+@@ -727,6 +808,12 @@
+ 
+ 		if (notify_plugin) {
+ 			int ret;
++			if (plugin_attached && READ_ONCE(nanosic->auth_open))
++				mod_delayed_work(system_percpu_wq, &nanosic->auth_start_work, 0);
++			else if (!plugin_attached) {
++				cancel_delayed_work(&nanosic->auth_start_work);
++				complete_all(&nanosic->auth_token_ready);
++			}
+ 			u16 hinge_flags;
+ 
+ 			ret = qcom_battmgr_set_keyboard_plugin(plugin_attached);
+@@ -748,8 +835,8 @@
+ 	/* WN8012(KB) -> HOST, kb auth */
+ 	/* 0x0/0x1 - init auth, 0x64 - repeat request auth */
+ 	else if (buf[5] == 0x38 && buf[6] == 0x80 && buf[7] == 0x24) {
+-		if (nanosic->auth_open)
+-			nanosic_wn8030_xm_auth_init(nanosic);
++		if (READ_ONCE(nanosic->auth_open))
++			mod_delayed_work(system_percpu_wq, &nanosic->auth_start_work, 0);
+ 	}
+ 	/* WN8012(KB) -> HOST, kb auth init */
+ 	else if (buf[5] == 0x38 && buf[6] == 0x80 && buf[7] == 0x31) {
+@@ -760,6 +847,13 @@
+ 				     0x0e, 0x68, 0x1d, 0x3d,
+ 				     0x6b, 0x32, 0xa5, 0xa6 };
+ 
++		if (!READ_ONCE(nanosic->auth_open))
++			return;
++		if (work_busy(&nanosic->auth_reply_work)) {
++			mod_delayed_work(system_percpu_wq, &nanosic->auth_start_work,
++					 msecs_to_jiffies(250));
++			return;
++		}
+ 		reinit_completion(&nanosic->auth_token_ready);
+ 		memcpy(nanosic->auth_uid, &buf[11], 16);
+ 
+@@ -767,22 +861,14 @@
+ 	}
+ 	/* WN8012(KB) -> HOST, kb auth s3t1 */
+ 	else if (buf[5] == 0x38 && buf[6] == 0x80 && buf[7] == 0x32) {
++		if (!READ_ONCE(nanosic->auth_open) ||
++		    work_busy(&nanosic->auth_reply_work))
++			return;
+ 		memcpy(nanosic->auth_challenge, &buf[25], 16);
+-		nanosic->auth_request_pending = true;
++		nanosic->auth_requests++;
++		WRITE_ONCE(nanosic->auth_request_pending, true);
+ 		wake_up_interruptible(&nanosic->auth_read_wq);
+-		if (wait_for_completion_interruptible_timeout(&nanosic->auth_token_ready,
+-							      msecs_to_jiffies(5000)) <= 0) {
+-			dev_err(nanosic->dev, "timeout waiting for keyboard auth token\n");
+-		} else {
+-			int ret;
+-
+-			ret = nanosic_wn8030_xm_auth_s5t1(nanosic, nanosic->auth_token);
+-			if (!ret) {
+-				mutex_lock(&nanosic->conn_mutex);
+-				nanosic_wn8030_sync_kbd_backlight(nanosic);
+-				mutex_unlock(&nanosic->conn_mutex);
+-			}
+-		}
++		queue_work(system_dfl_long_wq, &nanosic->auth_reply_work);
+ 	}
+ }
+ 
+@@ -816,6 +902,7 @@
+ 		bool micmute_down;
+ 		bool micmute_was_down;
+ 
++		nanosic->keyboard_reports++;
+ 		if (!READ_ONCE(nanosic->input_enabled))
+ 			break;
+ 		micmute_down = nanosic_wn8030_report_has_key(&buf[3], 0x6f);
+@@ -843,6 +930,7 @@
+ 					 &buf[3], 3, 0);
+ 		break;
+ 	case 0x19:
++		nanosic->touchpad_reports++;
+ 		if (READ_ONCE(nanosic->input_enabled) && nanosic->hid_touchpad)
+ 			hid_input_report(nanosic->hid_touchpad, HID_INPUT_REPORT,
+ 					 &buf[3], 21, 0);
+@@ -1336,10 +1424,18 @@
+ 	struct nanosic_wn8030 *nanosic =
+ 		container_of(file->private_data, struct nanosic_wn8030, auth_misc);
+ 
+-	if (nanosic->auth_open)
++	if (!READ_ONCE(nanosic->ready))
++		return -EAGAIN;
++	mutex_lock(&nanosic->conn_mutex);
++	if (nanosic->auth_open) {
++		mutex_unlock(&nanosic->conn_mutex);
+ 		return -EBUSY;
+-	nanosic->auth_open = true;
++	}
++	WRITE_ONCE(nanosic->auth_open, true);
++	mutex_unlock(&nanosic->conn_mutex);
+ 	file->private_data = nanosic;
++	/* A late-started or restarted authenticator must start a fresh session. */
++	mod_delayed_work(system_percpu_wq, &nanosic->auth_start_work, 0);
+ 	return 0;
+ }
+ 
+@@ -1347,7 +1443,11 @@
+ {
+ 	struct nanosic_wn8030 *nanosic = file->private_data;
+ 
+-	nanosic->auth_open = false;
++	WRITE_ONCE(nanosic->auth_open, false);
++	cancel_delayed_work_sync(&nanosic->auth_start_work);
++	complete_all(&nanosic->auth_token_ready);
++	cancel_work_sync(&nanosic->auth_reply_work);
++	WRITE_ONCE(nanosic->auth_request_pending, false);
+ 	return 0;
+ }
+ 
+@@ -1454,6 +1554,8 @@
+ 
+ 	INIT_DELAYED_WORK(&nanosic->wake_worker, nanosic_wn8030_wake_worker);
+ 	INIT_WORK(&nanosic->input_state_work, nanosic_wn8030_input_state_work);
++	INIT_DELAYED_WORK(&nanosic->auth_start_work, nanosic_wn8030_auth_start_worker);
++	INIT_WORK(&nanosic->auth_reply_work, nanosic_wn8030_auth_reply_worker);
+ 	nanosic->userspace_angle_enabled = true;
+ 	nanosic->input_enabled = true;
+ 	nanosic->hall_handler.event = nanosic_wn8030_hall_event;
+@@ -1540,6 +1642,10 @@
+ 		goto err_input;
+ 	}
+ 
++	WRITE_ONCE(nanosic->ready, true);
++	dev_info(nanosic->dev, "pianofix v1: asynchronous auth and resume keepalive\n");
++	if (READ_ONCE(nanosic->auth_open) && READ_ONCE(nanosic->keyboard_attached))
++		mod_delayed_work(system_percpu_wq, &nanosic->auth_start_work, 0);
+ 	return 0;
+ 
+ err_input:
+@@ -1563,12 +1669,16 @@
+ {
+ 	struct nanosic_wn8030 *nanosic = i2c_get_clientdata(client);
+ 
++	WRITE_ONCE(nanosic->ready, false);
++	disable_irq(nanosic->client->irq);
++	cancel_delayed_work_sync(&nanosic->auth_start_work);
++	complete_all(&nanosic->auth_token_ready);
++	cancel_work_sync(&nanosic->auth_reply_work);
++	cancel_delayed_work_sync(&nanosic->wake_worker);
+ 	devm_led_classdev_unregister(nanosic->dev, &nanosic->kbd_backlight_led);
+ 	devm_led_classdev_unregister(nanosic->dev, &nanosic->micmute_led);
+ 	input_unregister_handler(&nanosic->hall_handler);
+ 	cancel_work_sync(&nanosic->input_state_work);
+-	disable_irq(nanosic->client->irq);
+-	cancel_delayed_work_sync(&nanosic->wake_worker);
+ 
+ 	if (nanosic->keyboard_attached)
+ 		qcom_battmgr_set_keyboard_plugin(false);
+@@ -1586,6 +1696,7 @@
+ static int nanosic_wn8030_resume(struct device *dev)
+ {
+ 	struct nanosic_wn8030 *nanosic = dev_get_drvdata(dev);
++	int ret;
+ 
+ 	enable_irq(nanosic->client->irq);
+ 
+@@ -1599,11 +1710,19 @@
+ 		gpiod_set_value_cansleep(nanosic->reset_gpio, 0);
+ 		msleep(20);
+ 		WRITE_ONCE(nanosic->suspended, false);
+-		return nanosic_wn8030_load_fw(nanosic);
+-	}
+-
+-	/* Wake up keyboard after MCU exits sleep */
+-	nanosic_wn8030_set_kb_power(nanosic, true);
++		ret = nanosic_wn8030_load_fw(nanosic);
++		if (ret)
++			return ret;
++	}
++
++	/* Suspend cancelled these workers; attachment may remain unchanged. */
++	if (READ_ONCE(nanosic->keyboard_attached)) {
++		nanosic_wn8030_set_kb_power(nanosic, true);
++		mod_delayed_work(system_percpu_wq, &nanosic->wake_worker,
++				 msecs_to_jiffies(12000));
++		if (READ_ONCE(nanosic->auth_open))
++			mod_delayed_work(system_percpu_wq, &nanosic->auth_start_work, 0);
++	}
+ 	schedule_work(&nanosic->input_state_work);
+ 
+ 	return 0;
+@@ -1615,6 +1734,9 @@
+ 
+ 	WRITE_ONCE(nanosic->suspended, true);
+ 	disable_irq(nanosic->client->irq);
++	cancel_delayed_work_sync(&nanosic->auth_start_work);
++	complete_all(&nanosic->auth_token_ready);
++	cancel_work_sync(&nanosic->auth_reply_work);
+ 	cancel_delayed_work_sync(&nanosic->wake_worker);
+ 	cancel_work_sync(&nanosic->input_state_work);
+ 
+@@ -1647,3 +1769,5 @@
+ MODULE_AUTHOR("map220v <map220v300@gmail.com>");
+ MODULE_DESCRIPTION("HID driver for Nanosic WN8030 keyboard MCU");
+ MODULE_LICENSE("GPL v2");
++
++MODULE_VERSION("1.2-pianofix");

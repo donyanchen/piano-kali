@@ -1,0 +1,15 @@
+{
+  "KPackageStructure": "KWin/Effect",
+  "KPlugin": {
+    "Id": "piano-task-cards",
+    "Name": "Piano Recents",
+    "Name[zh_CN]": "平板后台任务卡片",
+    "Description": "HyperOS-inspired live task cards and three-finger application switching",
+    "Version": "1.0.0",
+    "License": "MIT",
+    "Category": "Window Management",
+    "EnabledByDefault": false
+  },
+  "X-Plasma-API": "declarativescript",
+  "X-KDE-Ordering": 70
+}

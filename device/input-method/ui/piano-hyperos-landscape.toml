@@ -1,0 +1,76 @@
+# Piano tablet touch layout, MIT.
+name = "piano-hyperos-landscape"
+primary_text_size = 3
+secondary_text_size = 1
+min_toolbar_height = 6
+spacing = 1
+
+[[elements]]
+height = 7
+spacing = 1
+elements = ["k_one", "k_two", "k_three", "k_four", "k_five", "k_six", "k_seven", "k_eight", "k_nine", "k_zero"]
+
+[[elements]]
+height = 7
+spacing = 1
+elements = ["k_q", "k_w", "k_e", "k_r", "k_t", "k_y", "k_u", "k_i", "k_o", "k_p"]
+
+[[elements]]
+height = 7
+spacing = 1
+elements = ["p:4", "k_a", "k_s", "k_d", "k_f", "k_g", "k_h", "k_j", "k_k", "k_l", "p:4"]
+
+[[elements]]
+height = 7
+spacing = 1
+elements = ["k_left_shift:12", "k_z", "k_x", "k_c", "k_v", "k_b", "k_n", "k_m", "k_backspace:13"]
+
+[[elements]]
+height = 7
+spacing = 1
+elements = ["k_tab:12", "k_comma:8", "k_space:41", "k_dot:8", "k_enter:16"]
+
+[key_mappings]
+k_a = "piano-hyperos:k_a"
+k_b = "piano-hyperos:k_b"
+k_backspace = "piano-hyperos:k_backspace"
+k_c = "piano-hyperos:k_c"
+k_comma = "piano-hyperos:k_comma"
+k_d = "piano-hyperos:k_d"
+k_dot = "piano-hyperos:k_dot"
+k_e = "piano-hyperos:k_e"
+k_eight = "piano-hyperos:k_eight"
+k_enter = "piano-hyperos:k_enter"
+k_f = "piano-hyperos:k_f"
+k_five = "piano-hyperos:k_five"
+k_four = "piano-hyperos:k_four"
+k_g = "piano-hyperos:k_g"
+k_h = "piano-hyperos:k_h"
+k_i = "piano-hyperos:k_i"
+k_j = "piano-hyperos:k_j"
+k_k = "piano-hyperos:k_k"
+k_l = "piano-hyperos:k_l"
+k_left_shift = "piano-hyperos:k_left_shift"
+k_m = "piano-hyperos:k_m"
+k_n = "piano-hyperos:k_n"
+k_nine = "piano-hyperos:k_nine"
+k_o = "piano-hyperos:k_o"
+k_one = "piano-hyperos:k_one"
+k_p = "piano-hyperos:k_p"
+k_q = "piano-hyperos:k_q"
+k_r = "piano-hyperos:k_r"
+k_s = "piano-hyperos:k_s"
+k_seven = "piano-hyperos:k_seven"
+k_six = "piano-hyperos:k_six"
+k_space = "piano-hyperos:k_space"
+k_t = "piano-hyperos:k_t"
+k_tab = "piano-hyperos:k_tab"
+k_three = "piano-hyperos:k_three"
+k_two = "piano-hyperos:k_two"
+k_u = "piano-hyperos:k_u"
+k_v = "piano-hyperos:k_v"
+k_w = "piano-hyperos:k_w"
+k_x = "piano-hyperos:k_x"
+k_y = "piano-hyperos:k_y"
+k_z = "piano-hyperos:k_z"
+k_zero = "piano-hyperos:k_zero"

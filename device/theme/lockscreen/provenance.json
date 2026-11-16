@@ -1,0 +1,6 @@
+{
+  "source": "KDE plasma-workspace",
+  "package_version": "4:6.7.4-2",
+  "baseline_sha256": "328501780ab06cc0497a25ff48c6f027a1abed8506f0969f39a5f8bc6696181c",
+  "target": "/usr/share/plasma/shells/org.kde.plasma.desktop/contents/lockscreen/LockScreenUi.qml"
+}

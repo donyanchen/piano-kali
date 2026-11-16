@@ -7,6 +7,10 @@ on:
         description: 'Password for the kali user (empty = repository secret or "kali")'
         required: false
         default: ''
+      kernel_run_id:
+        description: 'Run id of a successful kernel workflow (empty = third-party fallback)'
+        required: false
+        default: ''
   push:
     tags:
       - 'v*'
@@ -36,8 +40,19 @@ jobs:
             ca-certificates gnupg python3
           uname -m
 
+      - name: Fetch our kernel artifacts (optional)
+        if: inputs.kernel_run_id != ''
+        uses: actions/download-artifact@v4
+        with:
+          pattern: linux-*
+          path: .work/kernel-artifact
+          merge-multiple: true
+          run-id: ${{ inputs.kernel_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build Kali ARM64 KDE image
         env:
+          PIANO_KERNEL_DIR: ${{ inputs.kernel_run_id != '' && format('{0}/.work/kernel-artifact', github.workspace) || '' }}
           KALI_PASSWORD: ${{ inputs.kali_password != '' && inputs.kali_password || secrets.KALI_PASSWORD }}
           THP_CSOT_B64: ${{ secrets.THP_CSOT_B64 }}
           THP_BOE_B64: ${{ secrets.THP_BOE_B64 }}

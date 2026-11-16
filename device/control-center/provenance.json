@@ -1,0 +1,25 @@
+{
+  "upstream": "https://github.com/ItsNotMeBro87/plasma6-kontrol-center",
+  "commit": "137ba6c3b441c69dd3e59052ac9e8124367f40b4",
+  "upstream_version": "0.7.7 Beta",
+  "local_package": "org.kontrol.center",
+  "license": "GPL-3.0-or-later",
+  "style_reference": "https://www.mi.com/global/support/article/KA-33140/",
+  "local_files": [
+    "HyperPanel.qml",
+    "HyperPalette.qml",
+    "HyperTile.qml",
+    "HyperToggle.qml",
+    "HyperSlider.qml",
+    "PanelIntegration.qml",
+    "music.svg",
+    "capture.svg",
+    "hotspot.svg",
+    "privacy.svg"
+  ],
+  "artifact": "out/packages/piano-control-center_0.7.7-privacy.plasmoid",
+  "sha256": "bfb83cf61c5dbc548b50f8aa93c5e95317a3bcf4f1ed292753b22fbef3349ec9",
+  "upstream_patch_sha256": "fed3560bf8fd6812144f603533b63640a23aeeb9d0b658f46b3c10d618287059",
+  "upstream_archive_sha256": "c5d085c4cec2cc54cde54ee6d7619f5b75d65961d76bf5f848a86cb75d3e88d2",
+  "artifact_note": "Historical device artifact; new build hash is written to its own manifest."
+}

@@ -1,0 +1,85 @@
+--- a/native/jni/src/suggest/core/result/suggestion_results.h
++++ b/native/jni/src/suggest/core/result/suggestion_results.h
+@@ -33,6 +33,17 @@
+               mWeightOfLangModelVsSpatialModel(NOT_A_WEIGHT_OF_LANG_MODEL_VS_SPATIAL_MODEL),
+               mSuggestedWords() {}
+ 
++    // Piano Linux port: native result access without a JVM or JNI arrays.
++    std::vector<SuggestedWord> linuxSuggestions() const {
++        auto heap = mSuggestedWords;
++        std::vector<SuggestedWord> output;
++        while (!heap.empty()) {
++            output.push_back(heap.top());
++            heap.pop();
++        }
++        return std::vector<SuggestedWord>(output.rbegin(), output.rend());
++    }
++
+     // Returns suggestion count.
+     void outputSuggestions(JNIEnv *env, jintArray outSuggestionCount, jintArray outCodePointsArray,
+             jintArray outScoresArray, jintArray outSpaceIndicesArray, jintArray outTypesArray,
+--- a/native/jni/src/suggest/core/layout/proximity_info.h
++++ b/native/jni/src/suggest/core/layout/proximity_info.h
+@@ -89,6 +89,10 @@
+             const jintArray keyYCoordinates, const jintArray keyWidths, const jintArray keyHeights,
+             const jintArray keyCharCodes, const jfloatArray sweetSpotCenterXs,
+             const jfloatArray sweetSpotCenterYs, const jfloatArray sweetSpotRadii);
++    // Piano Linux port: normalized layout arrays, no Android/JVM object.
++    ProximityInfo(int keyboardWidth, int keyboardHeight, int keyCount,
++            const int *xs, const int *ys, const int *widths, const int *heights,
++            const int *codes);
+     ~ProximityInfo();
+     bool hasSpaceProximity(const int x, const int y) const;
+     float getNormalizedSquaredDistanceFromCenterFloatG(
+--- a/native/jni/src/suggest/core/layout/proximity_info.cpp
++++ b/native/jni/src/suggest/core/layout/proximity_info.cpp
+@@ -95,6 +95,49 @@
+     initializeG();
+ }
+ 
++// Piano Linux port. Keep the original Android constructor unchanged.
++ProximityInfo::ProximityInfo(int keyboardWidth, int keyboardHeight, int keyCount,
++        const int *xs, const int *ys, const int *widths, const int *heights,
++        const int *codes)
++        : GRID_WIDTH(10), GRID_HEIGHT(3), MOST_COMMON_KEY_WIDTH(100),
++          MOST_COMMON_KEY_WIDTH_SQUARE(10000),
++          NORMALIZED_SQUARED_MOST_COMMON_KEY_HYPOTENUSE(2.0f),
++          CELL_WIDTH((keyboardWidth + 9) / 10), CELL_HEIGHT((keyboardHeight + 2) / 3),
++          KEY_COUNT(std::min(keyCount, MAX_KEY_COUNT_IN_A_KEYBOARD)),
++          KEYBOARD_WIDTH(keyboardWidth), KEYBOARD_HEIGHT(keyboardHeight),
++          KEYBOARD_HYPOTENUSE(hypotf(KEYBOARD_WIDTH, KEYBOARD_HEIGHT)),
++          HAS_TOUCH_POSITION_CORRECTION_DATA(true),
++          mProximityCharsArray(new int[GRID_WIDTH * GRID_HEIGHT * MAX_PROXIMITY_CHARS_SIZE]),
++          mLowerCodePointToKeyMap() {
++    std::copy_n(xs, KEY_COUNT, mKeyXCoordinates);
++    std::copy_n(ys, KEY_COUNT, mKeyYCoordinates);
++    std::copy_n(widths, KEY_COUNT, mKeyWidths);
++    std::copy_n(heights, KEY_COUNT, mKeyHeights);
++    std::copy_n(codes, KEY_COUNT, mKeyCodePoints);
++    std::fill_n(mProximityCharsArray, GRID_WIDTH * GRID_HEIGHT * MAX_PROXIMITY_CHARS_SIZE,
++            NOT_A_CODE_POINT);
++    for (int i = 0; i < KEY_COUNT; ++i) {
++        mSweetSpotCenterXs[i] = xs[i] + widths[i] * 0.5f;
++        mSweetSpotCenterYs[i] = ys[i] + heights[i] * 0.5f;
++        mSweetSpotRadii[i] = widths[i] * 0.25f;
++    }
++    for (int y = 0; y < GRID_HEIGHT; ++y) {
++        for (int x = 0; x < GRID_WIDTH; ++x) {
++            std::vector<std::pair<float, int>> distances;
++            for (int i = 0; i < KEY_COUNT; ++i) {
++                const float dx = (x + 0.5f) * CELL_WIDTH - mSweetSpotCenterXs[i];
++                const float dy = (y + 0.5f) * CELL_HEIGHT - mSweetSpotCenterYs[i];
++                distances.emplace_back(dx * dx + dy * dy, codes[i]);
++            }
++            std::sort(distances.begin(), distances.end());
++            const int offset = (y * GRID_WIDTH + x) * MAX_PROXIMITY_CHARS_SIZE;
++            for (int i = 0; i < std::min(KEY_COUNT, MAX_PROXIMITY_CHARS_SIZE); ++i)
++                mProximityCharsArray[offset + i] = distances[i].second;
++        }
++    }
++    initializeG();
++}
++
+ ProximityInfo::~ProximityInfo() {
+     delete[] mProximityCharsArray;
+ }

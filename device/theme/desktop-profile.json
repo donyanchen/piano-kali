@@ -1,0 +1,783 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUTC": "2026-11-15T15:36:34+00:00",
+  "platform": {
+    "device": "piano",
+    "architecture": "arm64",
+    "kernel": "7.3.4-sm8550-00104-g87ac0f2347eb",
+    "packages": {
+      "fcitx5": "5.1.23-1",
+      "fonts-materialdesignicons-legacy": "5.9.55+6.9.96+dfsg-3",
+      "fonts-noto-cjk": "1:20240730+repack1-1",
+      "fonts-noto-core": "20201225-6",
+      "fonts-roboto": "2:3.016-1",
+      "kwin-wayland": "4:6.7.4-2+b1",
+      "libqt6core6t64:arm64": "6.11.2+dfsg-5",
+      "plasma-desktop": "4:6.7.4-1+b1",
+      "plasma-workspace": "4:6.7.4-2",
+      "piano-futo-keyboard": "0.3.0-3",
+      "piano-msime-integration": "0.2.1-8",
+      "piano-tablet-controls": "1.0-5"
+    }
+  },
+  "kconfig": {
+    "kdeglobals": {
+      "General": {
+        "ColorScheme": "BreezeLight",
+        "accentColorFromWallpaper": "false"
+      },
+      "KDE": {
+        "LookAndFeelPackage": "org.kde.breeze.desktop"
+      },
+      "Icons": {
+        "Theme": "Colloid-Light"
+      }
+    },
+    "kcminputrc": {
+      "Mouse": {
+        "cursorTheme": "Breeze_Light",
+        "cursorSize": "24"
+      }
+    },
+    "plasmarc": {
+      "Theme": {
+        "name": "default"
+      }
+    },
+    "kwinrc": {
+      "Desktops": {
+        "Number": "1",
+        "Rows": "1"
+      },
+      "org.kde.kdecoration2": {
+        "library": "org.kde.breeze",
+        "theme": "Breeze"
+      },
+      "TabBox": {
+        "LayoutName": "piano-native-tabbox-spatial1"
+      },
+      "Wayland": {
+        "InputMethod": "/usr/share/applications/piano-msime-fcitx5.desktop",
+        "VirtualKeyboardEnabled": "true"
+      }
+    },
+    "kscreenlockerrc": {
+      "Daemon": {
+        "Autolock": "true",
+        "LockGrace": "0",
+        "Timeout": "60"
+      },
+      "Greeter": {
+        "WallpaperPlugin": "org.kde.image"
+      }
+    },
+    "powerdevilrc": {
+      "AC][SuspendAndShutdown": {
+        "PowerButtonAction": "32",
+        "PowerDownAction": "8",
+        "SleepMode": "1",
+        "AutoSuspendAction": "0",
+        "AutoSuspendIdleTimeoutSec": "3600"
+      },
+      "Battery][SuspendAndShutdown": {
+        "PowerButtonAction": "32",
+        "PowerDownAction": "8",
+        "SleepMode": "1",
+        "AutoSuspendAction": "1",
+        "AutoSuspendIdleTimeoutSec": "1800"
+      },
+      "LowBattery][SuspendAndShutdown": {
+        "PowerButtonAction": "32",
+        "PowerDownAction": "8",
+        "SleepMode": "1",
+        "AutoSuspendAction": "1",
+        "AutoSuspendIdleTimeoutSec": "1800"
+      },
+      "AC][Display": {
+        "TurnOffDisplayWhenIdle": "true",
+        "TurnOffDisplayIdleTimeoutSec": "3600",
+        "TurnOffDisplayIdleTimeoutWhenLockedSec": "0",
+        "LockBeforeTurnOffDisplay": "true"
+      },
+      "Battery][Display": {
+        "TurnOffDisplayWhenIdle": "true",
+        "TurnOffDisplayIdleTimeoutSec": "1800",
+        "TurnOffDisplayIdleTimeoutWhenLockedSec": "0",
+        "LockBeforeTurnOffDisplay": "true"
+      },
+      "LowBattery][Display": {
+        "TurnOffDisplayWhenIdle": "true",
+        "TurnOffDisplayIdleTimeoutSec": "1800",
+        "TurnOffDisplayIdleTimeoutWhenLockedSec": "0",
+        "LockBeforeTurnOffDisplay": "true"
+      }
+    }
+  },
+  "layout": [
+    {
+      "kind": "panel",
+      "position": "bottom",
+      "height": 84,
+      "alignment": "center",
+      "lengthMode": "fit",
+      "maximumLength": 1100,
+      "minimumLength": 1,
+      "floating": true,
+      "applets": [
+        {
+          "role": "luisbocanegra.panel.colorizer#1",
+          "plugin": "luisbocanegra.panel.colorizer",
+          "settings": {
+            "General": {
+              "hideWidget": "true",
+              "isEnabled": "true",
+              "globalSettings": {
+                "panel": {
+                  "normal": {
+                    "enabled": true,
+                    "blurBehind": false,
+                    "backgroundColor": {
+                      "enabled": false
+                    },
+                    "foregroundColor": {
+                      "enabled": false
+                    },
+                    "radius": {
+                      "enabled": false
+                    },
+                    "margin": {
+                      "enabled": false
+                    },
+                    "padding": {
+                      "enabled": true,
+                      "side": {
+                        "right": 2,
+                        "left": 2,
+                        "top": 0,
+                        "bottom": 0
+                      }
+                    },
+                    "border": {
+                      "enabled": false
+                    },
+                    "shadow": {
+                      "background": {
+                        "enabled": false
+                      },
+                      "foreground": {
+                        "enabled": false
+                      }
+                    },
+                    "flattenOnDeFloat": false,
+                    "backgroundClipping": false,
+                    "borderSecondary": {
+                      "enabled": false
+                    }
+                  },
+                  "busy": {
+                    "enabled": false
+                  },
+                  "hovered": {
+                    "enabled": false
+                  },
+                  "needsAttention": {
+                    "enabled": false
+                  },
+                  "expanded": {
+                    "enabled": false
+                  }
+                },
+                "widgets": {
+                  "normal": {
+                    "enabled": true,
+                    "blurBehind": false,
+                    "backgroundColor": {
+                      "enabled": false
+                    },
+                    "foregroundColor": {
+                      "enabled": true,
+                      "lightnessValue": 0.5,
+                      "saturationValue": 0.5,
+                      "alpha": 1,
+                      "systemColor": "textColor",
+                      "systemColorSet": "View",
+                      "custom": "#fc0000",
+                      "list": [
+                        "#ED8796",
+                        "#A6DA95",
+                        "#EED49F",
+                        "#8AADF4",
+                        "#F5BDE6",
+                        "#8BD5CA",
+                        "#f5a97f"
+                      ],
+                      "followColor": 0,
+                      "saturationEnabled": false,
+                      "lightnessEnabled": false,
+                      "animation": {
+                        "enabled": false
+                      },
+                      "sourceType": 1
+                    },
+                    "radius": {
+                      "enabled": false
+                    },
+                    "margin": {
+                      "enabled": false
+                    },
+                    "spacing": 4,
+                    "border": {
+                      "enabled": false
+                    },
+                    "shadow": {
+                      "background": {
+                        "enabled": false
+                      },
+                      "foreground": {
+                        "enabled": false
+                      }
+                    },
+                    "backgroundClipping": false,
+                    "borderSecondary": {
+                      "enabled": false
+                    },
+                    "opacity": 1,
+                    "fontConfig": {
+                      "enabled": false
+                    }
+                  },
+                  "busy": {
+                    "enabled": false
+                  },
+                  "hovered": {
+                    "enabled": false
+                  },
+                  "needsAttention": {
+                    "enabled": false
+                  },
+                  "expanded": {
+                    "enabled": false
+                  }
+                },
+                "trayWidgets": {
+                  "normal": {
+                    "enabled": false
+                  },
+                  "busy": {
+                    "enabled": false
+                  },
+                  "hovered": {
+                    "enabled": false
+                  },
+                  "needsAttention": {
+                    "enabled": false
+                  },
+                  "expanded": {
+                    "enabled": false
+                  },
+                  "wideTrayArrow": false,
+                  "customCellSizeEnabled": false,
+                  "customCellSize": 22
+                },
+                "nativePanel": {
+                  "background": {
+                    "enabled": false
+                  },
+                  "floatingDialogs": true,
+                  "floatingDialogsAllowOverride": true,
+                  "fillAreaOnDeFloat": true,
+                  "hideWhenNoWidgetsAreVisible": false,
+                  "screenEdgeMargin": 0
+                }
+              }
+            }
+          }
+        },
+        {
+          "role": "org.piano.linexin.launcher#1",
+          "plugin": "org.piano.linexin.launcher",
+          "settings": {
+            "General": {
+              "alphaSort": "true",
+              "showRecentApps": "false",
+              "showRecentDocs": "false",
+              "showRecentFolders": "false",
+              "useExtraRunners": "false",
+              "appsIconSize": "3",
+              "categoryFontSize": "110",
+              "dashboardFontSize": "125",
+              "allAppsFontSize": "115",
+              "animationDuration": "200",
+              "iconEntranceDuration": "180",
+              "backgroundOpacity": "80",
+              "defaultCategory": "-2",
+              "showActiveApps": "true",
+              "showAllAppsInDashboard": "true"
+            }
+          },
+          "pinnedApplicationRoles": [
+            "file-manager",
+            "browser",
+            "burp-suite",
+            "terminal"
+          ]
+        }
+      ],
+      "appletOrder": [
+        "luisbocanegra.panel.colorizer#1",
+        "org.piano.linexin.launcher#1"
+      ],
+      "detachedApplets": []
+    },
+    {
+      "kind": "panel",
+      "position": "top",
+      "height": 40,
+      "alignment": "left",
+      "lengthMode": "fill",
+      "maximumLength": 1524,
+      "minimumLength": 1524,
+      "floating": false,
+      "applets": [
+        {
+          "role": "org.kde.plasma.kickoff#1",
+          "plugin": "org.kde.plasma.kickoff",
+          "settings": {
+            "General": {
+              "icon": "start-here-kde-symbolic"
+            }
+          }
+        },
+        {
+          "role": "org.kde.plasma.systemtray#1",
+          "plugin": "org.kde.plasma.systemtray",
+          "settings": {}
+        },
+        {
+          "role": "org.kde.plasma.digitalclock#1",
+          "plugin": "org.kde.plasma.digitalclock",
+          "settings": {
+            "Appearance": {
+              "showDate": "true",
+              "dateFormat": "custom",
+              "customDateFormat": "MM-dd",
+              "showSeconds": "2",
+              "use24hFormat": "2",
+              "dateDisplayFormat": "2",
+              "autoFontAndSize": "true"
+            }
+          }
+        },
+        {
+          "role": "org.kde.plasma.battery#1",
+          "plugin": "org.kde.plasma.battery",
+          "settings": {
+            "General": {
+              "showPercentage": "true"
+            }
+          }
+        },
+        {
+          "role": "org.kde.plasma.windowlist#1",
+          "plugin": "org.kde.plasma.windowlist",
+          "settings": {}
+        },
+        {
+          "role": "org.kde.plasma.appmenu#1",
+          "plugin": "org.kde.plasma.appmenu",
+          "settings": {}
+        },
+        {
+          "role": "org.kde.plasma.panelspacer#1",
+          "plugin": "org.kde.plasma.panelspacer",
+          "settings": {}
+        },
+        {
+          "role": "org.kde.plasma.panelspacer#2",
+          "plugin": "org.kde.plasma.panelspacer",
+          "settings": {}
+        },
+        {
+          "role": "luisbocanegra.panel.colorizer#1",
+          "plugin": "luisbocanegra.panel.colorizer",
+          "settings": {
+            "General": {
+              "hideWidget": "true",
+              "isEnabled": "true",
+              "globalSettings": {
+                "panel": {
+                  "normal": {
+                    "enabled": true,
+                    "blurBehind": false,
+                    "backgroundColor": {
+                      "enabled": false
+                    },
+                    "foregroundColor": {
+                      "enabled": true,
+                      "lightnessValue": 0.5,
+                      "saturationValue": 0.5,
+                      "alpha": 1,
+                      "systemColor": "highlightColor",
+                      "systemColorSet": "View",
+                      "custom": "#ffffff",
+                      "list": [
+                        "#ED8796",
+                        "#A6DA95",
+                        "#EED49F",
+                        "#8AADF4",
+                        "#F5BDE6",
+                        "#8BD5CA",
+                        "#f5a97f"
+                      ],
+                      "followColor": 0,
+                      "saturationEnabled": false,
+                      "lightnessEnabled": false,
+                      "animation": {
+                        "enabled": false
+                      },
+                      "sourceType": 0
+                    },
+                    "radius": {
+                      "enabled": true,
+                      "corner": {
+                        "topLeft": 24,
+                        "topRight": 24,
+                        "bottomRight": 0,
+                        "bottomLeft": 0
+                      }
+                    },
+                    "margin": {
+                      "enabled": false
+                    },
+                    "padding": {
+                      "enabled": false
+                    },
+                    "border": {
+                      "enabled": true,
+                      "customSides": false,
+                      "custom": {
+                        "widths": {
+                          "left": 0,
+                          "bottom": 3,
+                          "right": 0,
+                          "top": 0
+                        },
+                        "margin": {
+                          "enabled": false
+                        },
+                        "radius": {
+                          "enabled": false
+                        }
+                      },
+                      "width": 0,
+                      "color": {
+                        "lightnessValue": 0.5,
+                        "saturationValue": 0.5,
+                        "alpha": 1,
+                        "systemColor": "highlightColor",
+                        "systemColorSet": "View",
+                        "custom": "#ff6c06",
+                        "list": [
+                          "#ED8796",
+                          "#A6DA95",
+                          "#EED49F",
+                          "#8AADF4",
+                          "#F5BDE6",
+                          "#8BD5CA",
+                          "#f5a97f"
+                        ],
+                        "followColor": 0,
+                        "saturationEnabled": false,
+                        "lightnessEnabled": false,
+                        "animation": {
+                          "enabled": false
+                        },
+                        "sourceType": 1,
+                        "enabled": true
+                      }
+                    },
+                    "shadow": {
+                      "background": {
+                        "enabled": false
+                      },
+                      "foreground": {
+                        "enabled": false
+                      }
+                    },
+                    "borderSecondary": {
+                      "enabled": false
+                    },
+                    "flattenOnDeFloat": false,
+                    "backgroundClipping": false
+                  },
+                  "busy": {
+                    "enabled": false
+                  },
+                  "hovered": {
+                    "enabled": false
+                  },
+                  "needsAttention": {
+                    "enabled": false
+                  },
+                  "expanded": {
+                    "enabled": false
+                  }
+                },
+                "widgets": {
+                  "normal": {
+                    "enabled": true,
+                    "blurBehind": false,
+                    "backgroundColor": {
+                      "enabled": false
+                    },
+                    "foregroundColor": {
+                      "enabled": true,
+                      "lightnessValue": 0.5,
+                      "saturationValue": 0.5,
+                      "alpha": 1,
+                      "systemColor": "highlightColor",
+                      "systemColorSet": "View",
+                      "custom": "#ffffff",
+                      "list": [
+                        "#ED8796",
+                        "#A6DA95",
+                        "#EED49F",
+                        "#8AADF4",
+                        "#F5BDE6",
+                        "#8BD5CA",
+                        "#f5a97f"
+                      ],
+                      "followColor": 0,
+                      "saturationEnabled": false,
+                      "lightnessEnabled": false,
+                      "animation": {
+                        "enabled": false
+                      },
+                      "sourceType": 0
+                    },
+                    "radius": {
+                      "enabled": true,
+                      "corner": {
+                        "topLeft": 8,
+                        "topRight": 8,
+                        "bottomRight": 8,
+                        "bottomLeft": 8
+                      }
+                    },
+                    "margin": {
+                      "enabled": true,
+                      "side": {
+                        "right": 4,
+                        "left": 4,
+                        "top": 4,
+                        "bottom": 4
+                      }
+                    },
+                    "spacing": 4,
+                    "border": {
+                      "enabled": false
+                    },
+                    "shadow": {
+                      "background": {
+                        "enabled": false
+                      },
+                      "foreground": {
+                        "enabled": false
+                      }
+                    },
+                    "borderSecondary": {
+                      "enabled": false
+                    },
+                    "backgroundClipping": false,
+                    "opacity": 1,
+                    "fontConfig": {
+                      "enabled": false
+                    }
+                  },
+                  "busy": {
+                    "enabled": false
+                  },
+                  "hovered": {
+                    "enabled": false
+                  },
+                  "needsAttention": {
+                    "enabled": false
+                  },
+                  "expanded": {
+                    "enabled": false
+                  }
+                },
+                "trayWidgets": {
+                  "normal": {
+                    "enabled": true,
+                    "blurBehind": false,
+                    "backgroundColor": {
+                      "enabled": false
+                    },
+                    "foregroundColor": {
+                      "enabled": true,
+                      "lightnessValue": 0.5,
+                      "saturationValue": 0.5,
+                      "alpha": 1,
+                      "systemColor": "highlightColor",
+                      "systemColorSet": "View",
+                      "custom": "#ffffff",
+                      "list": [
+                        "#ED8796",
+                        "#A6DA95",
+                        "#EED49F",
+                        "#8AADF4",
+                        "#F5BDE6",
+                        "#8BD5CA",
+                        "#f5a97f"
+                      ],
+                      "followColor": 0,
+                      "saturationEnabled": false,
+                      "lightnessEnabled": false,
+                      "animation": {
+                        "enabled": false
+                      },
+                      "sourceType": 0
+                    },
+                    "radius": {
+                      "enabled": false
+                    },
+                    "margin": {
+                      "enabled": false
+                    },
+                    "border": {
+                      "enabled": false
+                    },
+                    "shadow": {
+                      "background": {
+                        "enabled": false
+                      },
+                      "foreground": {
+                        "enabled": false
+                      }
+                    },
+                    "borderSecondary": {
+                      "enabled": false
+                    },
+                    "backgroundClipping": false,
+                    "opacity": 1
+                  },
+                  "busy": {
+                    "enabled": false
+                  },
+                  "hovered": {
+                    "enabled": false
+                  },
+                  "needsAttention": {
+                    "enabled": false
+                  },
+                  "expanded": {
+                    "enabled": false
+                  },
+                  "wideTrayArrow": false,
+                  "customCellSizeEnabled": false,
+                  "customCellSize": 22
+                },
+                "nativePanel": {
+                  "background": {
+                    "enabled": false
+                  },
+                  "floatingDialogs": true,
+                  "floatingDialogsAllowOverride": true,
+                  "fillAreaOnDeFloat": true,
+                  "hideWhenNoWidgetsAreVisible": false,
+                  "screenEdgeMargin": 0
+                }
+              }
+            }
+          }
+        },
+        {
+          "role": "org.kontrol.center#1",
+          "plugin": "org.kontrol.center",
+          "settings": {
+            "Appearance": {
+              "panelWidth": "520"
+            }
+          }
+        },
+        {
+          "role": "org.piano.panel-style#1",
+          "plugin": "org.piano.panel-style",
+          "settings": {}
+        }
+      ],
+      "appletOrder": [
+        "org.kde.plasma.kickoff#1",
+        "org.kde.plasma.windowlist#1",
+        "org.kde.plasma.appmenu#1",
+        "org.kde.plasma.panelspacer#1",
+        "org.kde.plasma.panelspacer#2",
+        "org.kde.plasma.systemtray#1",
+        "org.kde.plasma.battery#1",
+        "luisbocanegra.panel.colorizer#1",
+        "org.kontrol.center#1",
+        "org.piano.panel-style#1"
+      ],
+      "detachedApplets": [
+        "org.kde.plasma.digitalclock#1"
+      ]
+    },
+    {
+      "kind": "desktop",
+      "applets": [
+        {
+          "role": "Redmi.Clock#1",
+          "plugin": "Redmi.Clock",
+          "settings": {
+            "General": {
+              "colorHex": "#ffffff",
+              "boldfonts": "false"
+            }
+          },
+          "geometry": {
+            "x": 32,
+            "y": 104,
+            "width": 304,
+            "height": 304
+          }
+        },
+        {
+          "role": "org.piano.desktop-gesture#1",
+          "plugin": "org.piano.desktop-gesture",
+          "settings": {}
+        }
+      ],
+      "appletOrder": [],
+      "detachedApplets": []
+    }
+  ],
+  "displays": [
+    {
+      "scale": 2,
+      "rotation": 1,
+      "size": {
+        "height": 2032,
+        "width": 3048
+      },
+      "refreshRate": 144
+    }
+  ],
+  "screenKeyboard": {
+    "placement": "Float",
+    "landscape_width": 400.0,
+    "portrait_width": 300.0,
+    "default_font": "Roboto",
+    "default_nerd_font": "Material Design Icons version 6",
+    "default_landscape_layout": "piano-futo-landscape",
+    "default_portrait_layout": "piano-futo-portrait",
+    "theme": "Auto",
+    "light_theme": "FUTO Light",
+    "dark_theme": "FUTO Dark",
+    "ignore_fcitx_show": false
+  },
+  "wallpapers": {
+    "desktopSource": "device/theme/wallpaper.json",
+    "lockscreenSource": "device/theme/lockscreen-wallpaper.json"
+  }
+}

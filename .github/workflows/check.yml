@@ -1,0 +1,52 @@
+name: Source checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Source, documentation links and publication checks
+        run: |
+          python3 scripts/check-project.py
+          python3 -m unittest discover -s tests -v
+      - name: Shell syntax
+        shell: bash
+        run: |
+          while IFS= read -r -d '' file; do
+            if head -n 1 "$file" | grep -q '^#!.*\(ba\)\?sh'; then
+              bash -n "$file"
+            fi
+          done < <(git ls-files -z)
+      - name: Compile native helpers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libinput-dev libudev-dev
+          mkdir -p out/bin
+          gcc -std=gnu11 -O2 -Wall -Wextra -Werror device/privacy/device-guard.c -o out/bin/piano-privacy-bpf
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror device/recents/gesture-bridge.cpp -o out/bin/piano-task-gestures $(pkg-config --cflags --libs libinput libudev)
+      - name: Build pinned desktop packages
+        run: |
+          python3 scripts/build-control-center.py
+          python3 scripts/build-task-cards.py
+          python3 scripts/build-desktop-drawer.py
+          python3 scripts/prepare-osk-ui.py
+          python3 scripts/prepare-futo-keyboard.py
+          python3 scripts/prepare-osk-ui.py --futo-ui --output-dir out/osk-futo-ui-source
+          python3 - <<'PY'
+          import pathlib, tomllib, xml.etree.ElementTree as ET
+          for path in pathlib.Path('device/input-method').rglob('*.toml'):
+              tomllib.loads(path.read_text(encoding='utf-8'))
+          for path in pathlib.Path('out/futo-source/linux-data').glob('*.toml'):
+              tomllib.loads(path.read_text(encoding='utf-8'))
+          for path in pathlib.Path('out/futo-source/linux-data/icons').glob('*.svg'):
+              ET.parse(path)
+          PY
