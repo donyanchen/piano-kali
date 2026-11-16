@@ -82,3 +82,22 @@ fastboot boot boot.img        # 只起一次，不写分区
 4. **P3c/d**：GPU 节点、ath12k 固件 → 桌面流畅 + 联网。
 5. **P4**：`mk-bootimg.sh` 进 CI 自动跑；`build.yml` 默认 `kernel_run_id` 必填；
    删掉第三方 fallback 与 `sources.json` 里的上游 deb 条目。
+
+## 7. 已知缺口：OSK 集成包没进镜像构建
+
+`device/input-method/build-device-package.py` 才会安装
+`/usr/libexec/sheng-msime-launcher`、`/usr/share/applications/sheng-msime-fcitx5.desktop`
+和 `/usr/bin/sheng-osk-mode`；`scripts/build-kali.sh` 目前只调了 `scripts/build-osk.sh`
+（二进制 + 布局），**没有打包这一步**，所以新装的系统会出现「KWin 有输入法但 OSK 起不来」。
+P4 要在 OSK 段后补：
+
+```bash
+python3 device/input-method/build-device-package.py \
+    .work/osk/stage scripts/keyboard-policy.py \
+    out/packages/sheng-msime-integration_1.0-1_arm64.deb
+chroot "$ROOTFS" dpkg -i /tmp/sheng-msime-integration_1.0-1_arm64.deb
+```
+
+另一个坑：`scripts/osk-mode.py` 必须在**已登录、未锁屏**的会话里以桌面用户跑一次
+（`osk-mode.py dock --sheng-ui`），否则 `~/.config/fcitx5-osk/config.toml` 里
+`default_landscape_layout` 是空字符串，OSK 起来也没布局。
