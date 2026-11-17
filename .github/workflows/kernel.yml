@@ -167,17 +167,22 @@ jobs:
           # there only copies back the half-merged version.
           # Restore the charge files changed by the piano port, including nested
           # UFCS sources, but do not overwrite unrelated upstream charger files.
-          while IFS= read -r path; do
+          CHG_FILES=$(git diff-tree --no-commit-id --name-only -r \
+            "$PIANO_BASE" "$PIANO_REF" -- "$CHG" |
+            grep -E '^drivers/power/supply/(Kconfig|Makefile|qcom_battmgr\.c|qcom_smb[bx]\.c|bq27xxx_battery(_test)?\.c|erhai_|xiaomi_mca|sc8541|sc8547|sc96231|cps8601|ufcs/)')
+          [ -n "$CHG_FILES" ] || {
+            echo "::error::no charging stack files matched; refusing to continue"
+            exit 1
+          }
+          echo "$CHG_FILES" | while IFS= read -r path; do
             git checkout "$PIANO_REF" -- "$path"
             echo "  piano: $path"
-          done < <(
-            git diff-tree --no-commit-id --name-only -r "$PIANO_BASE" "$PIANO_REF" -- "$CHG" |
-              rg '^drivers/power/supply/(Kconfig|Makefile|qcom_battmgr\.c|qcom_smb[bx]\.c|bq27xxx_battery(_test)?\.c|erhai_|xiaomi_mca|sc8541|sc8547|sc96231|cps8601|ufcs/)'
-          )
+          done
           echo "== charging stack taken from the piano tip"
           # Fail loudly if the preprocessed file still lost the definitions.
           for sym in qcom_battmgr_pd_info qcom_battmgr_pdos_response; do
-            n=$(grep -c "static void $sym" "$CHG/qcom_battmgr.c" 2>/dev/null || echo 0)
+            n=$(grep -c "static void $sym" "$CHG/qcom_battmgr.c" 2>/dev/null || true)
+            n=${n:-0}
             echo "  $CHG/qcom_battmgr.c: $sym definitions = $n, lines = $(wc -l < "$CHG/qcom_battmgr.c")"
             [ "$n" -ge 1 ] || { echo "::error::$sym definition missing from the restored file"; exit 1; }
           done
