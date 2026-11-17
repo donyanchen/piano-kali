@@ -274,7 +274,14 @@ jobs:
           fail=0
           check() {  # symbol, expected exact value, reason
             sym="$1"; expected="$2"; why="$3"
-            val=$(grep -E "^${sym}=" .config | cut -d= -f2 || true)
+            # A disabled symbol is written as "# CONFIG_X is not set", never as
+            # CONFIG_X=n, so plain "grep ^CONFIG_X=" reports it as missing.
+            if grep -qx "# ${sym} is not set" .config; then
+              val=n
+            else
+              val=$(grep -E "^${sym}=" .config | cut -d= -f2 || true)
+              val=${val:-missing}
+            fi
             if [ "$val" != "$expected" ]; then
               echo "::error::$sym expected =$expected, got ${val:-missing} ($why)"
               fail=1
