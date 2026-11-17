@@ -151,3 +151,22 @@ Android 跑的是 **6.6.118-android15**（厂商重度改造），我们的基�
 - **不可照搬**：驱动行为、探测顺序、错误语义、日志格式 —— 版本和树都不一样
 
 一句话：**抄常量，不抄行为。**
+
+### p81 35-02-0b 的 DSC / 拓扑真值（原厂 timing@144）
+
+| 属性 | 值 | 含义 |
+|---|---|---|
+| `qcom,mdss-dsc-version` | 17 (0x11) | DSC 1.1 |
+| `qcom,mdss-dsc-slice-width` | 800 | 每链路 1600 宽 → 2 slice |
+| `qcom,mdss-dsc-slice-height` | 24 | 2136/24 = 89 行整 |
+| `qcom,mdss-dsc-bit-per-component` | 10 | 10bpc 源 |
+| `qcom,mdss-dsc-bit-per-pixel` | 8 | 压缩到 8bpp |
+| `qcom,mdss-dsc-block-prediction-enable` | 1 | BP 开 |
+| `qcom,compression-mode` | dsc | — |
+| `qcom,display-topology` | `<2 2 2>` | 2 mixer / 2 DSC 编码器 / 2 接口 = **bonded 双 DSI** |
+| `qcom,dsi-ctrl-num` | `<0 1>` | 两个 DSI 控制器 |
+| `qcom,mdss-dsi-panel-clockrate` | 1197500000 | 与 Android 实测一致 |
+| `qcom,mdss-dsi-panel-phy-timings` | `[00 39 10 10 27 25 10 11 10 02 04 00 32 15]` | PHY 时序表 |
+
+**结论**：这块屏必须同时满足两件事才能出图 —— ①双 DSI bonded（两条链路各 1600 宽）②host 侧 DSC（800x24 slice, 8bpp, 10bpc, BP 开）。
+只开一条链路、或不开 DSC，都不会有正常画面。
