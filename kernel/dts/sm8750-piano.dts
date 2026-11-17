@@ -115,6 +115,29 @@
 	 * display_panel_vsp/vsn +-5.8 V on tlmm 117/118, all boot-on).
 	 */
 	/*
+	 * KTZ8866 backlight rails. The vendor DT describes no supplies at all -
+	 * the chip inputs are hardwired and always on - but the upstream driver
+	 * fetches and enables both at probe, so describe them as fixed rails.
+	 */
+	vreg_bl_vddpos: regulator-bl-vddpos {
+		compatible = "regulator-fixed";
+		regulator-name = "bl_vddpos";
+		regulator-min-microvolt = <5500000>;
+		regulator-max-microvolt = <5500000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
+	vreg_bl_vddneg: regulator-bl-vddneg {
+		compatible = "regulator-fixed";
+		regulator-name = "bl_vddneg";
+		regulator-min-microvolt = <5500000>;
+		regulator-max-microvolt = <5500000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
+	/*
 	 * DSI PHY rail. Upstream sm8750-mtp uses vreg_l3i_0p88 (PMIC L3I, 0.88 V,
 	 * 98 mA). The board regulator table is not ported yet, and the bootloader
 	 * leaves this rail on, so a fixed regulator satisfies the PHY's strict
@@ -270,6 +293,8 @@
 		reg = <0x11>;
 		/* vendor DT: ktz8866,id = <0>, ktz8866,hwen-gpio = <&tlmm 2 0> */
 		enable-gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
+		vddpos-supply = <&vreg_bl_vddpos>;
+		vddneg-supply = <&vreg_bl_vddneg>;
 		/* TODO(P3): vddpos/vddneg come from the panel bias rails */
 	};
 };
@@ -282,7 +307,8 @@
 	backlight_1: backlight@11 {
 		compatible = "kinetic,ktz8866";
 		reg = <0x11>;
-		/* TODO(P3): vddpos/vddneg come from the panel bias rails */
+		vddpos-supply = <&vreg_bl_vddpos>;
+		vddneg-supply = <&vreg_bl_vddneg>;
 	};
 };
 
