@@ -189,6 +189,40 @@
 		regulator-boot-on;
 	};
 
+	/* UFS rails: bootloader leaves them on; the driver requires all four. */
+	vreg_ufs_vcc: regulator-ufs-vcc {
+		compatible = "regulator-fixed";
+		regulator-name = "ufs_vcc";
+		regulator-min-microvolt = <2950000>;
+		regulator-max-microvolt = <2950000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+	vreg_ufs_vccq: regulator-ufs-vccq {
+		compatible = "regulator-fixed";
+		regulator-name = "ufs_vccq";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+	vreg_ufs_hba: regulator-ufs-hba {
+		compatible = "regulator-fixed";
+		regulator-name = "ufs_vdd_hba";
+		regulator-min-microvolt = <850000>;
+		regulator-max-microvolt = <850000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+	vreg_ufs_refclk: regulator-ufs-refclk {
+		compatible = "regulator-fixed";
+		regulator-name = "ufs_vddp_ref_clk";
+		regulator-min-microvolt = <1200000>;
+		regulator-max-microvolt = <1200000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
 	display_panel_avdd: regulator-avdd {
 		compatible = "regulator-fixed";
 		regulator-name = "display_panel_avdd";
@@ -243,7 +277,10 @@
 
 &ufs_mem_hc {
 	status = "okay";
-	/* TODO(P3): rails are vcc/vccq/vccq2 from the PMIC set above */
+	vcc-supply = <&vreg_ufs_vcc>;
+	vccq-supply = <&vreg_ufs_vccq>;
+	vdd-hba-supply = <&vreg_ufs_hba>;
+	vddp-ref-clk-supply = <&vreg_ufs_refclk>;
 };
 
 &ufs_mem_phy {
