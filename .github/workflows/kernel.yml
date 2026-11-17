@@ -69,15 +69,22 @@ jobs:
       # fragments and the board DTS, all pinned by one reference.
       - name: Fetch the piano patch source
         run: |
-          # One fetch path only. A "clone || fallback" used to leave the shell
-          # inside piano/ already, so the next `cd piano` aborted the job with
-          # "No such file or directory" and the real git error was swallowed by
-          # 2>/dev/null. Keep the output visible instead.
+          set -e
+          # Fetch the branch, then check out the exact commit. Git servers do not
+          # have to allow fetching an arbitrary commit by SHA, so asking for
+          # "$PIANO_REF" directly works only by luck of the server config.
           git init -q piano
           cd piano
           git remote add origin "$PIANO_SRC"
-          git fetch --depth 300 origin "$PIANO_REF"
-          git checkout -q FETCH_HEAD
+          git fetch --depth 300 origin sm8750/v7.4-dev
+          if ! git cat-file -e "$PIANO_REF^{commit}" 2>/dev/null; then
+            git fetch --depth 300 origin "$PIANO_REF"
+          fi
+          git checkout -q "$PIANO_REF"
+          test "$(git rev-parse HEAD)" = "$PIANO_REF" || {
+            echo "::error::checked out $(git rev-parse HEAD), expected $PIANO_REF"
+            exit 1
+          }
           echo "piano tree at $(git rev-parse --short HEAD)"
           grep -E '^(VERSION|PATCHLEVEL|SUBLEVEL) =' Makefile | head -3
           ls arch/arm64/configs/ | grep -E '^(piano|sm8750)'
@@ -216,6 +223,12 @@ jobs:
           # The touch daemon needs uhid; the kernel side must be a module that
           # initramfs is not required to load.
           CONFIG_INPUT_EVDEV=y
+          # Development build: a signature-forced kernel would refuse every
+          # module we did not sign, which kills Wi-Fi, charging and audio at
+          # once. Keep signing off until the stack is proven on hardware.
+          CONFIG_MODULE_SIG=n
+          CONFIG_MODULE_SIG_FORCE=n
+          CONFIG_MODULE_SIG_ALL=n
           EOF
           scripts/kconfig/merge_config.sh -m -O . .config ../kali.config
           make LLVM=1 olddefconfig
@@ -269,8 +282,15 @@ jobs:
           make -s LLVM=1 kernelrelease > ../out/kernel-release
           cat ../out/kernel-release
           cp .config ../out/config
-          DTB=$(ls arch/arm64/boot/dts/qcom/*piano*.dtb 2>/dev/null | head -1)
-          [ -n "$DTB" ] || DTB=$(ls arch/arm64/boot/dts/qcom/sm8750*.dtb | head -1)
+          DTB=arch/arm64/boot/dts/qcom/sm8750-xiaomi-piano-desktop.dtb
+          if [ ! -f "$DTB" ]; then
+            DTB=$(ls arch/arm64/boot/dts/qcom/sm8750-xiaomi-piano*.dtb 2>/dev/null | head -1)
+          fi
+          [ -n "$DTB" ] && [ -f "$DTB" ] || {
+            echo "::error::no piano board DTB was built"
+            ls arch/arm64/boot/dts/qcom/*.dtb | head -20
+            exit 1
+          }
           echo "dtb: $DTB"
           cp "$DTB" ../out/$(basename "$DTB")
           if [ "${{ github.event.inputs.fast_only }}" != "true" ]; then
