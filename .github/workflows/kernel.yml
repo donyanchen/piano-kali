@@ -17,11 +17,15 @@ on:
         description: 'Image + dtb only, no modules (display bring-up)'
         type: boolean
         default: false
-  push:
-    branches: [main]
-    paths:
-      - 'kernel/**'
-      - '.github/workflows/kernel.yml'
+  # No push trigger on purpose: each run is ~30 min on a 4-vCPU runner and
+  # every kernel commit used to start one. Dispatch it when there is something
+  # worth testing.
+#
+# Two runs in the same group: the newer one cancels the older, so a quick
+# follow-up fix never leaves two builds fighting for the same runner.
+concurrency:
+  group: kernel-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
