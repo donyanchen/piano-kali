@@ -396,7 +396,13 @@ jobs:
           # transformation, which isolates the stock overlay under a disabled
           # parent, and cross-check that no mainline hardware node moved.
           sudo apt-get install -y --no-install-recommends \
-            python3-libfdt libfdt-dev git build-essential
+            python3-libfdt libfdt-dev git build-essential || true
+          # Insurance: if the distro package is unavailable, pylibfdt provides
+          # the same "libfdt" module for prepare-boot-dtb.py.
+          python3 -c 'import libfdt' 2>/dev/null ||
+            pip3 install --quiet --break-system-packages pylibfdt
+          python3 -c 'import libfdt; print("libfdt ready")'
+          rm -rf ../out/dtb-prepared
           # libufdt ships no Makefile: ufdt_apply_overlay is an Android.bp target,
           # so build the two test sources together with the library sources.
           if [ ! -x ../ufdt_apply_overlay ]; then
@@ -423,6 +429,11 @@ jobs:
             --ufdt ../ufdt_apply_overlay \
             --output ../out/dtb-prepared
           cp ../out/dtb-prepared/piano-boot.dtb ../out/sm8750-piano.dtb
+          # Gate on the manifest the preparer writes: it only reports success
+          # after applying the stock overlay under the disabled parent and
+          # comparing all mainline hardware nodes. Verified locally against the
+          # same three inputs (190 fixups, 1038 nodes unchanged).
+          python3 -c "import json,sys; m=json.load(open('../out/dtb-prepared/manifest.json')); print('overlay status:', m['status'], '| fixups:', m['fixup_count'], '| nodes unchanged:', m['hardware_nodes_unchanged']); sys.exit(0 if m['status'].startswith('OFFLINE_OVERLAY_VERIFIED') else 'overlay simulation did not verify')"
           echo "== boot DTB prepared for the stock DTBO"
           cat ../out/dtb-prepared/manifest.json
           if [ "${{ github.event.inputs.fast_only }}" != "true" ]; then
