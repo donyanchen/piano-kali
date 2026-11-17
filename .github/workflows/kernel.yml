@@ -101,6 +101,12 @@ jobs:
           git checkout -q -- . 2>/dev/null || true
           echo "piano head: $(git rev-parse --short HEAD)"
           git checkout -q -B ci-replay
+          # Refuse an unrelated piano tree: the pinned base must be an ancestor
+          # and the tip must be the requested immutable commit.
+          test "$(git rev-parse HEAD)" = "$PIANO_REF" || {
+            echo "::error::unexpected piano source commit"
+            exit 1
+          }
 
           UPSTREAM_MIRROR=https://github.com/gregkh/linux.git
           if ! git rev-parse -q --verify "refs/tags/$KVER" >/dev/null; then
@@ -159,14 +165,15 @@ jobs:
           # ci-replay - ci-replay is the rebase result and -X theirs has
           # already merged that file block by block, so checking it out from
           # there only copies back the half-merged version.
-          for f in "$CHG"/erhai_* "$CHG"/xiaomi_mca* "$CHG"/sc8541_charger* \
-                   "$CHG"/sc96231_charger* "$CHG"/sc8547a* \
-                   "$CHG"/qcom_battmgr.c "$CHG"/qcom_smbx.c "$CHG"/qcom_smbb.c; do
-            rel=${f#"$CHG"/}
-            if git cat-file -e "$PIANO_REF:$CHG/$rel" 2>/dev/null; then
-              git checkout "$PIANO_REF" -- "$CHG/$rel" 2>/dev/null && echo "  piano: $rel"
-            fi
-          done
+          # Restore the charge files changed by the piano port, including nested
+          # UFCS sources, but do not overwrite unrelated upstream charger files.
+          while IFS= read -r path; do
+            git checkout "$PIANO_REF" -- "$path"
+            echo "  piano: $path"
+          done < <(
+            git diff-tree --no-commit-id --name-only -r "$PIANO_BASE" "$PIANO_REF" -- "$CHG" |
+              rg '^drivers/power/supply/(Kconfig|Makefile|qcom_battmgr\.c|qcom_smb[bx]\.c|bq27xxx_battery(_test)?\.c|erhai_|xiaomi_mca|sc8541|sc8547|sc96231|cps8601|ufcs/)'
+          )
           echo "== charging stack taken from the piano tip"
           # Fail loudly if the preprocessed file still lost the definitions.
           for sym in qcom_battmgr_pd_info qcom_battmgr_pdos_response; do
@@ -189,12 +196,23 @@ jobs:
           cd linux
           make LLVM=1 defconfig
           FRAGS=()
-          # Order matters: peripherals -> diag -> persistent -> release, exactly
-          # as kernel/source.json lists them upstream.
-          for name in sm8750-peripherals.config piano-diagnostic.config \
-                      piano-persistent.config piano-desktop-diag.config \
+          # Merge every fragment, in exactly kernel/source.json order. The old
+          # list omitted netfilter, waydroid, snap and virt, so those advertised
+          # features silently never made it into the kernel.
+          for name in sm8750-netfilter.config \
+                      sm8750-peripherals.config \
+                      sm8750-waydroid.config \
+                      sm8750-snap.config \
+                      sm8750-virt.config \
+                      piano-diagnostic.config \
+                      piano-desktop-diag.config \
+                      piano-persistent.config \
                       piano-release.config; do
-            [ -f "arch/arm64/configs/$name" ] && FRAGS+=("arch/arm64/configs/$name")
+            [ -f "arch/arm64/configs/$name" ] || {
+              echo "::error::required config fragment missing: $name"
+              exit 1
+            };
+            FRAGS+=("arch/arm64/configs/$name")
           done
           echo "fragments: ${FRAGS[*]}"
           scripts/kconfig/merge_config.sh -m -O . .config "${FRAGS[@]}"
@@ -229,6 +247,17 @@ jobs:
           CONFIG_MODULE_SIG=n
           CONFIG_MODULE_SIG_FORCE=n
           CONFIG_MODULE_SIG_ALL=n
+          CONFIG_CRYPTO_LIB_SHA256=y
+          CONFIG_REGMAP_I2C=y
+          # Full Xiaomi/Erhai direct-charge stack: merely selecting MCA and
+          # SC8541 is not enough; PPS uses SC8547A, Erhai PPS and UFCS.
+          CONFIG_CHARGER_SC8547A=m
+          CONFIG_CHARGER_ERHAI_PPS=m
+          CONFIG_CHARGER_CPS8601=m
+          CONFIG_OPLUS_UFCS_CLASS=m
+          CONFIG_CHARGER_SC96231=m
+          CONFIG_CHARGER_XIAOMI_MCA=m
+          CONFIG_CHARGER_SC8541=m
           EOF
           scripts/kconfig/merge_config.sh -m -O . .config ../kali.config
           make LLVM=1 olddefconfig
@@ -238,32 +267,41 @@ jobs:
         run: |
           cd linux
           fail=0
-          check() {  # sym, why
-            val=$(grep -E "^$1=" .config | cut -d= -f2)
-            if [ -z "$val" ]; then
-              echo "::error::$1 missing ($2)"; fail=1
-            elif [ "$val" = "n" ]; then
-              echo "::error::$1=n ($2)"; fail=1
+          check() {  # symbol, expected exact value, reason
+            sym="$1"; expected="$2"; why="$3"
+            val=$(grep -E "^${sym}=" .config | cut -d= -f2 || true)
+            if [ "$val" != "$expected" ]; then
+              echo "::error::$sym expected =$expected, got ${val:-missing} ($why)"
+              fail=1
             else
-              printf '  %-40s %s\n' "$1" "$val"
+              printf '  %-40s %s\n' "$sym" "$val"
             fi
           }
-          check CONFIG_DRM_MSM y "display controller"
-          check CONFIG_DRM_PANEL_NOVATEK_NT36532 y "p81 panel"
-          check CONFIG_BACKLIGHT_KTZ8866 y "backlights (must be built in, not a module)"
-          check CONFIG_SM_DISPCC_8750 y "display clocks"
-          check CONFIG_TOUCHSCREEN_NT36532E_THP y "touch"
-          check CONFIG_HID_NANOSIC_WN8030 m "magnetic keyboard"
-          check CONFIG_CHARGER_XIAOMI_MCA m "charging"
-          check CONFIG_SND_SOC_FS19XX m "speaker amps"
-          check CONFIG_SCSI_UFS_QCOM y "UFS"
-          check CONFIG_PHY_QCOM_QMP_UFS y "UFS PHY"
-          check CONFIG_UHID m "touch daemon needs it"
-          check CONFIG_BOOT_CONFIG y "vendor_boot cmdline"
-          # The charging stack is a port of erhai/OPPO SVOOC; make sure the
-          # pieces we restored from PIANO_REF really ended up in the config.
-          check CONFIG_CHARGER_SC8541 m "charge pump"
-          check CONFIG_TYPEC m "usb role switching for PD"
+          check CONFIG_DRM_MSM y "display controller built in"
+          check CONFIG_DRM_PANEL_NOVATEK_NT36532 y "p81 panel built in"
+          check CONFIG_BACKLIGHT_KTZ8866 y "backlight must be built in"
+          check CONFIG_SM_DISPCC_8750 y "display clocks built in"
+          check CONFIG_TOUCHSCREEN_NT36532E_THP y "touch built in"
+          check CONFIG_HID_NANOSIC_WN8030 m "magnetic keyboard module"
+          check CONFIG_CHARGER_XIAOMI_MCA m "charging module"
+          check CONFIG_SND_SOC_FS19XX m "speaker amp module"
+          check CONFIG_SCSI_UFS_QCOM y "UFS built in"
+          check CONFIG_PHY_QCOM_QMP_UFS y "UFS PHY built in"
+          check CONFIG_UHID m "touch daemon input injection module"
+          check CONFIG_BOOT_CONFIG y "vendor_boot cmdline support built in"
+          check CONFIG_CHARGER_SC8541 m "direct charge pump module"
+          check CONFIG_CHARGER_SC8547A m "PPS/VOOC charge pump module"
+          check CONFIG_CHARGER_ERHAI_PPS m "PPS engine module"
+          check CONFIG_CHARGER_CPS8601 m "pen wireless charging module"
+          check CONFIG_OPLUS_UFCS_CLASS m "UFCS protocol module"
+          check CONFIG_CHARGER_SC96231 m "pen charger module"
+          check CONFIG_TYPEC y "USB-C/PD role switching built in"
+          check CONFIG_REGMAP_I2C y "I2C register-map support built in"
+          check CONFIG_CRYPTO_LIB_SHA256 y "MCA protocol SHA-256 built in"
+          # This build uses unsigned development modules; ensure Kconfig did not
+          # re-enable forced signature verification via an imported fragment.
+          check CONFIG_MODULE_SIG_FORCE n "unsigned development modules must load"
+          check CONFIG_MODULE_SIG_ALL n "do not sign only a subset of modules"
           exit $fail
 
       - name: Build Image, DTB and modules
@@ -282,6 +320,8 @@ jobs:
           make -s LLVM=1 kernelrelease > ../out/kernel-release
           cat ../out/kernel-release
           cp .config ../out/config
+          # Preserve the generic filename consumed by scripts/mk-bootimg.sh;
+          # also retain the exact variant name for audit.
           DTB=arch/arm64/boot/dts/qcom/sm8750-xiaomi-piano-desktop.dtb
           if [ ! -f "$DTB" ]; then
             DTB=$(ls arch/arm64/boot/dts/qcom/sm8750-xiaomi-piano*.dtb 2>/dev/null | head -1)
@@ -293,6 +333,31 @@ jobs:
           }
           echo "dtb: $DTB"
           cp "$DTB" ../out/$(basename "$DTB")
+          cp "$DTB" ../out/sm8750-piano.dtb
+
+          # The bootloader applies the stock DTBO on top of whatever DTB sits in
+          # vendor_boot. Hand it the raw mainline DTB and the stock board fixups
+          # collide with upstream nodes. Re-run the reference project's
+          # transformation, which isolates the stock overlay under a disabled
+          # parent, and cross-check that no mainline hardware node moved.
+          sudo apt-get install -y --no-install-recommends python3-libfdt git build-essential cmake
+          if [ ! -x ../ufdt-src/ufdt_apply_overlay ]; then
+            git clone -q --depth 1 https://android.googlesource.com/platform/system/libufdt ../ufdt-src &&
+              make -C ../ufdt-src ufdt_apply_overlay
+          fi
+          test -x ../ufdt-src/ufdt_apply_overlay || {
+            echo "::error::ufdt_apply_overlay was not built"; exit 1; }
+          # The stock base DTB and the piano DTBO entry are device files, kept in
+          # kernel/dtb-inputs/ of this repository (dump of vendor_boot_a / dtbo_a).
+          python3 ../tools/prepare-boot-dtb.py \
+            --mainline-dtb "../out/$(basename "$DTB")" \
+            --stock-base ../kernel/dtb-inputs/stock-base.dtb \
+            --stock-overlay ../kernel/dtb-inputs/piano-stock-overlay.dtb \
+            --ufdt ../ufdt-src/ufdt_apply_overlay \
+            --output ../out/dtb-prepared
+          cp ../out/dtb-prepared/piano-boot.dtb ../out/sm8750-piano.dtb
+          echo "== boot DTB prepared for the stock DTBO"
+          cat ../out/dtb-prepared/manifest.json
           if [ "${{ github.event.inputs.fast_only }}" != "true" ]; then
             make LLVM=1 modules_install INSTALL_MOD_PATH=../out/modules INSTALL_MOD_STRIP=1
             find ../out/modules -type l -delete
