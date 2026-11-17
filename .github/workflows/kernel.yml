@@ -209,6 +209,12 @@ jobs:
             echo "::error::pmic_glink_client_neuter missing from pmic_glink.c"; exit 1; }
           grep -q 'pmic_glink_client_neuter' include/linux/soc/qcom/pmic_glink.h || {
             echo "::error::pmic_glink_client_neuter missing from its header"; exit 1; }
+          # A piano commit rewrote Makefile EXTRAVERSION during the replay, so
+          # the tree claims a different -rc than the baseline we rebased onto
+          # (the first build reported 7.4.0-rc1 when the tag was v7.4-rc3).
+          # Force the version fields back to the tag.
+          git checkout "refs/tags/$KVER" -- Makefile
+          grep -E '^(VERSION|PATCHLEVEL|SUBLEVEL|EXTRAVERSION) =' Makefile
           echo "== charging stack taken from the piano tip"
           # Fail loudly if the preprocessed file still lost the definitions.
           for sym in qcom_battmgr_pd_info qcom_battmgr_pdos_response; do
@@ -225,7 +231,9 @@ jobs:
           mv piano linux
           cd linux
           git log --oneline -1
-          echo "-piano-${KVER#v}" > .scmversion
+          # No .scmversion: setlocalversion cats it unconditionally, which would
+          # append a second suffix on top of CONFIG_LOCALVERSION.
+          rm -f .scmversion
 
       - name: Merge the piano config fragments
         run: |
@@ -283,6 +291,9 @@ jobs:
           CONFIG_MODULE_SIG=n
           CONFIG_MODULE_SIG_FORCE=n
           CONFIG_MODULE_SIG_ALL=n
+          # Without this the release string gains a git describe suffix or a
+          # lone '+' when the tree is dirty (it always is: we restore files).
+          # CONFIG_LOCALVERSION_AUTO is not set
           CONFIG_CRYPTO_LIB_SHA256=y
           CONFIG_REGMAP_I2C=y
           # Full Xiaomi/Erhai direct-charge stack: merely selecting MCA and
@@ -297,7 +308,9 @@ jobs:
           EOF
           scripts/kconfig/merge_config.sh -m -O . .config ../kali.config
           make LLVM=1 olddefconfig
-          echo "-piano-${KVER#v}" > .scmversion
+          # No .scmversion: setlocalversion cats it unconditionally, which would
+          # append a second suffix on top of CONFIG_LOCALVERSION.
+          rm -f .scmversion
 
       - name: Verify the hardware stack actually made it in
         run: |
