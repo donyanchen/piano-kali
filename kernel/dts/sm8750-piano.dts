@@ -239,6 +239,11 @@
 	status = "okay";
 };
 
+/* debug UART: chosen/stdout-path points at serial0, which is uart7 */
+&uart7 {
+	status = "okay";
+};
+
 /* ---- display ---------------------------------------------------------- */
 
 &mdss {
@@ -263,7 +268,6 @@
 		/* vendor qcom,platform-reset-gpio = <&tlmm 98 0> - ACTIVE_HIGH */
 		reset-gpios = <&tlmm 98 GPIO_ACTIVE_HIGH>;
 		avdd-supply = <&display_panel_avdd>;
-		/* second half (backlight_1) stays dark until dual-link lands */
 		backlight = <&backlight_0>;
 
 		port {
@@ -308,7 +312,6 @@
 		enable-gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
 		vddpos-supply = <&vreg_bl_vddpos>;
 		vddneg-supply = <&vreg_bl_vddneg>;
-		/* TODO(P3): vddpos/vddneg come from the panel bias rails */
 	};
 };
 
@@ -382,10 +385,11 @@
 		spi-max-frequency = <19200000>;	/* vendor DT: 0x124f800 */
 		interrupt-parent = <&tlmm>;
 		interrupts-extended = <&tlmm 162 IRQ_TYPE_EDGE_RISING>;
-		reset-gpios = <&tlmm 98 GPIO_ACTIVE_LOW>;
-		pinctrl-0 = <&touch_irq_state &touch_reset_state>;
+		pinctrl-0 = <&touch_irq_state>;
 		pinctrl-names = "default";
-		/* panel lcd_id strap, vendor DT: novatek,lcd_id-gpio = <&tlmm 100 0> */
+		/* vendor DT has no reset line for the touch chip; the lcd_id strap
+		 * on tlmm 100 selects the panel variant (BOE vs CSOT). */
+		novatek,lcd-id-gpios = <&tlmm 100 GPIO_ACTIVE_HIGH>;
 	};
 };
 

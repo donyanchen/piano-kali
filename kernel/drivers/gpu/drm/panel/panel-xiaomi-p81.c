@@ -41,7 +41,7 @@ struct p81_panel {
 	struct drm_panel panel;
 	struct mipi_dsi_device *dsi;
 	struct gpio_desc *reset_gpio;
-	struct regulator_bulk_data supplies[2];
+	struct regulator_bulk_data supplies[1];
 	int num_supplies;
 	struct backlight_device *backlight;
 	struct drm_dsc_config dsc;
@@ -264,8 +264,8 @@ static int p81_probe(struct mipi_dsi_device *dsi)
 	if (IS_ERR(ctx))
 		return PTR_ERR(ctx);
 
-	ctx->supplies[0].supply = "vddi";
-	ctx->supplies[1].supply = "avdd";
+	/* the board only wires avdd; there is no vddi rail on this panel */
+	ctx->supplies[0].supply = "avdd";
 	/* The board DT may not describe the panel rails (the vendor DT keeps them
 	 * implicit, powered by the bootloader). Treat a missing supply as "none"
 	 * instead of failing probe. */
