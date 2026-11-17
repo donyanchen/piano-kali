@@ -204,6 +204,18 @@ jobs:
           CONFIG_MAGIC_SYSRQ=y
           CONFIG_PSTORE=y
           CONFIG_PSTORE_RAM=y
+          # Backlight must be built in: if ktz8866.ko lives in a module and the
+          # initramfs does not load it, the panel comes up with no backlight and
+          # the tablet looks dead on arrival. piano-desktop-diag.config sets it
+          # to m, so force y last.
+          CONFIG_BACKLIGHT_KTZ8866=y
+          CONFIG_BACKLIGHT_CLASS_DEVICE=y
+          # Same reasoning for the p81 panel: DRM_MSM is built in, so the panel
+          # cannot be a module.
+          CONFIG_DRM_PANEL_NOVATEK_NT36532=y
+          # The touch daemon needs uhid; the kernel side must be a module that
+          # initramfs is not required to load.
+          CONFIG_INPUT_EVDEV=y
           EOF
           scripts/kconfig/merge_config.sh -m -O . .config ../kali.config
           make LLVM=1 olddefconfig
@@ -225,7 +237,7 @@ jobs:
           }
           check CONFIG_DRM_MSM y "display controller"
           check CONFIG_DRM_PANEL_NOVATEK_NT36532 y "p81 panel"
-          check CONFIG_BACKLIGHT_KTZ8866 y "backlights"
+          check CONFIG_BACKLIGHT_KTZ8866 y "backlights (must be built in, not a module)"
           check CONFIG_SM_DISPCC_8750 y "display clocks"
           check CONFIG_TOUCHSCREEN_NT36532E_THP y "touch"
           check CONFIG_HID_NANOSIC_WN8030 m "magnetic keyboard"
@@ -233,6 +245,12 @@ jobs:
           check CONFIG_SND_SOC_FS19XX m "speaker amps"
           check CONFIG_SCSI_UFS_QCOM y "UFS"
           check CONFIG_PHY_QCOM_QMP_UFS y "UFS PHY"
+          check CONFIG_UHID m "touch daemon needs it"
+          check CONFIG_BOOT_CONFIG y "vendor_boot cmdline"
+          # The charging stack is a port of erhai/OPPO SVOOC; make sure the
+          # pieces we restored from PIANO_REF really ended up in the config.
+          check CONFIG_CHARGER_SC8541 m "charge pump"
+          check CONFIG_TYPEC m "usb role switching for PD"
           exit $fail
 
       - name: Build Image, DTB and modules
