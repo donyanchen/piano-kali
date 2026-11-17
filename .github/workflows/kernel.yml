@@ -71,8 +71,7 @@ jobs:
           cp kernel/drivers/gpu/drm/panel/panel-xiaomi-p81.c \
              kernel/drivers/gpu/drm/panel/panel-xiaomi-p81/p81-35-02-0b.h \
              linux/drivers/gpu/drm/panel/
-          # DRM is modular here, so the panel must be a module too: a built-in
-          # driver would reference drm symbols that live in drm.ko.
+          # DRM/DRM_MSM are built in, so the panel is built in too (obj-y).
           echo 'obj-y += panel-xiaomi-p81.o' >> linux/drivers/gpu/drm/panel/Makefile
       - &configure
         name: Configure

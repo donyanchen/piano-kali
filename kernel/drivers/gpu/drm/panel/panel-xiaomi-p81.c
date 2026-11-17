@@ -94,6 +94,14 @@ static int p81_send_blob(struct mipi_dsi_device *dsi, const u8 *blob, size_t len
 			dev_err(&dsi->dev, "truncated command at %zu\n", i);
 			return -EINVAL;
 		}
+		/* The blob ends with 0x11 (sleep out) and 0x29 (display on). Skip
+		 * them here: the PPS must be programmed while the panel is still
+		 * asleep, so prepare() sends those two after the PPS. */
+		if (n == 1 && (blob[i + P81_HDR_LEN] == 0x11 ||
+			       blob[i + P81_HDR_LEN] == 0x29)) {
+			i += P81_HDR_LEN + n;
+			continue;
+		}
 		if (n) {
 			ret = mipi_dsi_dcs_write_buffer(dsi, &blob[i + P81_HDR_LEN], n);
 			if (ret < 0) {
@@ -271,8 +279,10 @@ static int p81_probe(struct mipi_dsi_device *dsi)
 
 	dsi->lanes = 4;
 	dsi->format = MIPI_DSI_FMT_RGB888;
-	/* vendor DT: on- and off-command-state are both "dsi_lp_mode" */
-	dsi->mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST |
+	/* vendor DT: traffic-mode "non_burst_sync_event" (so no VIDEO_BURST),
+	 * on/off-command-state "dsi_lp_mode".
+	 */
+	dsi->mode_flags = MIPI_DSI_MODE_VIDEO |
 			  MIPI_DSI_MODE_NO_EOT_PACKET | MIPI_DSI_MODE_LPM;
 
 	/* The DSI host must be in LP-11 before the panel is powered up. */
@@ -298,6 +308,8 @@ static int p81_probe(struct mipi_dsi_device *dsi)
 	ctx->dsc.slice_count = 2;	/* 2 * 800 = 1600 per link */
 	ctx->dsc.bits_per_component = 10;
 	ctx->dsc.bits_per_pixel = 8 << 4;
+	ctx->dsc.line_buf_depth = 11;		/* bpc + 1 */
+	ctx->dsc.convert_rgb = 1;
 	ctx->dsc.block_pred_enable = true;
 	dsi->dsc = &ctx->dsc;
 
