@@ -312,8 +312,20 @@ jobs:
           check CONFIG_CRYPTO_LIB_SHA256 y "MCA protocol SHA-256 built in"
           # This build uses unsigned development modules; ensure Kconfig did not
           # re-enable forced signature verification via an imported fragment.
-          check CONFIG_MODULE_SIG_FORCE n "unsigned development modules must load"
-          check CONFIG_MODULE_SIG_ALL n "do not sign only a subset of modules"
+          # MODULE_SIG_FORCE / MODULE_SIG_ALL do not appear in .config at all
+          # when MODULE_SIG is off (Kconfig drops dependent symbols), so test the
+          # parent switch and both forbidden values explicitly.
+          if grep -qx 'CONFIG_MODULE_SIG=y' .config; then
+            for sym in CONFIG_MODULE_SIG_FORCE CONFIG_MODULE_SIG_ALL; do
+              if grep -qx "${sym}=y" .config; then
+                echo "::error::$sym is enabled; unsigned development modules would be refused"
+                fail=1
+              fi
+            done
+            printf '  %-40s %s\n' CONFIG_MODULE_SIG "on (neither force nor all set)"
+          else
+            printf '  %-40s %s\n' CONFIG_MODULE_SIG "off"
+          fi
           exit $fail
 
       - name: Build Image, DTB and modules
