@@ -395,12 +395,24 @@ jobs:
           # collide with upstream nodes. Re-run the reference project's
           # transformation, which isolates the stock overlay under a disabled
           # parent, and cross-check that no mainline hardware node moved.
-          sudo apt-get install -y --no-install-recommends python3-libfdt git build-essential cmake
-          if [ ! -x ../ufdt-src/ufdt_apply_overlay ]; then
-            git clone -q --depth 1 https://android.googlesource.com/platform/system/libufdt ../ufdt-src &&
-              make -C ../ufdt-src ufdt_apply_overlay
+          sudo apt-get install -y --no-install-recommends \
+            python3-libfdt libfdt-dev git build-essential
+          # libufdt ships no Makefile: ufdt_apply_overlay is an Android.bp target,
+          # so build the two test sources together with the library sources.
+          if [ ! -x ../ufdt_apply_overlay ]; then
+            git clone -q --depth 1 \
+              https://android.googlesource.com/platform/system/libufdt ../ufdt-src
+            gcc -O2 -I ../ufdt-src/include -I ../ufdt-src/sysdeps/include \
+              -I ../ufdt-src/tests/src \
+              ../ufdt-src/tests/src/ufdt_overlay_test_app.c \
+              ../ufdt-src/tests/src/util.c \
+              ../ufdt-src/ufdt_convert.c ../ufdt-src/ufdt_node.c \
+              ../ufdt-src/ufdt_node_pool.c ../ufdt-src/ufdt_overlay.c \
+              ../ufdt-src/ufdt_prop_dict.c \
+              ../ufdt-src/sysdeps/libufdt_sysdeps_posix.c \
+              -lfdt -o ../ufdt_apply_overlay
           fi
-          test -x ../ufdt-src/ufdt_apply_overlay || {
+          test -x ../ufdt_apply_overlay || {
             echo "::error::ufdt_apply_overlay was not built"; exit 1; }
           # The stock base DTB and the piano DTBO entry are device files, kept in
           # kernel/dtb-inputs/ of this repository (dump of vendor_boot_a / dtbo_a).
@@ -408,7 +420,7 @@ jobs:
             --mainline-dtb "../out/$(basename "$DTB")" \
             --stock-base ../kernel/dtb-inputs/stock-base.dtb \
             --stock-overlay ../kernel/dtb-inputs/piano-stock-overlay.dtb \
-            --ufdt ../ufdt-src/ufdt_apply_overlay \
+            --ufdt ../ufdt_apply_overlay \
             --output ../out/dtb-prepared
           cp ../out/dtb-prepared/piano-boot.dtb ../out/sm8750-piano.dtb
           echo "== boot DTB prepared for the stock DTBO"
