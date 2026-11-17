@@ -71,8 +71,9 @@ static const struct drm_display_mode p81_144_mode = {
 	.vsync_start = 2136 + 68,
 	.vsync_end = 2136 + 68 + 2,
 	.vtotal = 2136 + 68 + 2 + 104,
-	.width_mm = 296,
-	.height_mm = 198,
+	/* vendor qcom,mdss-pan-physical-{width,height}-dimension: 2387 x 1632 */
+	.width_mm = 238,
+	.height_mm = 163,
 	.type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED,
 };
 static inline struct p81_panel *to_p81(struct drm_panel *panel)
@@ -133,11 +134,19 @@ static int p81_prepare(struct drm_panel *panel)
 
 	/* vendor reset sequence: out of reset, hold, out again */
 	if (ctx->reset_gpio) {
-		/* ACTIVE_LOW: logical 1 = panel held in reset. End deasserted. */
-		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
-		usleep_range(10000, 12000);
+		/*
+		 * Vendor qcom,mdss-dsi-reset-sequence = <0 10 1 3 0 3 1 15>:
+		 * four (level, delay-ms) pairs on an ACTIVE_HIGH reset line, ending
+		 * released.
+		 */
 		gpiod_set_value_cansleep(ctx->reset_gpio, 0);
-		usleep_range(120000, 140000);
+		usleep_range(10000, 11000);
+		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+		usleep_range(3000, 4000);
+		gpiod_set_value_cansleep(ctx->reset_gpio, 0);
+		usleep_range(3000, 4000);
+		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+		usleep_range(15000, 17000);
 	}
 
 	ret = p81_send_blob(dsi, MDSS_DSI_P81_35_02_0B_144HZ_QCOM_MDSS_DSI_ON_COMMAND,
