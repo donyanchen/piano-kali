@@ -23,6 +23,7 @@
 #include <linux/of.h>
 #include <linux/regulator/consumer.h>
 
+#include <drm/display/drm_dsc.h>
 #include <drm/drm_mipi_dsi.h>
 #include <drm/drm_modes.h>
 #include <drm/drm_panel.h>
@@ -42,6 +43,7 @@ struct p81_panel {
 	struct regulator_bulk_data supplies[2];
 	int num_supplies;
 	struct backlight_device *backlight;
+	struct drm_dsc_config dsc;
 	bool prepared;
 };
 
@@ -53,21 +55,20 @@ static const struct drm_display_mode p81_144_mode = {
 	 * each link carries half of it.
 	 */
 	/*
-	 * Per-link mode: the panel is bonded dual-DSI (Android reports the
-	 * logical 3200x2136 @ 1197.5 MHz DSI clock). One link carries half the
-	 * width. Porches are the vendor timing@144 values:
-	 *   hfp 21, hbp 16, hsw 16, vfp 68, vbp 104, vsw 2
-	 * clock = 1653 * 2310 * 144 / 1000 = 550369 kHz.
+	 * Bonded dual-DSI mode carries the COMPLETE panel width in the DRM mode
+	 * (msm halves it per link internally), so this is 3200 wide. Clock and
+	 * porches are the vendor timing@144 values:
+	 *   clockrate 1197.5 MHz, hfp 21, hsw 16, hbp 16, vfp 68, vsw 2, vbp 104.
 	 */
-	.clock = 550369,
-	.hdisplay = 1600,
-	.hsync_start = 1600 + 21,
-	.hsync_end = 1600 + 21 + 16,
-	.htotal = 1600 + 21 + 16 + 16,
+	.clock = 1197500,
+	.hdisplay = 3200,
+	.hsync_start = 3200 + 21,
+	.hsync_end = 3200 + 21 + 16,
+	.htotal = 3200 + 21 + 16 + 16,
 	.vdisplay = 2136,
 	.vsync_start = 2136 + 68,
-	.vsync_end = 2136 + 68 + 104,
-	.vtotal = 2136 + 68 + 104 + 2,
+	.vsync_end = 2136 + 68 + 2,
+	.vtotal = 2136 + 68 + 2 + 104,
 	.width_mm = 296,
 	.height_mm = 198,
 	.type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED,
@@ -268,6 +269,22 @@ static int p81_probe(struct mipi_dsi_device *dsi)
 	ctx->backlight = ctx->panel.backlight;
 
 	drm_panel_add(&ctx->panel);
+
+	/*
+	 * The panel only works compressed: vendor timing@144 says dsc-version 17
+	 * (1.1), 800x24 slices, 8 bpp out of 10 bpc, block prediction on, and the
+	 * init sequence already ships the matching PPS. Hand the host the same
+	 * parameters; it fills pic_width/pic_height from the mode.
+	 */
+	ctx->dsc.dsc_version_major = 1;
+	ctx->dsc.dsc_version_minor = 1;
+	ctx->dsc.slice_width = 800;
+	ctx->dsc.slice_height = 24;
+	ctx->dsc.slice_count = 2;	/* 2 * 800 = 1600 per link */
+	ctx->dsc.bits_per_component = 10;
+	ctx->dsc.bits_per_pixel = 8 << 4;
+	ctx->dsc.block_pred_enable = true;
+	dsi->dsc = &ctx->dsc;
 
 	ret = mipi_dsi_attach(dsi);
 	if (ret) {

@@ -248,6 +248,10 @@
 
 &mdss_dsi0 {
 	status = "okay";
+	/* bonded dual-DSI: this link is the clock master (vendor topology <2 2 2>) */
+	qcom,dual-dsi-mode;
+	qcom,master-dsi;
+	qcom,sync-dual-dsi;
 
 	/*
 	 * Xiaomi p81 35 02 0b: 1600x2136 per DSI link, DSC, video mode.
@@ -272,6 +276,16 @@
 };
 
 &mdss_dsi0_phy {
+	vdds-supply = <&vreg_l3i_0p88>;
+	status = "okay";
+};
+
+&mdss_dsi1 {
+	status = "okay";
+	qcom,dual-dsi-mode;
+};
+
+&mdss_dsi1_phy {
 	vdds-supply = <&vreg_l3i_0p88>;
 	status = "okay";
 };
