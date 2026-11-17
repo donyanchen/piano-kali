@@ -141,6 +141,23 @@ jobs:
             exit 1
           }
 
+          # The charging stack is a whole subsystem ported in from the erhai
+          # project (qcom_battmgr.c grew 1773 -> 4707 lines, plus erhai_*,
+          # xiaomi_mca*, sc8541/sc96231/sc8547a). -X theirs merges that file
+          # block by block and drops the pd_info/pdos_response definitions
+          # while keeping the call sites, which fails to compile. Take the
+          # piano version of the whole stack wholesale instead.
+          CHG="drivers/power/supply"
+          for f in "$CHG"/erhai_* "$CHG"/xiaomi_mca* "$CHG"/sc8541_charger* \
+                   "$CHG"/sc96231_charger* "$CHG"/sc8547a* \
+                   "$CHG"/qcom_battmgr.c "$CHG"/qcom_smbx.c "$CHG"/qcom_smbb.c; do
+            rel=${f#"$CHG"/}
+            if git cat-file -e "ci-replay:$CHG/$rel" 2>/dev/null; then
+              git checkout ci-replay -- "$CHG/$rel" 2>/dev/null && echo "  piano: $rel"
+            fi
+          done
+          echo "== charging stack taken from the piano tip"
+
       - name: Copy the rebased tree into place
         run: |
           # Keep the piano history (it is the modified tree) and just move it to
