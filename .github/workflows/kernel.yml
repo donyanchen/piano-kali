@@ -1,28 +1,30 @@
 name: kernel
-# Build our own piano kernel: upstream linux-stable + our board DTS + our config
-# fragment. No third-party kernel tree is cloned anywhere in this pipeline.
+# Build the piano kernel from "everything we have", in one shot:
 #
-# Three build jobs run in parallel on separate 4-vCPU runners because that is
-# the only free size: dtb (~1 min), Image (~25 min), modules (~35 min). ccache
-# keeps re-runs cheap. A final job bundles the artifact layout that
-# scripts/build-kali.sh expects via PIANO_KERNEL_DIR.
+#   1. upstream linux v7.4-rc3                (latest mainline)
+#   2. linux-sm8750-piano piano patches       (panel, touch, charge, audio, sensors,
+#                                              DSP, DTS, and the piano framebuffer votes)
+#   3. the reference project's config fragments merged in order (merge_config.sh)
+#   4. the piano board DTB built from the patched tree
+#
+# Nothing is cloned locally and nothing is flashed here: the artifact layout is
+# what scripts/build-kali.sh consumes through PIANO_KERNEL_DIR.
 on:
   workflow_dispatch:
     inputs:
       kver:
-        description: linux-stable tag to build against
-        default: v7.3.4
+        description: upstream tag the piano patches are rebased onto
+        default: v7.4-rc3
+        required: true
+      piano_ref:
+        description: piano patch source (tag/branch/commit of linux-sm8750-piano)
+        default: 1c21cb9895d69c1c5e83ceae68952fedf522644a
         required: true
       fast_only:
-        description: 'Image + dtb only, no modules (display bring-up)'
+        description: 'Image + dtb only, no modules'
         type: boolean
         default: false
-  # No push trigger on purpose: each run is ~30 min on a 4-vCPU runner and
-  # every kernel commit used to start one. Dispatch it when there is something
-  # worth testing.
-#
-# Two runs in the same group: the newer one cancels the older, so a quick
-# follow-up fix never leaves two builds fighting for the same runner.
+  # Dispatched by hand only: each run is ~40 min on a free runner.
 concurrency:
   group: kernel-${{ github.ref }}
   cancel-in-progress: true
@@ -31,164 +33,179 @@ permissions:
   contents: read
 
 env:
-  KVER: ${{ github.event.inputs.kver || 'v7.3.4' }}
+  KVER: ${{ github.event.inputs.kver || 'v7.4-rc3' }}
+  PIANO_SRC: https://github.com/yzddmr6/linux-sm8750-piano.git
+  PIANO_REF: ${{ github.event.inputs.piano_ref || '1c21cb9895d69c1c5e83ceae68952fedf522644a' }}
+  # The commit the piano branch is based on: everything after it is "our" patch set.
+  PIANO_BASE: 7475ea8b58616b33c04afb976cf0fbaad9dd63fb
+  KBUILD: '-j$(nproc) LLVM=1'
 
 jobs:
-  dtb:
+  build:
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 40
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
-      - &toolchain
-        name: Install toolchain
+
+      - name: Install toolchain
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential bc bison flex libssl-dev libelf-dev \
-            lz4 xz-utils zstd cpio kmod ccache python3 clang lld llvm
+            lz4 xz-utils zstd cpio kmod ccache python3 git clang lld llvm
           clang --version | head -1
-      - &fetch
-        name: Fetch upstream kernel
-        run: |
-          for url in https://github.com/gregkh/linux.git \
-                     https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git; do
-            echo "trying $url"
-            git clone --depth 1 --branch "$KVER" "$url" linux && break
-            rm -rf linux
-          done
-          test -d linux || { echo "could not fetch $KVER" >&2; exit 1; }
-      - &dts
-        name: Add the piano board DTS
-        run: |
-          cp kernel/dts/sm8750-piano.dts linux/arch/arm64/boot/dts/qcom/
-          echo 'dtb-$(CONFIG_ARCH_QCOM) += sm8750-piano.dtb' \
-            >> linux/arch/arm64/boot/dts/qcom/Makefile
-          # Our edits make the tree dirty; pin the release string so the kernel
-          # and its module directory are called 7.3.4-piano, not 7.3.4-dirty.
-          echo -piano > linux/.scmversion
+          git --version
 
-      - &panel
-        name: Add the piano panel driver
-        run: |
-          # No upstream driver exists for the p81 panel: ours is built from the
-          # factory DT sequences under kernel/drivers/gpu/drm/panel/.
-          cp kernel/drivers/gpu/drm/panel/panel-xiaomi-p81.c \
-             kernel/drivers/gpu/drm/panel/panel-xiaomi-p81/p81-35-02-0b.h \
-             linux/drivers/gpu/drm/panel/
-          # DRM/DRM_MSM are built in, so the panel is built in too (obj-y).
-          echo 'obj-y += panel-xiaomi-p81.o' >> linux/drivers/gpu/drm/panel/Makefile
-      - &configure
-        name: Configure
-        run: |
-          cd linux
-          make LLVM=1 defconfig
-          scripts/kconfig/merge_config.sh -m .config ../kernel/configs/piano.config
-          make LLVM=1 olddefconfig
-          grep -E '^CONFIG_' ../kernel/configs/piano.config | cut -d= -f1 | while read -r sym; do
-            grep -q "^$sym[= ]" .config || echo "::warning::fragment symbol not in .config: $sym"
-          done
-      - name: Verify the display stack is built in
-        run: |
-          cd linux
-          fail=0
-          for sym in CONFIG_DRM CONFIG_DRM_MSM CONFIG_DRM_MSM_DSI CONFIG_DRM_PANEL; do
-            if ! grep -qx "$sym=y" .config; then
-              echo "::error::$sym is not =y ($(grep -E "^$sym=" .config || echo missing)) - the Image would have no display driver"
-              fail=1
-            fi
-          done
-          for sym in CONFIG_DRM_AUX_BRIDGE CONFIG_DRM_AUX_HPD_BRIDGE CONFIG_DRM_KMS_HELPER; do
-            val=$(grep -E "^$sym=" .config | cut -d= -f2)
-            [ "$val" = "m" ] && echo "::error::$sym=m while its users are built in"
-          done
-          exit $fail
-
-      - name: Build the board DTB
-        run: |
-          cd linux
-          make LLVM=1 qcom/sm8750-piano.dtb
-          mkdir -p ../out
-          cp arch/arm64/boot/dts/qcom/sm8750-piano.dtb ../out/
-      - uses: actions/upload-artifact@v4
-        with:
-          name: part-dtb
-          path: out/sm8750-piano.dtb
-          retention-days: 7
-
-  image:
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@v4
-      - *toolchain
-      - *fetch
-      - *dts
-      - *panel
-      - *configure
-      - name: ccache
+      - name: Restore ccache
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: ccache-image-${{ env.KVER }}-${{ hashFiles('kernel/configs/piano.config') }}
-          restore-keys: ccache-image-${{ env.KVER }}-
-      - name: Build Image and modules
+          key: ccache-piano-${{ env.KVER }}-${{ env.PIANO_REF }}
+          restore-keys: |
+            ccache-piano-${{ env.KVER }}-
+            ccache-piano-
+
+      # Fetch the piano tree first: it gives us the patch series, the config
+      # fragments and the board DTS, all pinned by one reference.
+      - name: Fetch the piano patch source
+        run: |
+          git init -q piano && cd piano
+          git remote add origin "$PIANO_SRC"
+          git fetch -q --depth 200 origin "$PIANO_REF"
+          git checkout -q FETCH_HEAD
+          echo "piano tree at $(git rev-parse --short HEAD)"
+          grep -E '^(VERSION|PATCHLEVEL|SUBLEVEL) =' Makefile | head -3
+          ls arch/arm64/configs/ | grep -E '^(piano|sm8750)' | tee ../fragments.txt
+
+      - name: Rebase the piano patches onto the new baseline
+        run: |
+          # One tree, three stages, all on the same history:
+          #   1. replay the piano commits so their contents exist here
+          #   2. switch the base to the requested upstream tag
+          #   3. apply them again on top -> conflicts land in this step
+          cd piano
+          git status --porcelain
+          echo "piano head: $(git rev-parse --short HEAD)"
+          # make the shallow history deep enough to reach the merge base
+          git fetch -q --deepen 400 origin || true
+          git tag -f piano-tip HEAD >/dev/null
+          git checkout -q -B ci-replay
+
+          echo "== 1/3 replaying the piano commits"
+          git fetch -q --depth 1 origin "refs/tags/$KVER:refs/tags/$KVER" 2>/dev/null || \
+            git fetch -q "$(git config remote.origin.url)" 2>/dev/null || true
+          # upstream tag may not exist in this remote: fetch it from torvalds
+          if ! git rev-parse -q --verify "refs/tags/$KVER" >/dev/null; then
+            git fetch -q https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git \
+              "refs/tags/$KVER:refs/tags/$KVER" --depth 1
+          fi
+          echo "target baseline: $(git rev-parse --short "refs/tags/$KVER") ($KVER)"
+
+          echo "== 2/3 rebasing onto $KVER"
+          git -c user.name=ci -c user.email=ci@local \
+            rebase --onto "refs/tags/$KVER" "$PIANO_BASE" ci-replay 2>&1 | tail -40 || {
+              echo "::error::rebase stopped - see the conflicting files above"
+              git status --short | head -40
+              git rebase --abort || true
+              exit 1
+            }
+          echo "== 3/3 result: $(git rev-list --count "refs/tags/$KVER"..HEAD) commits on $KVER"
+
+      - name: Copy the rebased tree into place
+        run: |
+          # Keep the piano history (it is the modified tree) and just move it to
+          # ./linux, which is where the build steps expect it.
+          mv piano linux
+          cd linux
+          git log --oneline -1
+          echo "-piano-${KVER#v}" > .scmversion
+
+      - name: Merge the piano config fragments
+        run: |
+          cd linux
+          make LLVM=1 defconfig
+          FRAGS=()
+          # Order matters: peripherals -> diag -> persistent -> release, exactly
+          # as kernel/source.json lists them upstream.
+          for name in sm8750-peripherals.config piano-diagnostic.config \
+                      piano-persistent.config piano-desktop-diag.config \
+                      piano-release.config; do
+            [ -f "arch/arm64/configs/$name" ] && FRAGS+=("arch/arm64/configs/$name")
+          done          echo "fragments: ${FRAGS[*]}"
+          scripts/kconfig/merge_config.sh -m -O . .config "${FRAGS[@]}"
+          # Kali wants a real initramfs-less ext4 root, uhid for the touch daemon,
+          # and bootconfig for the vendor_boot cmdline.
+          cat > ../kali.config <<'EOF'
+          CONFIG_UHID=m
+          CONFIG_BOOT_CONFIG=y
+          CONFIG_EXT4_FS=y
+          CONFIG_DEVTMPFS=y
+          CONFIG_DEVTMPFS_MOUNT=y
+          CONFIG_MODULES=y
+          CONFIG_KALLSYMS=y
+          CONFIG_MAGIC_SYSRQ=y
+          CONFIG_PSTORE=y
+          CONFIG_PSTORE_RAM=y
+          EOF
+          scripts/kconfig/merge_config.sh -m -O . .config ../kali.config
+          make LLVM=1 olddefconfig
+          echo "-piano-${KVER#v}" > .scmversion
+
+      - name: Verify the hardware stack actually made it in
+        run: |
+          cd linux
+          fail=0
+          check() {  # sym, why
+            val=$(grep -E "^$1=" .config | cut -d= -f2)
+            if [ -z "$val" ]; then
+              echo "::error::$1 missing ($2)"; fail=1
+            elif [ "$val" = "n" ]; then
+              echo "::error::$1=n ($2)"; fail=1
+            else
+              printf '  %-40s %s\n' "$1" "$val"
+            fi
+          }
+          check CONFIG_DRM_MSM y "display controller"
+          check CONFIG_DRM_PANEL_NOVATEK_NT36532 y "p81 panel"
+          check CONFIG_BACKLIGHT_KTZ8866 y "backlights"
+          check CONFIG_SM_DISPCC_8750 y "display clocks"
+          check CONFIG_TOUCHSCREEN_NT36532E_THP y "touch"
+          check CONFIG_HID_NANOSIC_WN8030 m "magnetic keyboard"
+          check CONFIG_CHARGER_XIAOMI_MCA m "charging"
+          check CONFIG_SND_SOC_FS19XX m "speaker amps"
+          check CONFIG_SCSI_UFS_QCOM y "UFS"
+          check CONFIG_PHY_QCOM_QMP_UFS y "UFS PHY"
+          exit $fail
+
+      - name: Build Image, DTB and modules
         env:
           CCACHE_DIR: ~/.ccache
         run: |
           cd linux
-          # modules must be built together with vmlinux: modpost resolves module
-          # symbols against vmlinux's Module.symvers, which only exists after
-          # vmlinux is linked.
+          M="make CC='ccache clang' LLVM=1 -j$(nproc)"
           if [ "${{ github.event.inputs.fast_only }}" = "true" ]; then
-            echo "fast path: Image only, no modules"
-            make LLVM=1 CC="ccache clang" -j"$(nproc)" Image
+            sh -c "$M Image dtbs"
           else
-            make LLVM=1 CC="ccache clang" -j"$(nproc)" Image modules
+            sh -c "$M Image dtbs modules"
           fi
           mkdir -p ../out/modules
           cp arch/arm64/boot/Image ../out/
           make -s LLVM=1 kernelrelease > ../out/kernel-release
+          cat ../out/kernel-release
           cp .config ../out/config
+          DTB=$(ls arch/arm64/boot/dts/qcom/*piano*.dtb 2>/dev/null | head -1)
+          [ -n "$DTB" ] || DTB=$(ls arch/arm64/boot/dts/qcom/sm8750*.dtb | head -1)
+          echo "dtb: $DTB"
+          cp "$DTB" ../out/$(basename "$DTB")
           if [ "${{ github.event.inputs.fast_only }}" != "true" ]; then
             make LLVM=1 modules_install INSTALL_MOD_PATH=../out/modules INSTALL_MOD_STRIP=1
+            find ../out/modules -type l -delete
           fi
-          # modules_install drops build/source symlinks that point at the whole
-          # source tree; uploading them turns a 200 MB artifact into 3 GB.
-          find ../out/modules -type l -delete
           ccache -s | head -5
-      - uses: actions/upload-artifact@v4
-        with:
-          name: part-kernel
-          path: |
-            out/Image
-            out/kernel-release
-            out/config
-            out/modules
-          retention-days: 7
 
-  bundle:
-    needs: [dtb, image]
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: part-*
-          path: parts
-      - name: Assemble the kernel artifact
-        run: |
-          mkdir -p out
-          cp parts/part-dtb/sm8750-piano.dtb out/
-          cp parts/part-kernel/Image parts/part-kernel/kernel-release parts/part-kernel/config out/
-          if [ -d parts/part-kernel/modules ]; then
-            cp -a parts/part-kernel/modules out/modules
-          else
-            echo "fast build: no modules to bundle"
-          fi
-          ls -lh out/Image out/sm8750-piano.dtb
-          cat out/kernel-release
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-${{ env.KVER }}-piano
+          name: kernel-${{ env.KVER }}-piano
           path: out/
           if-no-files-found: error
           retention-days: 14
