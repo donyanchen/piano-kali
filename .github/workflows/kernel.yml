@@ -148,15 +148,25 @@ jobs:
           # while keeping the call sites, which fails to compile. Take the
           # piano version of the whole stack wholesale instead.
           CHG="drivers/power/supply"
+          # NOTE: take these from the pristine piano commit, not from
+          # ci-replay - ci-replay is the rebase result and -X theirs has
+          # already merged that file block by block, so checking it out from
+          # there only copies back the half-merged version.
           for f in "$CHG"/erhai_* "$CHG"/xiaomi_mca* "$CHG"/sc8541_charger* \
                    "$CHG"/sc96231_charger* "$CHG"/sc8547a* \
                    "$CHG"/qcom_battmgr.c "$CHG"/qcom_smbx.c "$CHG"/qcom_smbb.c; do
             rel=${f#"$CHG"/}
-            if git cat-file -e "ci-replay:$CHG/$rel" 2>/dev/null; then
-              git checkout ci-replay -- "$CHG/$rel" 2>/dev/null && echo "  piano: $rel"
+            if git cat-file -e "$PIANO_REF:$CHG/$rel" 2>/dev/null; then
+              git checkout "$PIANO_REF" -- "$CHG/$rel" 2>/dev/null && echo "  piano: $rel"
             fi
           done
           echo "== charging stack taken from the piano tip"
+          # Fail loudly if the preprocessed file still lost the definitions.
+          for sym in qcom_battmgr_pd_info qcom_battmgr_pdos_response; do
+            n=$(grep -c "static void $sym" "$CHG/qcom_battmgr.c" 2>/dev/null || echo 0)
+            echo "  $CHG/qcom_battmgr.c: $sym definitions = $n, lines = $(wc -l < "$CHG/qcom_battmgr.c")"
+            [ "$n" -ge 1 ] || { echo "::error::$sym definition missing from the restored file"; exit 1; }
+          done
 
       - name: Copy the rebased tree into place
         run: |
