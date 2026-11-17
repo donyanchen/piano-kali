@@ -69,10 +69,18 @@ jobs:
       # fragments and the board DTS, all pinned by one reference.
       - name: Fetch the piano patch source
         run: |
-          git init -q piano && cd piano
-          git remote add origin "$PIANO_SRC"
-          git fetch -q --depth 200 origin "$PIANO_REF"
-          git checkout -q FETCH_HEAD
+          # --depth 300 is enough: the merge base with the upstream tag is only
+          # ~750 commits back on this branch, and a deeper fetch over the public
+          # network costs tens of minutes for nothing.
+          git clone -q --filter=blob:none --no-checkout --depth 300 \
+            --branch "$PIANO_REF" "$PIANO_SRC" piano 2>/dev/null || {
+            git init -q piano && cd piano
+            git remote add origin "$PIANO_SRC"
+            git fetch -q --depth 300 origin "$PIANO_REF"
+            git checkout -q FETCH_HEAD
+          }
+          cd piano
+          git checkout -q 2>/dev/null || true
           echo "piano tree at $(git rev-parse --short HEAD)"
           grep -E '^(VERSION|PATCHLEVEL|SUBLEVEL) =' Makefile | head -3
           ls arch/arm64/configs/ | grep -E '^(piano|sm8750)' | tee ../fragments.txt
@@ -80,28 +88,41 @@ jobs:
       - name: Rebase the piano patches onto the new baseline
         run: |
           # One tree, three stages, all on the same history:
-          #   1. replay the piano commits so their contents exist here
-          #   2. switch the base to the requested upstream tag
-          #   3. apply them again on top -> conflicts land in this step
+          #   1. make sure the piano tip is fully checked out
+          #   2. fetch the target upstream tag from a GitHub mirror
+          #      (git.kernel.org is unreachable from some runners - that is what
+          #      killed the previous attempt with a 135 s connect timeout)
+          #   3. rebase --onto the tag -> conflicts land in this step
           cd piano
-          git status --porcelain
+          git checkout -q -- . 2>/dev/null || true
           echo "piano head: $(git rev-parse --short HEAD)"
-          # make the shallow history deep enough to reach the merge base
-          git fetch -q --deepen 400 origin || true
-          git tag -f piano-tip HEAD >/dev/null
           git checkout -q -B ci-replay
 
-          echo "== 1/3 replaying the piano commits"
-          git fetch -q --depth 1 origin "refs/tags/$KVER:refs/tags/$KVER" 2>/dev/null || \
-            git fetch -q "$(git config remote.origin.url)" 2>/dev/null || true
-          # upstream tag may not exist in this remote: fetch it from torvalds
+          UPSTREAM_MIRROR=https://github.com/gregkh/linux.git
           if ! git rev-parse -q --verify "refs/tags/$KVER" >/dev/null; then
-            git fetch -q https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git \
-              "refs/tags/$KVER:refs/tags/$KVER" --depth 1
+            git fetch -q --depth 1 "$UPSTREAM_MIRROR" "refs/tags/$KVER:refs/tags/$KVER" || {
+              git fetch -q --depth 1 https://github.com/torvalds/linux.git \
+                "refs/tags/$KVER:refs/tags/$KVER"
+            }
           fi
           echo "target baseline: $(git rev-parse --short "refs/tags/$KVER") ($KVER)"
 
-          echo "== 2/3 rebasing onto $KVER"
+          # The merge base has to be reachable, otherwise git cannot replay the
+          # piano commits. Widen the history only if it is not there yet.
+          if ! git merge-base --is-ancestor "$PIANO_BASE" HEAD 2>/dev/null; then
+            echo "== deepening history to reach $PIANO_BASE"
+            for n in 600 1200 2400; do
+              git fetch -q --deepen $n origin 2>/dev/null || true
+              git merge-base --is-ancestor "$PIANO_BASE" HEAD 2>/dev/null && break
+            done
+          fi
+          git merge-base --is-ancestor "$PIANO_BASE" HEAD || {
+            echo "::error::cannot reach $PIANO_BASE in the fetched history"
+            exit 1
+          }
+          echo "merge base: $(git merge-base "$PIANO_BASE" HEAD | cut -c1-12)"
+
+          echo "== rebasing $(git rev-list --count "$PIANO_BASE"..HEAD) commits onto $KVER"
           git -c user.name=ci -c user.email=ci@local \
             rebase --onto "refs/tags/$KVER" "$PIANO_BASE" ci-replay 2>&1 | tail -40 || {
               echo "::error::rebase stopped - see the conflicting files above"
@@ -109,7 +130,7 @@ jobs:
               git rebase --abort || true
               exit 1
             }
-          echo "== 3/3 result: $(git rev-list --count "refs/tags/$KVER"..HEAD) commits on $KVER"
+          echo "== done: $(git rev-list --count "refs/tags/$KVER"..HEAD) commits on $KVER"
 
       - name: Copy the rebased tree into place
         run: |
@@ -131,7 +152,8 @@ jobs:
                       piano-persistent.config piano-desktop-diag.config \
                       piano-release.config; do
             [ -f "arch/arm64/configs/$name" ] && FRAGS+=("arch/arm64/configs/$name")
-          done          echo "fragments: ${FRAGS[*]}"
+          done
+          echo "fragments: ${FRAGS[*]}"
           scripts/kconfig/merge_config.sh -m -O . .config "${FRAGS[@]}"
           # Kali wants a real initramfs-less ext4 root, uhid for the touch daemon,
           # and bootconfig for the vendor_boot cmdline.
