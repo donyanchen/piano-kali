@@ -69,21 +69,18 @@ jobs:
       # fragments and the board DTS, all pinned by one reference.
       - name: Fetch the piano patch source
         run: |
-          # --depth 300 is enough: the merge base with the upstream tag is only
-          # ~750 commits back on this branch, and a deeper fetch over the public
-          # network costs tens of minutes for nothing.
-          git clone -q --filter=blob:none --no-checkout --depth 300 \
-            --branch "$PIANO_REF" "$PIANO_SRC" piano 2>/dev/null || {
-            git init -q piano && cd piano
-            git remote add origin "$PIANO_SRC"
-            git fetch -q --depth 300 origin "$PIANO_REF"
-            git checkout -q FETCH_HEAD
-          }
+          # One fetch path only. A "clone || fallback" used to leave the shell
+          # inside piano/ already, so the next `cd piano` aborted the job with
+          # "No such file or directory" and the real git error was swallowed by
+          # 2>/dev/null. Keep the output visible instead.
+          git init -q piano
           cd piano
-          git checkout -q 2>/dev/null || true
+          git remote add origin "$PIANO_SRC"
+          git fetch --depth 300 origin "$PIANO_REF"
+          git checkout -q FETCH_HEAD
           echo "piano tree at $(git rev-parse --short HEAD)"
           grep -E '^(VERSION|PATCHLEVEL|SUBLEVEL) =' Makefile | head -3
-          ls arch/arm64/configs/ | grep -E '^(piano|sm8750)' | tee ../fragments.txt
+          ls arch/arm64/configs/ | grep -E '^(piano|sm8750)'
 
       - name: Rebase the piano patches onto the new baseline
         run: |
