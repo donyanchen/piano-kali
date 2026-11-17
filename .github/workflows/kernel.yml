@@ -84,6 +84,22 @@ jobs:
           grep -E '^CONFIG_' ../kernel/configs/piano.config | cut -d= -f1 | while read -r sym; do
             grep -q "^$sym[= ]" .config || echo "::warning::fragment symbol not in .config: $sym"
           done
+      - name: Verify the display stack is built in
+        run: |
+          cd linux
+          fail=0
+          for sym in CONFIG_DRM CONFIG_DRM_MSM CONFIG_DRM_MSM_DSI CONFIG_DRM_PANEL; do
+            if ! grep -qx "$sym=y" .config; then
+              echo "::error::$sym is not =y ($(grep -E "^$sym=" .config || echo missing)) - the Image would have no display driver"
+              fail=1
+            fi
+          done
+          for sym in CONFIG_DRM_AUX_BRIDGE CONFIG_DRM_AUX_HPD_BRIDGE CONFIG_DRM_KMS_HELPER; do
+            val=$(grep -E "^$sym=" .config | cut -d= -f2)
+            [ "$val" = "m" ] && echo "::error::$sym=m while its users are built in"
+          done
+          exit $fail
+
       - name: Build the board DTB
         run: |
           cd linux
