@@ -167,9 +167,14 @@ jobs:
           # there only copies back the half-merged version.
           # Restore the charge files changed by the piano port, including nested
           # UFCS sources, but do not overwrite unrelated upstream charger files.
+          # pmic_glink is the transport the MCA/CPS8601 drivers talk over, and
+          # the piano port adds pmic_glink_client_neuter() to it and its header.
+          # -X theirs reverts both to upstream, so restoring only the power/supply
+          # directory leaves those callers with an undeclared function.
           CHG_FILES=$(git diff-tree --no-commit-id --name-only -r \
-            "$PIANO_BASE" "$PIANO_REF" -- "$CHG" |
-            grep -E '^drivers/power/supply/(Kconfig|Makefile|qcom_battmgr\.c|qcom_smb[bx]\.c|bq27xxx_battery(_test)?\.c|erhai_|xiaomi_mca|sc8541|sc8547|sc96231|cps8601|ufcs/)')
+            "$PIANO_BASE" "$PIANO_REF" -- \
+            "$CHG" drivers/soc/qcom/pmic_glink.c include/linux/soc/qcom/pmic_glink.h |
+            grep -E '^drivers/power/supply/(Kconfig|Makefile|qcom_battmgr\.c|qcom_smb[bx]\.c|bq27xxx_battery(_test)?\.c|erhai_|xiaomi_mca|sc8541|sc8547|sc96231|cps8601|ufcs/)|^drivers/soc/qcom/pmic_glink\.c$|^include/linux/soc/qcom/pmic_glink\.h$')
           [ -n "$CHG_FILES" ] || {
             echo "::error::no charging stack files matched; refusing to continue"
             exit 1
@@ -178,6 +183,11 @@ jobs:
             git checkout "$PIANO_REF" -- "$path"
             echo "  piano: $path"
           done
+          # Assert the transport symbol really survived, not just the files.
+          grep -q 'void pmic_glink_client_neuter' drivers/soc/qcom/pmic_glink.c || {
+            echo "::error::pmic_glink_client_neuter missing from pmic_glink.c"; exit 1; }
+          grep -q 'pmic_glink_client_neuter' include/linux/soc/qcom/pmic_glink.h || {
+            echo "::error::pmic_glink_client_neuter missing from its header"; exit 1; }
           echo "== charging stack taken from the piano tip"
           # Fail loudly if the preprocessed file still lost the definitions.
           for sym in qcom_battmgr_pd_info qcom_battmgr_pdos_response; do
