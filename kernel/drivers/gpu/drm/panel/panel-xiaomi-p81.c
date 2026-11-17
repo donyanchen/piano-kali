@@ -24,6 +24,7 @@
 #include <linux/regulator/consumer.h>
 
 #include <drm/display/drm_dsc.h>
+#include <drm/display/drm_dsc_helper.h>
 #include <drm/drm_mipi_dsi.h>
 #include <drm/drm_modes.h>
 #include <drm/drm_panel.h>
@@ -44,6 +45,7 @@ struct p81_panel {
 	int num_supplies;
 	struct backlight_device *backlight;
 	struct drm_dsc_config dsc;
+	struct drm_dsc_picture_parameter_set pps;
 	bool prepared;
 };
 
@@ -136,6 +138,18 @@ static int p81_prepare(struct drm_panel *panel)
 		dev_err(&dsi->dev, "init sequence failed: %d\n", ret);
 		goto err_regs;
 	}
+
+	/*
+	 * The init blob carries no PPS (97 commands, max payload 17 B): the vendor
+	 * driver builds it from qcom,mdss-dsc-*. Do the same here, with the
+	 * per-link picture (1600 = 2 slices of 800).
+	 */
+	ctx->dsc.pic_width = 1600;
+	ctx->dsc.pic_height = 2136;
+	drm_dsc_pps_payload_pack(&ctx->pps, &ctx->dsc);
+	ret = mipi_dsi_picture_parameter_set(dsi, &ctx->pps);
+	if (ret < 0)
+		dev_warn(&dsi->dev, "PPS write failed: %d\n", ret);
 
 	/* the blob already ends with 0x11 + 0x29, but be explicit */
 	ret = mipi_dsi_dcs_exit_sleep_mode(dsi);
@@ -257,8 +271,9 @@ static int p81_probe(struct mipi_dsi_device *dsi)
 
 	dsi->lanes = 4;
 	dsi->format = MIPI_DSI_FMT_RGB888;
+	/* vendor DT: on- and off-command-state are both "dsi_lp_mode" */
 	dsi->mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST |
-			  MIPI_DSI_MODE_NO_EOT_PACKET;
+			  MIPI_DSI_MODE_NO_EOT_PACKET | MIPI_DSI_MODE_LPM;
 
 	/* The DSI host must be in LP-11 before the panel is powered up. */
 	ctx->panel.prepare_prev_first = true;
