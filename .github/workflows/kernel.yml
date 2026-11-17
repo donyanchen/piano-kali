@@ -120,14 +120,26 @@ jobs:
           echo "merge base: $(git merge-base "$PIANO_BASE" HEAD | cut -c1-12)"
 
           echo "== rebasing $(git rev-list --count "$PIANO_BASE"..HEAD) commits onto $KVER"
-          git -c user.name=ci -c user.email=ci@local \
-            rebase --onto "refs/tags/$KVER" "$PIANO_BASE" ci-replay 2>&1 | tail -40 || {
-              echo "::error::rebase stopped - see the conflicting files above"
-              git status --short | head -40
-              git rebase --abort || true
-              exit 1
-            }
-          echo "== done: $(git rev-list --count "refs/tags/$KVER"..HEAD) commits on $KVER"
+          # -X theirs: the only conflicts so far are add/add on tools/ (userspace
+          # selftests that v7.4-rc3 also added this week). They never reach the
+          # kernel image, so taking the patch side is harmless and keeps the
+          # real driver commits applying.
+          set -o pipefail
+          if ! git -c user.name=ci -c user.email=ci@local \
+               rebase -X theirs --onto "refs/tags/$KVER" "$PIANO_BASE" ci-replay 2>&1 | tail -40; then
+            echo "::error::rebase stopped - see the conflicting files above"
+            git status --short | head -40
+            git rebase --abort || true
+            exit 1
+          fi
+          # A rebase that silently produced nothing is a failure, not a success:
+          # the old pipeline swallowed git's exit code through `tail`.
+          N=$(git rev-list --count "refs/tags/$KVER"..HEAD)
+          echo "== done: $N commits on $KVER"
+          [ "$N" -gt 500 ] || {
+            echo "::error::only $N commits landed on the new baseline"
+            exit 1
+          }
 
       - name: Copy the rebased tree into place
         run: |
