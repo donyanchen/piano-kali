@@ -177,6 +177,7 @@ Restart=always
 [Install]
 WantedBy=default.target
 EOF
+install -d "$ROOTFS/home/kali/.config/systemd/user/default.target.wants"
 ln -sf /home/kali/.config/systemd/user/piano-volkeys.service \
     "$ROOTFS/home/kali/.config/systemd/user/default.target.wants/piano-volkeys.service"
 chroot "$ROOTFS" chown -R kali:kali /home/kali/.local || true
