@@ -183,6 +183,27 @@ jobs:
             git checkout "$PIANO_REF" -- "$path"
             echo "  piano: $path"
           done
+          # In this kernel the IIO consumer API lives in the IIO_CONSUMER symbol
+          # namespace, so a module that calls it must declare the import or
+          # modpost rejects the whole build. sc8547a.c predates that split and
+          # has no MODULE_IMPORT_NS at all; add it to any restored source that
+          # needs it but does not already declare it.
+          for src in $(echo "$CHG_FILES" | grep '\.c$'); do
+            if grep -qE '(devm_)?iio_(channel_get|read_channel_processed)' "$src" &&
+               ! grep -q 'MODULE_IMPORT_NS("IIO_CONSUMER")' "$src"; then
+              # awk, not "sed 0,/re/": busybox sed (and any non-GNU sed) has
+              # no 0-address range, and this must behave the same everywhere.
+              awk 'BEGIN{done=0}
+                   !done && /^MODULE_LICENSE\(/ {
+                     print "MODULE_IMPORT_NS(\"IIO_CONSUMER\");"; done=1
+                   }
+                   { print }' "$src" > "$src.iio-tmp" &&
+                mv "$src.iio-tmp" "$src"
+              grep -q 'MODULE_IMPORT_NS("IIO_CONSUMER")' "$src" || {
+                echo "::error::could not add the IIO_CONSUMER import to $src"; exit 1; }
+              echo "  added IIO_CONSUMER import: $src"
+            fi
+          done
           # Assert the transport symbol really survived, not just the files.
           grep -q 'void pmic_glink_client_neuter' drivers/soc/qcom/pmic_glink.c || {
             echo "::error::pmic_glink_client_neuter missing from pmic_glink.c"; exit 1; }
