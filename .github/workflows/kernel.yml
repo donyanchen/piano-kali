@@ -224,6 +224,27 @@ jobs:
             [ "$n" -ge 1 ] || { echo "::error::$sym definition missing from the restored file"; exit 1; }
           done
 
+      - name: Patch the GPU chip id reported to userspace
+        run: |
+          # MSM_PARAM_CHIP_ID ORs the GPU speedbin into the high 32 bits when
+          # the SoC info has no revision. This unit reads speedbin 0xe8, so
+          # userspace saw 0xe844050001, which is not in Mesa's device table and
+          # KWin fell back to llvmpipe. The kernel already used the speedbin for
+          # OPP selection by then, so report the plain chip id (0x44050001),
+          # which Mesa does know.
+          python3 - <<'PYPATCH'
+          import sys
+          path = "drivers/gpu/drm/msm/adreno/adreno_gpu.c"
+          lines = open(path).read().splitlines(True)
+          keep = [l for l in lines if "speedbin) << 32" not in l]
+          removed = len(lines) - len(keep)
+          if removed != 1:
+              sys.exit(f"expected exactly one speedbin shift line, removed {removed}")
+          open(path, "w").writelines(keep)
+          print("removed the speedbin shift from MSM_PARAM_CHIP_ID")
+          PYPATCH
+          grep -n -A3 'case MSM_PARAM_CHIP_ID' drivers/gpu/drm/msm/adreno/adreno_gpu.c
+
       - name: Copy the rebased tree into place
         run: |
           # Keep the piano history (it is the modified tree) and just move it to
