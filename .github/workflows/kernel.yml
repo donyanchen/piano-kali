@@ -232,6 +232,7 @@ jobs:
           # KWin fell back to llvmpipe. The kernel already used the speedbin for
           # OPP selection by then, so report the plain chip id (0x44050001),
           # which Mesa does know.
+          cd piano
           python3 - <<'PYPATCH'
           import sys
           path = "drivers/gpu/drm/msm/adreno/adreno_gpu.c"
