@@ -310,6 +310,8 @@ jobs:
           # Development build: a signature-forced kernel would refuse every
           # module we did not sign, which kills Wi-Fi, charging and audio at
           # once. Keep signing off until the stack is proven on hardware.
+          # The piano camera daemon exposes the CAMSS stream through v4l2loopback.
+          CONFIG_VIDEO_V4L2LOOPBACK=m
           CONFIG_MODULE_SIG=n
           CONFIG_MODULE_SIG_FORCE=n
           CONFIG_MODULE_SIG_ALL=n
