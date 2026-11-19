@@ -310,8 +310,6 @@ jobs:
           # Development build: a signature-forced kernel would refuse every
           # module we did not sign, which kills Wi-Fi, charging and audio at
           # once. Keep signing off until the stack is proven on hardware.
-          # The piano camera daemon exposes the CAMSS stream through v4l2loopback.
-          CONFIG_VIDEO_V4L2LOOPBACK=m
           CONFIG_MODULE_SIG=n
           CONFIG_MODULE_SIG_FORCE=n
           CONFIG_MODULE_SIG_ALL=n
@@ -410,6 +408,16 @@ jobs:
           mkdir -p ../out/modules
           cp arch/arm64/boot/Image ../out/
           make -s LLVM=1 kernelrelease > ../out/kernel-release
+          # v4l2loopback is out-of-tree; the camera daemon needs it.
+          KREL=$(cat ../out/kernel-release)
+          KDIR=$PWD make -s LLVM=1 modules_prepare || true
+          git clone -q --depth 1 https://github.com/umlaeute/v4l2loopback ../v4l2loopback || true
+          if [ -d ../v4l2loopback ]; then
+            make -s -C ../v4l2loopback KERNEL_DIR=$PWD \
+              modules 2>&1 | tail -5 || echo '::warning::v4l2loopback build failed'
+            find ../v4l2loopback -name 'v4l2loopback.ko' -exec cp {} ../out/modules/ \; 2>/dev/null || true
+            ls -l ../out/modules/ | head -5
+          fi
           cat ../out/kernel-release
           cp .config ../out/config
           # Preserve the generic filename consumed by scripts/mk-bootimg.sh;
