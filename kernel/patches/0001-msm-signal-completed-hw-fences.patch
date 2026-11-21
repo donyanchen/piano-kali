@@ -1,0 +1,138 @@
+From e11a25e13387eee5df54ce8f610ba1d50fff7b01 Mon Sep 17 00:00:00 2001
+From: yzddmr6 <46088090+yzddmr6@users.noreply.github.com>
+Date: Tue, 17 Nov 2026 15:04:15 GMT
+Subject: [PATCH 1/2] drm/msm: Signal completed hw fences from the irq handler
+
+Since commit 3c7a52217a8c ("drm/msm: Drop update_fences()") the irq
+handler only advances the completed fence.  A submit's hw_fence, and
+with it the scheduler fence that is attached to the BOs, is signalled
+only when retire_submits() calls dma_fence_is_signaled() on it.
+retire_submits() handles one submit at a time, and before it gets to
+the next one, msm_submit_retire() takes the reservation lock of each BO
+of the current submit.
+
+So completing a fence requires dma_resv locks.  The dma-fence
+cross-driver contract does not allow that: drivers may call
+dma_fence_wait() while holding a dma_resv lock, so any code required
+for fence completion cannot acquire one.  The msm shrinker is such a
+waiter.  drm_gem_lru_scan() trylocks each BO, and active_evict() waits
+for the fences of the BO with its lock held.  If an older submit that
+is not retired yet uses the same BO, retire blocks on that lock, the
+fences of newer, completed submits stay unsignalled, and the wait can
+only end by its 10 jiffy timeout.  The scan then moves on to the next
+BO and does the same.  With a mostly busy LRU a single reclaim pass
+takes minutes, while the reclaiming task keeps every lock it held on
+entry.
+
+On SM8750 (Adreno 830) under memory pressure, gnome-shell entered
+reclaim from the submit ioctl while holding the locks of its BOs, and
+the retire worker blocked on one of them:
+
+  [ 3142.833462] INFO: task gpu-worker:584 blocked for more than 120 seconds.
+  [ 3142.833489] Call trace:
+  [ 3142.833511]  ww_mutex_lock+0xbc/0x394
+  [ 3142.833513]  msm_submit_retire+0x68/0xec
+  [ 3142.833517]  retire_submits+0x1a8/0x348
+  [ 3142.833519]  retire_worker+0x14/0x20
+  [ 3142.833521]  kthread_worker_fn+0xe0/0x2ec
+  [ 3142.833583] INFO: task gpu-worker:584 is blocked on a mutex likely owned by task gnome-shell:5062.
+  [ 3142.833588] task:gnome-shell     state:D stack:0     pid:5062  tgid:5062  ppid:4622   task_flags:0x400800 flags:0x00000018
+  [ 3142.833590] Call trace:
+  [ 3142.833601]  dma_fence_default_wait+0x22c/0x280
+  [ 3142.833607]  dma_fence_wait_timeout+0x16c/0x378
+  [ 3142.833609]  dma_resv_wait_timeout+0x78/0x134
+  [ 3142.833611]  active_evict+0x28/0x80
+  [ 3142.833612]  drm_gem_lru_scan+0x114/0x2c4
+  [ 3142.833617]  msm_gem_shrinker_scan+0x10c/0x2ec
+  [ 3142.833619]  do_shrink_slab+0x188/0x458
+  [ 3142.833624]  shrink_slab+0xd8/0x508
+  [ 3142.833626]  shrink_node+0x3d0/0xa30
+  [ 3142.833628]  do_try_to_free_pages+0xe8/0x498
+  [ 3142.833630]  try_to_free_pages+0xfc/0x2b4
+  [ 3142.833632]  __alloc_frozen_pages_noprof+0x7c8/0x1634
+  ...
+  [ 3142.833652]  drm_gem_get_pages+0xa4/0x2a4
+  [ 3142.833655]  get_pages+0x4c/0x198
+  [ 3142.833656]  msm_gem_pin_vma_locked+0x60/0xa0
+  [ 3142.833658]  msm_ioctl_gem_submit+0xd18/0x1838
+
+On another SM8750 device, the virtio-gpu thread of a crosvm guest
+entered reclaim from the kvmalloc() in the submit ioctl, and a
+virtio-blk thread from an ext4 write.  Both were found in the same
+wait when the guest stopped responding:
+
+   dma_fence_default_wait+0x1fc/0x230
+   dma_fence_wait_timeout+0xbc/0xfc
+   dma_resv_wait_timeout+0x78/0x134
+   active_evict+0x28/0x80
+   drm_gem_lru_scan+0x114/0x2c4
+   msm_gem_shrinker_scan+0x108/0x248
+   ...
+   __kvmalloc_node_noprof+0x27c/0x56c
+   msm_ioctl_gem_submit+0x28c/0x1760
+
+Signal completed hw fences from msm_gpu_retire() again, which runs from
+the irq handler, the hangcheck timer and the recover worker.  The
+completed fence is still updated first and unconditionally, so the race
+fixed by that commit does not come back.  Then ring->submits is walked
+under submit_lock, and fences are signalled in order up to the first
+submit that is not complete.  This nests the fence lock inside
+submit_lock, as update_fences() did.  retire_submits() still does the
+cleanup, but fence signalling no longer waits for it.
+
+Fixes: 3c7a52217a8c ("drm/msm: Drop update_fences()")
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/drivers/gpu/drm/msm/msm_gpu.c b/drivers/gpu/drm/msm/msm_gpu.c
+--- a/drivers/gpu/drm/msm/msm_gpu.c
++++ b/drivers/gpu/drm/msm/msm_gpu.c
+@@ -850,13 +850,46 @@ static void retire_worker(struct kthread_work *work)
+ 	retire_submits(gpu);
+ }
+ 
+-/* call from irq handler to schedule work to retire bo's */
++/*
++ * Signal the hw_fence of each submit the GPU has completed, in ring order.
++ *
++ * This must not depend on retire_submits(), which takes the reservation lock
++ * of each BO of a submit: dma_fence_wait() may be called with a reservation
++ * lock held (by the shrinker, for example), and that waiter would then block
++ * the signalling of the fence it waits for.
++ */
++static void signal_completed_submits(struct msm_ringbuffer *ring)
++{
++	struct msm_gem_submit *submit;
++	unsigned long flags;
++
++	spin_lock_irqsave(&ring->submit_lock, flags);
++	list_for_each_entry(submit, &ring->submits, node) {
++		/*
++		 * Submits on a ring complete in order, so stop at the first
++		 * one that is not complete.  dma_fence_is_signaled() signals
++		 * the fence when msm_fence_signaled() reports it complete.
++		 */
++		if (!dma_fence_is_signaled(submit->hw_fence))
++			break;
++	}
++	spin_unlock_irqrestore(&ring->submit_lock, flags);
++}
++
++/*
++ * call from irq handler to signal completed fences, and schedule work to
++ * retire bo's
++ */
+ void msm_gpu_retire(struct msm_gpu *gpu)
+ {
+ 	int i;
+ 
+-	for (i = 0; i < gpu->nr_rings; i++)
+-		msm_update_fence(gpu->rb[i]->fctx, gpu->rb[i]->memptrs->fence);
++	for (i = 0; i < gpu->nr_rings; i++) {
++		struct msm_ringbuffer *ring = gpu->rb[i];
++
++		msm_update_fence(ring->fctx, ring->memptrs->fence);
++		signal_completed_submits(ring);
++	}
+ 
+ 	kthread_queue_work(gpu->worker, &gpu->retire_work);
+ }

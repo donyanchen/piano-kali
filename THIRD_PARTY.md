@@ -4,6 +4,7 @@
 
 | 组件 | 固定来源/入口 | 许可与分发说明 |
 | --- | --- | --- |
+| Piano MSM GPU 回收补丁 | [yzddmr6/linux-sm8750-piano](https://github.com/yzddmr6/linux-sm8750-piano)，`e11a25e13387eee5df54ce8f610ba1d50fff7b01`、`da4b783e34bd05d7451a6f904fbf567af1215f99`；原作者 yzddmr6，保留原 Co-Authored-By；哈希见 [manifest](kernel/patches/gpu-reclaim-fixes.json) | GPL-2.0-only；完整补丁保留提交说明与作者，不附加代签 DCO；测试中的 C 上下文来自 GPL-2.0-only 的 Linux v7.4-rc3 |
 | Linux sheng | [ianchb/sm8550-mainline](https://github.com/ianchb/sm8550-mainline)，commit `87ac0f2347eb433933841e6854950dd90e96e6b2` | 驱动补丁遵循 GPL-2.0-only；不随仓库提交内核二进制 |
 | 固件/触屏/硬件库 | [sources.json](configs/sources.json) 内固定提交、下载和哈希 | 各上游许可；构建时获取，不把缓存打包入源仓库 |
 | Debian sheng 音频适配 | [alghiffaryfa19/debian-sheng](https://github.com/alghiffaryfa19/debian-sheng) | 固定来源见 sources.json，保留上游声明 |

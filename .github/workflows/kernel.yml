@@ -10,6 +10,12 @@ name: kernel
 # Nothing is cloned locally and nothing is flashed here: the artifact layout is
 # what scripts/build-kali.sh consumes through PIANO_KERNEL_DIR.
 on:
+  push:
+    branches: [fix/gpu-reclaim-stalls]
+    paths:
+      - kernel/patches/**
+      - tools/apply-gpu-reclaim-fixes.py
+      - .github/workflows/kernel.yml
   workflow_dispatch:
     inputs:
       kver:
@@ -24,7 +30,8 @@ on:
         description: 'Image + dtb only, no modules'
         type: boolean
         default: false
-  # Dispatched by hand only: each run is ~40 min on a free runner.
+  # Normal branches remain manual. The dedicated GPU-fix branch also builds
+  # its candidate on push so this backport gets a complete kernel/module check.
 concurrency:
   group: kernel-${{ github.ref }}
   cancel-in-progress: true
@@ -39,6 +46,8 @@ env:
   # The commit the piano branch is based on: everything after it is "our" patch set.
   PIANO_BASE: 7475ea8b58616b33c04afb976cf0fbaad9dd63fb
   KBUILD: '-j$(nproc) LLVM=1'
+  # Set, including when empty, so Kbuild does not append a dirty-tree '+'.
+  LOCALVERSION: ''
 
 jobs:
   build:
@@ -46,6 +55,9 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
+
+      - name: Test GPU patch application guards
+        run: python3 -m unittest discover -s tests -p test_gpu_reclaim_fixes.py -v
 
       - name: Install toolchain
         run: |
@@ -224,6 +236,11 @@ jobs:
             [ "$n" -ge 1 ] || { echo "::error::$sym definition missing from the restored file"; exit 1; }
           done
 
+      - name: Apply the pinned GPU reclaim and fence fixes
+        run: |
+          python3 tools/apply-gpu-reclaim-fixes.py --kernel-tree piano \
+            --report out/gpu-reclaim-fixes.json
+
       - name: Patch the GPU chip id reported to userspace
         run: |
           # MSM_PARAM_CHIP_ID ORs the GPU speedbin into the high 32 bits when
@@ -285,6 +302,8 @@ jobs:
           # Kali wants a real initramfs-less ext4 root, uhid for the touch daemon,
           # and bootconfig for the vendor_boot cmdline.
           cat > ../kali.config <<'EOF'
+          # New driver/config ABI: keep all rebuilt modules separate from piano8.
+          CONFIG_LOCALVERSION="-piano9"
           CONFIG_UHID=m
           CONFIG_BOOT_CONFIG=y
           CONFIG_EXT4_FS=y
@@ -376,6 +395,7 @@ jobs:
           check CONFIG_TYPEC y "USB-C/PD role switching built in"
           check CONFIG_REGMAP_I2C y "I2C register-map support built in"
           check CONFIG_CRYPTO_LIB_SHA256 y "MCA protocol SHA-256 built in"
+          check CONFIG_LOCALVERSION '"-piano9"' "GPU reclaim fix uses a new module ABI"
           # This build uses unsigned development modules; ensure Kconfig did not
           # re-enable forced signature verification via an imported fragment.
           # MODULE_SIG_FORCE / MODULE_SIG_ALL do not appear in .config at all
@@ -393,6 +413,9 @@ jobs:
             printf '  %-40s %s\n' CONFIG_MODULE_SIG "off"
           fi
           exit $fail
+
+      - name: Verify GPU fixes survived source preparation
+        run: python3 tools/apply-gpu-reclaim-fixes.py --kernel-tree linux --verify-only
 
       - name: Build Image, DTB and modules
         env:
@@ -486,6 +509,40 @@ jobs:
             find ../out/modules -type l -delete
           fi
           ccache -s | head -5
+
+      - name: Record kernel inputs and artifact hashes
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          out = pathlib.Path('out')
+          release = (out / 'kernel-release').read_text().strip()
+          if not release.endswith('-piano9'):
+              raise SystemExit(f'Unexpected kernel ABI: {release}')
+          def digest(path):
+              with path.open('rb') as stream:
+                  return hashlib.file_digest(stream, 'sha256').hexdigest()
+          def revision(ref):
+              return subprocess.check_output(
+                  ['git', '-C', 'linux', 'rev-parse', ref], text=True).strip()
+          report = json.loads((out / 'gpu-reclaim-fixes.json').read_text())
+          if not report['source_verified']:
+              raise SystemExit('GPU source verification did not complete')
+          record = {
+              'version': 1, 'kernel_release': release,
+              'pipeline_commit': os.environ['GITHUB_SHA'],
+              'upstream_tag': os.environ['KVER'],
+              'upstream_commit': revision('refs/tags/' + os.environ['KVER'] + '^{commit}'),
+              'piano_source_commit': os.environ['PIANO_REF'],
+              'prepared_source_head': revision('HEAD'),
+              'gpu_fixes': report['patches'],
+              'sha256': {name: digest(out / name) for name in
+                         ('Image', 'config', 'sm8750-piano.dtb')},
+              'hardware_validation': 'NOT_PERFORMED',
+          }
+          (out / 'kernel-build-manifest.json').write_text(
+              json.dumps(record, indent=2) + '\n')
+          print(json.dumps(record, indent=2))
+          PY
 
       - uses: actions/upload-artifact@v4
         with:

@@ -1,0 +1,57 @@
+From da4b783e34bd05d7451a6f904fbf567af1215f99 Mon Sep 17 00:00:00 2001
+From: yzddmr6 <46088090+yzddmr6@users.noreply.github.com>
+Date: Tue, 17 Nov 2026 15:04:15 GMT
+Subject: [PATCH 2/2] drm/msm/shrinker: Only block for active BOs from kswapd
+
+can_block() lets direct reclaim wait for active BOs to become idle, up
+to 10 jiffies per BO.  Direct reclaim runs in the task that allocates,
+and for a GPU driver that is often a task the GPU and the desktop
+depend on: the compositor, or a task in the submit ioctl that holds the
+reservation locks of the BOs it submits and allocates while pinning
+them or for its submit tables.  Waiting there for the GPU turns memory
+pressure into a stall of that task for as long as the scan takes, and
+of everything that waits for the locks it holds.  When most BOs are
+busy, as with userspace drivers that list every BO in each submit, the
+scan runs into the timeout on BO after BO.
+
+Other DRM drivers do not block on the GPU in direct reclaim.  i915
+reaps active objects only from kswapd, see commit 5763ff04dc4e
+("drm/i915: Avoid GPU stalls from kswapd") and commit 1d24ad457c54
+("drm/i915: Allow kswapd to pause the device whilst reaping").  TTM
+based drivers such as xe use ttm_bo_shrink_avoid_wait(), added by
+commit 70d645deac98 ("drm/ttm: Add helpers for shrinking"), which only
+lets kswapd wait for the GPU.
+
+Do the same, and only let kswapd run the blocking active_purge and
+active_evict stages.  This changes the policy of commit df0f439e3926
+("drm/msm/shrinker: Fix can_block() logic"), which also allowed any
+direct reclaim to block.  Direct reclaim still purges and evicts idle
+BOs without waiting.  The eviction_can_block parameter keeps its
+meaning and still disables blocking entirely.
+
+Fixes: 025d27239a2f ("drm/msm/gem: Evict active GEM objects when necessary")
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+diff --git a/drivers/gpu/drm/msm/msm_gem_shrinker.c b/drivers/gpu/drm/msm/msm_gem_shrinker.c
+--- a/drivers/gpu/drm/msm/msm_gem_shrinker.c
++++ b/drivers/gpu/drm/msm/msm_gem_shrinker.c
+@@ -28,12 +28,17 @@ static bool can_swap(void)
+ 	return enable_eviction && get_nr_swap_pages() > 0;
+ }
+ 
++/*
++ * Only kswapd waits for active BOs to become idle.  Direct reclaim runs in the
++ * allocating task, which may be the compositor or a task submitting GPU work
++ * and holding the locks of the BOs it submits, so waiting there for the GPU
++ * stalls that task, and everything waiting on it, for the length of the scan.
++ */
+ static bool can_block(struct shrink_control *sc)
+ {
+ 	if (!eviction_can_block)
+ 		return false;
+-	return (sc->gfp_mask & __GFP_DIRECT_RECLAIM) ||
+-	       (current_is_kswapd() && (sc->gfp_mask & __GFP_KSWAPD_RECLAIM));
++	return current_is_kswapd() && (sc->gfp_mask & __GFP_KSWAPD_RECLAIM);
+ }
+ 
+ static unsigned long

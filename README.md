@@ -2,11 +2,18 @@
 
 在小米平板 8 Pro（`piano` / `25091RP04C`，骁龙 8 至尊版 SM8750）上跑原生 **Kali Linux ARM64 + KDE Plasma Wayland**，内核由本项目自己从 upstream 构建。
 
+## GPU 长时间卡顿候选修复
+
+当前 kernel 工作流使用 `v7.4-rc3`、固定 piano 来源和单独校验的 MSM 回收/同步补丁。
+候选 ABI 为 `-piano9`，重建完整匹配模块，并生成 Image/config/DTB 的来源与哈希清单。
+源码应用检查已通过，完整编译和真机回归分别记录，不把源码检查当作已修复硬件。
+方法与回退见 [GPU-RECLAIM.md](docs/GPU-RECLAIM.md)。
+
 ## 仓库结构：两条独立流水线
 
 | 线 | 目录 / 工作流 | 来源 | 触发 |
 |---|---|---|---|
-| **内核** | `kernel/`、`.github/workflows/kernel.yml`、`docs/KERNEL-TRUTH.md`、`docs/KERNEL-GAP.md` | kernel.org `v7.3.4` + 按原厂真值自写 | 改 `kernel/**` 才跑 |
+| **内核** | `kernel/`、`.github/workflows/kernel.yml`、`docs/GPU-RECLAIM.md` | upstream `v7.4-rc3` + 固定 piano 回放 + 两项 MSM 回收修复 | 手动；GPU 修复专用分支按受限路径触发 |
 | **Kali** | `device/`、`scripts/`、`docs/`（sheng 那批）、`.github/workflows/build.yml` | 1:1 同步 sheng-kali-linux（`scripts/sync-sheng-base.sh`） | 手动 / 每周同步 |
 
 两条线的唯一接口是 `scripts/build-kali.sh` 的 `PIANO_KERNEL_DIR`：Kali 镜像构建时把内核
@@ -17,7 +24,7 @@ artifact 拿过去装模块、做 initramfs、拼 boot 三件套。除此之外�
 
 | 层 | 来源 | 说明 |
 |---|---|---|
-| 内核 / 设备树 | **kernel.org upstream**（linux-stable `v7.3.4`）+ **我们按原厂真值自写** | `kernel/dts/`、`kernel/configs/`；Actions 里编译，见 `.github/workflows/kernel.yml` |
+| 内核 / 设备树 | upstream `v7.4-rc3` + `yzddmr6/linux-sm8750-piano@1c21cb9895d69c1c5e83ceae68952fedf522644a` + [固定回收补丁](kernel/patches/README.md) | Actions 回放源码并合并其九个配置片段；`kernel/configs/piano.config` 是早期记录，不是当前工作流输入 |
 | Kali 用户态 | **1:1 复刻 [sheng-kali-linux](https://github.com/LuKeyC-NetSEC/sheng-kali-linux)**，按 piano 换设备值 | `scripts/build-kali.sh` + `device/` + `docs/` |
 | 参考（**不作代码来源**） | [xiaomipad-8pro-mainline](https://github.com/yzddmr6/xiaomipad-8pro-mainline) | 只用来对照行为，不 clone、不 cherry-pick、不复制 DTS/驱动 |
 
@@ -56,9 +63,9 @@ artifact 拿过去装模块、做 initramfs、拼 boot 三件套。除此之外�
 
 **Actions → kernel → Run workflow**（或直接 push `kernel/**`）。
 
-流水线做的事：拉 `linux-stable v7.3.4` → 放入 `kernel/dts/sm8750-piano.dts` → 合并 `kernel/configs/piano.config` → `LLVM=1` 编 `Image`/`dtbs`/`modules` → 上传 artifact。
+流水线做的事：固定 piano 源码回放到 `v7.4-rc3` → 校验并应用两项 MSM 回收修复 → 保留 chip-ID 修正 → 合并固定配置与 piano9 ABI → 编译 `Image`/`dtbs`/`modules` → 沿原有流程准备启动 DTB → 记录来源、哈希并上传 artifact。
 
-产物：`Image`、`sm8750-piano.dtb`、`modules/`、`config`。
+产物：`Image`、`sm8750-piano.dtb`、`modules/`、`config`、`kernel-release`、`gpu-reclaim-fixes.json` 和 `kernel-build-manifest.json`。正常安装使用完整模块构建，先按清单核对实际运行镜像。
 
 ### 2. Kali 根文件系统（Actions）
 
