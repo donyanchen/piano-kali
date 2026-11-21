@@ -1,0 +1,14 @@
+[Unit]
+Description=KDE RDP server (piano)
+After=plasma-plasmashell.service
+
+[Service]
+Type=simple
+# krdpserver 需要一对证书；首启没有就现生成（自签 10 年），免得服务起不来重启循环。
+ExecStartPre=/bin/sh -c '[ -f %h/.local/share/krdp/krdp.crt ] || { mkdir -p %h/.local/share/krdp && openssl req -x509 -newkey rsa:2048 -nodes -keyout %h/.local/share/krdp/krdp.key -out %h/.local/share/krdp/krdp.crt -days 3650 -subj /CN=piano && chmod 600 %h/.local/share/krdp/krdp.key; }'
+ExecStart=/usr/bin/krdpserver --port 3389 --username kali --password kali --certificate %h/.local/share/krdp/krdp.crt --certificate-key %h/.local/share/krdp/krdp.key
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=plasma-workspace.target

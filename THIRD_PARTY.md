@@ -14,7 +14,7 @@
 | Linexin 抽屉与 Dock | [Petexy/Linexin-Launcher](https://github.com/Petexy/Linexin-Launcher)，`43da5eab6e367f96f8e1aca9a90867a4289a9557` | GPL-3.0-or-later；固定归档哈希见 drawer-provenance，构建保留 LICENSE/NOTICE，Dock 提取文件保留 Petexy 版权 |
 | 原生桌面触控集成 | [device/desktop-touch-guard](device/desktop-touch-guard/README.md) | GPL-3.0-or-later，链接匹配的 KWin 开发库 |
 | 原生 Alt+Tab 布局 | 系统安装的 KWin thumbnail_grid | 复制时保留作者/许可，仅改导航边界 |
-| Panel Colorizer | [luisbocanegra/plasma-panel-colorizer](https://github.com/luisbocanegra/plasma-panel-colorizer)，`a8f8b1cee7bbc670cf2a5f5d194c24c314073b82` | 外部安装；插件需匹配 Qt/Plasma |
+| Panel Colorizer | [luisbocanegra/plasma-panel-colorizer](https://github.com/luisbocanegra/plasma-panel-colorizer)，8.1.0（`a8f8b1cee7bbc670cf2a5f5d194c24c314073b82`），原样 vendored 于 `vendor/panel-colorizer/` | GPL-3.0；保留上游 metadata.json / LICENSE |
 | Colloid | [vinceliuice/Colloid-icon-theme](https://github.com/vinceliuice/Colloid-icon-theme)，`ceac6608ecd0e40025cbc2ebbd32bf0e0f4ebc6a` | 外部主题，保留其许可 |
 | Redmi Clock / Lagtrain | KDE Store 2175475 / 2124802 | 仓库仅提供天气/布局修改，不包含原包 |
 | 水杉输入法 | [metasequoiaime/msime](https://github.com/metasequoiaime/msime/releases/tag/linux-v0.16.1) | 官方 ARM64 包外部安装；不分发运行数据/账户/模型缓存 |

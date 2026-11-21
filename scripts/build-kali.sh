@@ -101,7 +101,7 @@ chroot "$ROOTFS" apt-get install -y --no-install-recommends \
     network-manager plasma-nm bluedevil wpasupplicant wireless-regdb iw rfkill \
     sddm systemsettings plasma-keyboard qt6-virtualkeyboard-plugin konsole dolphin \
     kscreen kinfocenter kde-config-gtk-style kwin-addons breeze-gtk-theme \
-    plasma-workspace-wallpapers filelight kclock \
+    plasma-workspace-wallpapers filelight kclock krdp \
     pipewire-audio pulseaudio-utils playerctl brightnessctl brightness-udev wl-clipboard \
     libgl1-mesa-dri mesa-vulkan-drivers xserver-xorg-input-libinput \
     fonts-noto-cjk fonts-noto-color-emoji firefox-esr \
@@ -237,6 +237,23 @@ for preset in Piano-Dock Piano-Top; do
     install -Dm 0644 "$PROJECT/configs/panel-colorizer/$preset/settings.json" \
         "$ROOTFS/home/kali/.config/panel-colorizer/presets/$preset/settings.json"
 done
+
+# Panel Colorizer 本体（KDE Store luisbocanegra.panel.colorizer 8.1.0，GPL-3.0）
+# 只推预设是不够的：plasmoid 本身不装，预设没有宿主。
+install -d "$ROOTFS/home/kali/.local/share/plasma/plasmoids"
+rm -rf "$ROOTFS/home/kali/.local/share/plasma/plasmoids/luisbocanegra.panel.colorizer"
+cp -a "$PROJECT/vendor/panel-colorizer" \
+    "$ROOTFS/home/kali/.local/share/plasma/plasmoids/luisbocanegra.panel.colorizer"
+
+# 电源策略：默认 5 分钟变暗 / AC 1 小时熄屏 / 电池 30 分钟熄屏并挂起，
+# 电源键短按 = 锁屏(16)、长按 = 关机(8)。平板上这组值实测不闪屏不误睡。
+install -Dm 0644 "$PROJECT/device/powerdevilrc" "$ROOTFS/home/kali/.config/powerdevilrc"
+
+# KDE 自带 RDP 服务（krdp 6.7.4-1），:3389，开机随 plasma-workspace 起来
+install -Dm 0644 "$PROJECT/device/krdp-piano.service" "$ROOTFS/home/kali/.config/systemd/user/krdp-piano.service"
+ln -sf /home/kali/.config/systemd/user/krdp-piano.service \
+    "$ROOTFS/home/kali/.config/systemd/user/plasma-workspace.target.wants/krdp-piano.service"
+
 install -Dm 0755 "$PROJECT/vendor/extract-thp-calibration.py" "$ROOTFS/usr/lib/piano/extract-thp-calibration.py"
 install -d "$ROOTFS/etc/piano"
 printf 'THP calibration is unit specific. piano-thp-calibrate extracts it from the stock odm partition\non first boot; if that fails, copy the JSON from the Android side to /etc/piano/thp-calibration.json.\n' \
