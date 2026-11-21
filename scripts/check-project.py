@@ -37,7 +37,7 @@ def main():
             continue
         if path.stat().st_size > 5 * 1024 * 1024:
             problems.append(name + ': unexpected large file')
-        if path.suffix.lower() in ('.jpg', '.jpeg', '.png', '.otf', '.ttf', '.woff2') or name == 'parted':
+        if path.suffix.lower() in ('.jpg', '.jpeg', '.png', '.otf', '.ttf', '.woff2', '.dtb') or name == 'parted':
             continue  # Binary assets, documented in THIRD_PARTY.md.
         try:
             data = path.read_text(encoding='utf-8')
