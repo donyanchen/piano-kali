@@ -47,6 +47,9 @@ def main():
     parser.add_argument('--stock-overlay', type=Path, required=True)
     parser.add_argument('--ufdt', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--testboot-identity', action='store_true',
+                        help='emit the board-id/msm-id that the reference DTB uses, for '
+                             'fastboot-boot test images where ABL does not merge the stock DTBO')
     args = parser.parse_args()
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=False)
@@ -72,15 +75,16 @@ def main():
         parser.error('Plain overlay already works; no compatibility transformation is needed')
 
     mainline.resize(mainline.totalsize() + 128 * 1024)
-    # ABL 只在 board-id/msm-id 命中时才会把原厂 DTBO 叠上去。沿用原厂
-    # stock-base.dtb 里的值（board-id <0 8>, 8 条 msm-id）在真机上**不命中**：
-    # DTBO 被跳过 → 内核拿到的 memory 节点大小为 0 → 连 initramfs 的 /init 都
-    # 跑不到（2026-11-18 在 A/B 两槽各复现一次，boot-log.txt 从未生成）。
-    # 参考项目发布包里能启动的 DTB 用的是下面这一组；与人的 DTB 逐行 diff，
-    # 除了这两条属性之外 1392 个节点完全一致，换成这组当场进 KDE。
-    # 详见 docs/boot-dtb-identity.md。
-    mainline.setprop(0, 'qcom,board-id', struct.pack('>II', 0x00, 0x00))
-    mainline.setprop(0, 'qcom,msm-id', struct.pack('>II', 0x100027F, 0x20000))
+    base = libfdt.Fdt(args.stock_base.read_bytes())
+    for name in ('qcom,msm-id', 'qcom,board-id'):
+        mainline.setprop(0, name, bytes(base.getprop(0, name)))
+    if args.testboot_identity:
+        # 刷机路径（vendor_boot）由 ABL 正常合原厂 DTBO，身份属性沿用原厂即可；
+        # 但 `fastboot boot ram-test.img` 是 header v2 把 DTB 直接塞进 boot.img，
+        # ABL 不会叠 DTBO，真机上表现为 Mi logo → 回 fastboot、boot-log.txt 不生成。
+        # 参考项目里能在 fastboot boot 下起来的 DTB 用这一组身份属性。
+        mainline.setprop(0, 'qcom,board-id', struct.pack('>II', 0x00, 0x00))
+        mainline.setprop(0, 'qcom,msm-id', struct.pack('>II', 0x100027F, 0x20000))
     # The disabled parent prevents stock platform devices from being populated,
     # even if a fragment replaces the target's status or compatible property.
     parent = '/firmware/piano-stock-overlay'
@@ -114,8 +118,13 @@ def main():
     packaged = out / 'piano-boot.dtb'
     packaged.write_bytes(mainline.as_bytearray())
     written = libfdt.Fdt(packaged.read_bytes())
-    for name, want in (('qcom,board-id', [0x00, 0x00]),
-                       ('qcom,msm-id', [0x100027F, 0x20000])):
+    if args.testboot_identity:
+        expected = (('qcom,board-id', [0x00, 0x00]),
+                    ('qcom,msm-id', [0x100027F, 0x20000]))
+    else:
+        expected = (('qcom,board-id', base.getprop(0, 'qcom,board-id').as_uint32_list()),
+                    ('qcom,msm-id', base.getprop(0, 'qcom,msm-id').as_uint32_list()))
+    for name, want in expected:
         got = written.getprop(0, name).as_uint32_list()
         if got != want:
             raise RuntimeError(f'{name} = {got}, expected {want}: ABL would skip the stock DTBO')
@@ -139,7 +148,8 @@ def main():
     if unexpected:
         raise RuntimeError(f'Unexpected stock nodes outside isolation: {unexpected[:5]}')
     report = {
-        'status': 'DEVICE_IDENTITY_BOOT_VERIFIED_OVERLAY_OFFLINE_VERIFIED',
+        'status': 'FLASH_PATH_DEVICE_VERIFIED_OVERLAY_OFFLINE_VERIFIED',
+        'identity_mode': 'testboot' if args.testboot_identity else 'stock',
         'method': 'Stock board fixups isolated; observed Gunyah arch_timer symbol resolves to the real timer',
         'fixup_count': len(fixups), 'hardware_nodes_unchanged': len(original) - 1,
         'hardware_comparison_baseline': 'Prepared DTB, including the explicitly added timer phandle',
