@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "upstream": "https://github.com/yzddmr6/linux-sm8750-piano",
+  "license": "GPL-2.0-only",
+  "patches": [
+    {
+      "file": "0001-msm-signal-completed-hw-fences.patch",
+      "commit": "e11a25e13387eee5df54ce8f610ba1d50fff7b01",
+      "sha256": "4f76237a166fcb18dbd25f33770c2e5668f5f593d025d709be4fcca8db67cbae"
+    },
+    {
+      "file": "0002-msm-block-active-reclaim-only-in-kswapd.patch",
+      "commit": "da4b783e34bd05d7451a6f904fbf567af1215f99",
+      "sha256": "dd5332aec3c0403c451708c825d4559f3f41ebf9c53db9afa8f6ac7c6aa39de9"
+    }
+  ]
+}
