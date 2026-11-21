@@ -148,6 +148,15 @@ install -Dm 0644 "$PROJECT/device/piano-thp-calibrate.service" "$ROOTFS/etc/syst
 install -d "$ROOTFS/usr/share/alsa/ucm2"
 cp -a "$PROJECT/vendor/audio/ucm2/." "$ROOTFS/usr/share/alsa/ucm2/"
 chmod -R a+rX "$ROOTFS/usr/share/alsa/ucm2"
+# 四只扬声器的声道映射：UCM 假设 ch0=TL/ch1=TR/ch2=BL/ch3=BR，piano 实测是
+# TL/BL/TR/BR，直接用 UCM 会让右声道从左下出。这里用一个 ALSA route PCM 把
+# 立体声上混成 4 声道，再让 PipeWire 把它注册成默认输出（配置文件必须 644，
+# 否则 PipeWire 以普通用户读不到，sink 会退回 auto_null）。
+install -d "$ROOTFS/etc/alsa/conf.d" "$ROOTFS/etc/pipewire/pipewire.conf.d"
+install -Dm 0644 "$PROJECT/device/99-piano-stereo.conf" \
+    "$ROOTFS/etc/alsa/conf.d/99-piano-stereo.conf"
+install -Dm 0644 "$PROJECT/device/99-piano-upmix.conf" \
+    "$ROOTFS/etc/pipewire/pipewire.conf.d/99-piano-upmix.conf"
 install -d "$ROOTFS/etc/systemd/logind.conf.d"
 printf '[Login]\nHandleLidSwitch=lock\nHandleLidSwitchExternalPower=lock\nHandleLidSwitchDocked=ignore\nHandlePowerKey=ignore\nHandlePowerKeyLongPress=ignore\n' \
     > "$ROOTFS/etc/systemd/logind.conf.d/99-kali-tablet.conf"
@@ -188,6 +197,41 @@ printf '#!/bin/sh\nexit 0\n' > "$ROOTFS/usr/libexec/sheng-privacy-bpf"
 chmod 0755 "$ROOTFS/usr/libexec/sheng-privacy-bpf"
 install -Dm 0755 "$PROJECT/device/piano-ipados" "$ROOTFS/usr/sbin/piano-ipados"
 install -Dm 0644 "$PROJECT/device/90-piano-ipados.rules" "$ROOTFS/etc/udev/rules.d/90-piano-ipados.rules"
+
+# ---- 设备侧修复：触屏 / 合盖 / 热点 / 蓝牙地址 / 远端桌面 ----
+# 这些是刷完镜像后在真机上一点点调出来的东西，缺了任何一项都会明显退化：
+#   - 60-piano-input-video.rules  : /dev/input/event* 归到 video 组，合盖监听才读得到
+#   - piano-lidwatch              : SW_LID 不发事件，靠 nanosic_hinge + DPMS 双通道补
+#   - piano-thp-override.conf     : 触屏流在会话切换后会短暂不可用，改成 Restart=always
+#   - piano-hotspot*              : wlan1 并发热点（反复启停 hostapd 会打挂 ath12k）
+#   - piano-bluetooth-address     : 出厂 BT MAC 在 persist 分区，Kali 读不到
+#   - todesk-launch / dbus 修补   : ToDesk 静态链的旧 libdbus 会撞系统符号而 SIGSEGV
+install -Dm 0644 "$PROJECT/device/60-piano-input-video.rules" \
+    "$ROOTFS/etc/udev/rules.d/60-piano-input-video.rules"
+install -Dm 0755 "$PROJECT/device/piano-lid-watch" "$ROOTFS/usr/local/bin/piano-lidwatch"
+install -Dm 0755 "$PROJECT/device/piano-touch-reset" "$ROOTFS/usr/local/bin/piano-touch-reset"
+install -Dm 0755 "$PROJECT/device/piano-restart-touch" "$ROOTFS/usr/local/bin/piano-restart-touch"
+install -Dm 0644 "$PROJECT/device/piano-thp-override.conf" \
+    "$ROOTFS/etc/systemd/system/piano-thp.service.d/override.conf"
+install -Dm 0644 "$PROJECT/device/piano-lid.service" "$ROOTFS/home/kali/.config/systemd/user/piano-lid.service"
+install -d "$ROOTFS/home/kali/.config/systemd/user/plasma-workspace.target.wants"
+ln -sf /home/kali/.config/systemd/user/piano-lid.service \
+    "$ROOTFS/home/kali/.config/systemd/user/plasma-workspace.target.wants/piano-lid.service"
+install -Dm 0755 "$PROJECT/device/piano-hotspot" "$ROOTFS/usr/local/bin/piano-hotspot"
+install -Dm 0755 "$PROJECT/device/piano-hotspot-ctl" "$ROOTFS/usr/local/bin/piano-hotspot-ctl"
+install -Dm 0755 "$PROJECT/device/piano-hotspot-toggle" "$ROOTFS/usr/local/bin/piano-hotspot-toggle"
+install -Dm 0644 "$PROJECT/device/piano-hotspot.service" "$ROOTFS/etc/systemd/system/piano-hotspot.service"
+install -Dm 0755 "$PROJECT/scripts/piano-bluetooth-address.py" "$ROOTFS/usr/libexec/piano-bluetooth-address"
+install -Dm 0755 "$PROJECT/device/todesk-launch" "$ROOTFS/usr/local/bin/todesk-launch"
+install -Dm 0755 "$PROJECT/device/todesk-dbus-fix.py" "$ROOTFS/usr/local/bin/todesk-dbus-fix.py"
+# ToDesk 会 exec pulseaudio 探测音频；本机走 PipeWire，一个返回 0 的空壳就够
+install -Dm 0755 "$PROJECT/device/piano-pulseaudio" "$ROOTFS/usr/local/bin/pulseaudio"
+install -Dm 0644 "$PROJECT/device/todesk-autostart.desktop" \
+    "$ROOTFS/home/kali/.config/autostart/todesk.desktop"
+for preset in Piano-Dock Piano-Top; do
+    install -Dm 0644 "$PROJECT/configs/panel-colorizer/$preset/settings.json" \
+        "$ROOTFS/home/kali/.config/panel-colorizer/presets/$preset/settings.json"
+done
 install -Dm 0755 "$PROJECT/vendor/extract-thp-calibration.py" "$ROOTFS/usr/lib/piano/extract-thp-calibration.py"
 install -d "$ROOTFS/etc/piano"
 printf 'THP calibration is unit specific. piano-thp-calibrate extracts it from the stock odm partition\non first boot; if that fails, copy the JSON from the Android side to /etc/piano/thp-calibration.json.\n' \

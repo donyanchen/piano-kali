@@ -1,0 +1,3 @@
+#!/bin/sh
+# ToDesk 会调用 pulseaudio 二进制探测音频；本机用 PipeWire，直接返回成功即可
+exit 0

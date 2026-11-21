@@ -1,0 +1,13 @@
+[Unit]
+Description=Piano concurrent Wi-Fi + hotspot (wlan1 AP)
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/piano-hotspot
+ExecStop=/usr/bin/pkill -f hostapd
+
+[Install]
+WantedBy=multi-user.target

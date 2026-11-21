@@ -1,0 +1,1 @@
+SUBSYSTEM=="input", KERNEL=="event*", GROUP="video", MODE="0660"

@@ -1,0 +1,12 @@
+[Unit]
+Description=Piano lid switch: blank on close, restore on open
+After=plasma-plasmashell.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/bin/piano-lidwatch
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=plasma-workspace.target

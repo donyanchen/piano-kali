@@ -1,0 +1,287 @@
+{
+  "globalSettings": {
+    "panel": {
+      "normal": {
+        "enabled": true,
+        "blurBehind": false,
+        "backgroundColor": {
+          "enabled": false
+        },
+        "foregroundColor": {
+          "enabled": true,
+          "lightnessValue": 0.5,
+          "saturationValue": 0.5,
+          "alpha": 1,
+          "systemColor": "highlightColor",
+          "systemColorSet": "View",
+          "custom": "#ffffff",
+          "list": [
+            "#ED8796",
+            "#A6DA95",
+            "#EED49F",
+            "#8AADF4",
+            "#F5BDE6",
+            "#8BD5CA",
+            "#f5a97f"
+          ],
+          "followColor": 0,
+          "saturationEnabled": false,
+          "lightnessEnabled": false,
+          "animation": {
+            "enabled": false
+          },
+          "sourceType": 0
+        },
+        "radius": {
+          "enabled": true,
+          "corner": {
+            "topLeft": 24,
+            "topRight": 24,
+            "bottomRight": 0,
+            "bottomLeft": 0
+          }
+        },
+        "margin": {
+          "enabled": false
+        },
+        "padding": {
+          "enabled": false
+        },
+        "border": {
+          "enabled": true,
+          "customSides": false,
+          "custom": {
+            "widths": {
+              "left": 0,
+              "bottom": 3,
+              "right": 0,
+              "top": 0
+            },
+            "margin": {
+              "enabled": false
+            },
+            "radius": {
+              "enabled": false
+            }
+          },
+          "width": 0,
+          "color": {
+            "lightnessValue": 0.5,
+            "saturationValue": 0.5,
+            "alpha": 1,
+            "systemColor": "highlightColor",
+            "systemColorSet": "View",
+            "custom": "#ff6c06",
+            "list": [
+              "#ED8796",
+              "#A6DA95",
+              "#EED49F",
+              "#8AADF4",
+              "#F5BDE6",
+              "#8BD5CA",
+              "#f5a97f"
+            ],
+            "followColor": 0,
+            "saturationEnabled": false,
+            "lightnessEnabled": false,
+            "animation": {
+              "enabled": false
+            },
+            "sourceType": 1,
+            "enabled": true
+          }
+        },
+        "shadow": {
+          "background": {
+            "enabled": false
+          },
+          "foreground": {
+            "enabled": false
+          }
+        },
+        "borderSecondary": {
+          "enabled": false
+        },
+        "flattenOnDeFloat": false,
+        "backgroundClipping": false
+      },
+      "busy": {
+        "enabled": false
+      },
+      "hovered": {
+        "enabled": false
+      },
+      "needsAttention": {
+        "enabled": false
+      },
+      "expanded": {
+        "enabled": false
+      }
+    },
+    "widgets": {
+      "normal": {
+        "enabled": true,
+        "blurBehind": false,
+        "backgroundColor": {
+          "enabled": false
+        },
+        "foregroundColor": {
+          "enabled": true,
+          "lightnessValue": 0.5,
+          "saturationValue": 0.5,
+          "alpha": 1,
+          "systemColor": "highlightColor",
+          "systemColorSet": "View",
+          "custom": "#ffffff",
+          "list": [
+            "#ED8796",
+            "#A6DA95",
+            "#EED49F",
+            "#8AADF4",
+            "#F5BDE6",
+            "#8BD5CA",
+            "#f5a97f"
+          ],
+          "followColor": 0,
+          "saturationEnabled": false,
+          "lightnessEnabled": false,
+          "animation": {
+            "enabled": false
+          },
+          "sourceType": 0
+        },
+        "radius": {
+          "enabled": true,
+          "corner": {
+            "topLeft": 8,
+            "topRight": 8,
+            "bottomRight": 8,
+            "bottomLeft": 8
+          }
+        },
+        "margin": {
+          "enabled": true,
+          "side": {
+            "right": 4,
+            "left": 4,
+            "top": 4,
+            "bottom": 4
+          }
+        },
+        "spacing": 4,
+        "border": {
+          "enabled": false
+        },
+        "shadow": {
+          "background": {
+            "enabled": false
+          },
+          "foreground": {
+            "enabled": false
+          }
+        },
+        "borderSecondary": {
+          "enabled": false
+        },
+        "backgroundClipping": false,
+        "opacity": 1,
+        "fontConfig": {
+          "enabled": false
+        }
+      },
+      "busy": {
+        "enabled": false
+      },
+      "hovered": {
+        "enabled": false
+      },
+      "needsAttention": {
+        "enabled": false
+      },
+      "expanded": {
+        "enabled": false
+      }
+    },
+    "trayWidgets": {
+      "normal": {
+        "enabled": true,
+        "blurBehind": false,
+        "backgroundColor": {
+          "enabled": false
+        },
+        "foregroundColor": {
+          "enabled": true,
+          "lightnessValue": 0.5,
+          "saturationValue": 0.5,
+          "alpha": 1,
+          "systemColor": "highlightColor",
+          "systemColorSet": "View",
+          "custom": "#ffffff",
+          "list": [
+            "#ED8796",
+            "#A6DA95",
+            "#EED49F",
+            "#8AADF4",
+            "#F5BDE6",
+            "#8BD5CA",
+            "#f5a97f"
+          ],
+          "followColor": 0,
+          "saturationEnabled": false,
+          "lightnessEnabled": false,
+          "animation": {
+            "enabled": false
+          },
+          "sourceType": 0
+        },
+        "radius": {
+          "enabled": false
+        },
+        "margin": {
+          "enabled": false
+        },
+        "border": {
+          "enabled": false
+        },
+        "shadow": {
+          "background": {
+            "enabled": false
+          },
+          "foreground": {
+            "enabled": false
+          }
+        },
+        "borderSecondary": {
+          "enabled": false
+        },
+        "backgroundClipping": false,
+        "opacity": 1
+      },
+      "busy": {
+        "enabled": false
+      },
+      "hovered": {
+        "enabled": false
+      },
+      "needsAttention": {
+        "enabled": false
+      },
+      "expanded": {
+        "enabled": false
+      },
+      "wideTrayArrow": false,
+      "customCellSizeEnabled": false,
+      "customCellSize": 22
+    },
+    "nativePanel": {
+      "background": {
+        "enabled": false
+      },
+      "floatingDialogs": true,
+      "floatingDialogsAllowOverride": true,
+      "fillAreaOnDeFloat": true,
+      "hideWhenNoWidgetsAreVisible": false,
+      "screenEdgeMargin": 0
+    }
+  }
+}

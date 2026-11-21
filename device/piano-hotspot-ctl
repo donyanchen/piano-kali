@@ -1,0 +1,12 @@
+#!/bin/bash
+set -uo pipefail
+case "${1:-}" in
+  on)  /usr/local/bin/piano-hotspot ;;
+  off)
+    hostapd_cli -p /var/run/hostapd -i wlan1 disable >/dev/null 2>&1 || \
+      pkill -f "hostapd /etc/hostapd/wlan1.conf" 2>/dev/null || true
+    rm -f /run/sheng-hotspot/ready
+    ;;
+  status) iw dev wlan1 info 2>/dev/null | grep -q "type AP" && echo on || echo off ;;
+  *) exit 2 ;;
+esac

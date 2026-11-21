@@ -1,0 +1,161 @@
+{
+  "globalSettings": {
+    "panel": {
+      "normal": {
+        "enabled": true,
+        "blurBehind": false,
+        "backgroundColor": {
+          "enabled": false
+        },
+        "foregroundColor": {
+          "enabled": false
+        },
+        "radius": {
+          "enabled": false
+        },
+        "margin": {
+          "enabled": false
+        },
+        "padding": {
+          "enabled": true,
+          "side": {
+            "right": 2,
+            "left": 2,
+            "top": 0,
+            "bottom": 0
+          }
+        },
+        "border": {
+          "enabled": false
+        },
+        "shadow": {
+          "background": {
+            "enabled": false
+          },
+          "foreground": {
+            "enabled": false
+          }
+        },
+        "flattenOnDeFloat": false,
+        "backgroundClipping": false,
+        "borderSecondary": {
+          "enabled": false
+        }
+      },
+      "busy": {
+        "enabled": false
+      },
+      "hovered": {
+        "enabled": false
+      },
+      "needsAttention": {
+        "enabled": false
+      },
+      "expanded": {
+        "enabled": false
+      }
+    },
+    "widgets": {
+      "normal": {
+        "enabled": true,
+        "blurBehind": false,
+        "backgroundColor": {
+          "enabled": false
+        },
+        "foregroundColor": {
+          "enabled": true,
+          "lightnessValue": 0.5,
+          "saturationValue": 0.5,
+          "alpha": 1,
+          "systemColor": "textColor",
+          "systemColorSet": "View",
+          "custom": "#fc0000",
+          "list": [
+            "#ED8796",
+            "#A6DA95",
+            "#EED49F",
+            "#8AADF4",
+            "#F5BDE6",
+            "#8BD5CA",
+            "#f5a97f"
+          ],
+          "followColor": 0,
+          "saturationEnabled": false,
+          "lightnessEnabled": false,
+          "animation": {
+            "enabled": false
+          },
+          "sourceType": 1
+        },
+        "radius": {
+          "enabled": false
+        },
+        "margin": {
+          "enabled": false
+        },
+        "spacing": 4,
+        "border": {
+          "enabled": false
+        },
+        "shadow": {
+          "background": {
+            "enabled": false
+          },
+          "foreground": {
+            "enabled": false
+          }
+        },
+        "backgroundClipping": false,
+        "borderSecondary": {
+          "enabled": false
+        },
+        "opacity": 1,
+        "fontConfig": {
+          "enabled": false
+        }
+      },
+      "busy": {
+        "enabled": false
+      },
+      "hovered": {
+        "enabled": false
+      },
+      "needsAttention": {
+        "enabled": false
+      },
+      "expanded": {
+        "enabled": false
+      }
+    },
+    "trayWidgets": {
+      "normal": {
+        "enabled": false
+      },
+      "busy": {
+        "enabled": false
+      },
+      "hovered": {
+        "enabled": false
+      },
+      "needsAttention": {
+        "enabled": false
+      },
+      "expanded": {
+        "enabled": false
+      },
+      "wideTrayArrow": false,
+      "customCellSizeEnabled": false,
+      "customCellSize": 22
+    },
+    "nativePanel": {
+      "background": {
+        "enabled": false
+      },
+      "floatingDialogs": true,
+      "floatingDialogsAllowOverride": true,
+      "fillAreaOnDeFloat": true,
+      "hideWhenNoWidgetsAreVisible": false,
+      "screenEdgeMargin": 0
+    }
+  }
+}

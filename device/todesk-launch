@@ -1,0 +1,17 @@
+#!/bin/sh
+# ToDesk 需要 X11；补上当前 Wayland 会话的 X auth cookie
+for f in "$XDG_RUNTIME_DIR"/xauth_* "$HOME/.Xauthority"; do
+    [ -f "$f" ] && { export XAUTHORITY="$f"; break; }
+done
+export DISPLAY="${DISPLAY:-:0}"
+export GDK_BACKEND=x11
+# 本会话是 200% 缩放，GTK 需要显式告知，否则按 1x 渲染（窗口只有一半大）
+export GDK_SCALE=2
+export GDK_DPI_SCALE=0.5
+export QT_SCALE_FACTOR=2
+export QT_AUTO_SCREEN_SCALE_FACTOR=0
+# XWayland 下很多 X 程序靠 Xft.dpi 判断缩放
+xrdb -merge - <<XRDB 2>/dev/null
+Xft.dpi: 192
+XRDB
+exec /opt/todesk/bin/ToDesk "$@"

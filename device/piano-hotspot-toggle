@@ -1,0 +1,53 @@
+#!/bin/bash
+# 并发热点开关：Wi-Fi 保持连接，热点单独在 wlan1 上开/关
+# 用法：piano-hotspot-toggle [on|off|toggle|status]
+
+svc=piano-hotspot.service
+
+status() {
+    if systemctl is-active --quiet "$svc"; then
+        if iw dev wlan1 info >/dev/null 2>&1; then
+            ssid=$(iw dev wlan1 info 2>/dev/null | awk '/ssid/{print $2}')
+            echo "on:$ssid"
+        else
+            echo "on"
+        fi
+    else
+        echo "off"
+    fi
+}
+
+notify() {
+    # 以桌面用户身份发通知（脚本由 sudo 启动时也能弹）
+    uid=$(id -u kali 2>/dev/null || echo 1000)
+    sudo -u kali DISPLAY=:0 XDG_RUNTIME_DIR=/run/user/$uid \
+        notify-send -a "Piano 热点" "$1" "$2" 2>/dev/null || true
+}
+
+case "${1:-toggle}" in
+    on)
+        systemctl start "$svc"
+        sleep 3
+        notify "热点已开启" "SSID: Piano-AP  密码: piano12345"
+        status
+        ;;
+    off)
+        systemctl stop "$svc"
+        notify "热点已关闭" "Wi-Fi 保持连接"
+        status
+        ;;
+    status)
+        status
+        ;;
+    *)
+        if systemctl is-active --quiet "$svc"; then
+            systemctl stop "$svc"
+            notify "热点已关闭" "Wi-Fi 保持连接"
+        else
+            systemctl start "$svc"
+            sleep 3
+            notify "热点已开启" "SSID: Piano-AP  密码: piano12345"
+        fi
+        status
+        ;;
+esac

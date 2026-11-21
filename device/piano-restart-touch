@@ -1,0 +1,11 @@
+#!/bin/bash
+# 屏幕唤醒后重置触摸流（piano-thp 在 DPMS 关/开后可能卡在 awaiting baseline）
+set -u
+state=$(systemctl is-active piano-thp 2>/dev/null)
+if [ "$state" != "active" ]; then
+    systemctl start piano-thp 2>/dev/null
+else
+    systemctl restart piano-thp 2>/dev/null
+fi
+sleep 0.3
+systemctl is-active piano-thp 2>/dev/null

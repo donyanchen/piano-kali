@@ -1,0 +1,13 @@
+#!/bin/sh
+# Recover a stuck NT36532E: rebind the SPI driver, then restart the daemon.
+set -e
+D=/sys/bus/spi/drivers/nt36532e-thp
+systemctl stop piano-thp.service 2>/dev/null || true
+[ -e /spi1.0 ] && echo spi1.0 > /unbind || true
+sleep 1
+[ -e /sys/bus/spi/devices/spi1.0 ] && echo spi1.0 > /bind || true
+sleep 1
+systemctl start piano-thp.service
+sleep 2
+dmesg | grep -i "thp stream ready" | tail -1
+systemctl is-active piano-thp.service
