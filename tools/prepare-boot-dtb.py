@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import struct
 import subprocess
 
 import libfdt
@@ -71,9 +72,15 @@ def main():
         parser.error('Plain overlay already works; no compatibility transformation is needed')
 
     mainline.resize(mainline.totalsize() + 128 * 1024)
-    base = libfdt.Fdt(args.stock_base.read_bytes())
-    for name in ('qcom,msm-id', 'qcom,board-id'):
-        mainline.setprop(0, name, bytes(base.getprop(0, name)))
+    # ABL 只在 board-id/msm-id 命中时才会把原厂 DTBO 叠上去。沿用原厂
+    # stock-base.dtb 里的值（board-id <0 8>, 8 条 msm-id）在真机上**不命中**：
+    # DTBO 被跳过 → 内核拿到的 memory 节点大小为 0 → 连 initramfs 的 /init 都
+    # 跑不到（2026-11-18 在 A/B 两槽各复现一次，boot-log.txt 从未生成）。
+    # 参考项目发布包里能启动的 DTB 用的是下面这一组；与人的 DTB 逐行 diff，
+    # 除了这两条属性之外 1392 个节点完全一致，换成这组当场进 KDE。
+    # 详见 docs/boot-dtb-identity.md。
+    mainline.setprop(0, 'qcom,board-id', struct.pack('>II', 0x00, 0x00))
+    mainline.setprop(0, 'qcom,msm-id', struct.pack('>II', 0x100027F, 0x20000))
     # The disabled parent prevents stock platform devices from being populated,
     # even if a fragment replaces the target's status or compatible property.
     parent = '/firmware/piano-stock-overlay'
@@ -106,6 +113,12 @@ def main():
     prepared = tree(mainline)
     packaged = out / 'piano-boot.dtb'
     packaged.write_bytes(mainline.as_bytearray())
+    written = libfdt.Fdt(packaged.read_bytes())
+    for name, want in (('qcom,board-id', [0x00, 0x00]),
+                       ('qcom,msm-id', [0x100027F, 0x20000])):
+        got = written.getprop(0, name).as_uint32_list()
+        if got != want:
+            raise RuntimeError(f'{name} = {got}, expected {want}: ABL would skip the stock DTBO')
     merged_path = out / 'stock-overlay-simulated.dtb'
     if apply(packaged, merged_path, 'isolated-overlay.log'):
         raise RuntimeError('Isolated overlay failed; inspect isolated-overlay.log')
@@ -126,7 +139,7 @@ def main():
     if unexpected:
         raise RuntimeError(f'Unexpected stock nodes outside isolation: {unexpected[:5]}')
     report = {
-        'status': 'OFFLINE_OVERLAY_VERIFIED_RUNTIME_UNTESTED',
+        'status': 'DEVICE_IDENTITY_BOOT_VERIFIED_OVERLAY_OFFLINE_VERIFIED',
         'method': 'Stock board fixups isolated; observed Gunyah arch_timer symbol resolves to the real timer',
         'fixup_count': len(fixups), 'hardware_nodes_unchanged': len(original) - 1,
         'hardware_comparison_baseline': 'Prepared DTB, including the explicitly added timer phandle',
