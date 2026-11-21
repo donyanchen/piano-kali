@@ -191,7 +191,12 @@ ln -sf /home/kali/.config/systemd/user/piano-volkeys.service \
     "$ROOTFS/home/kali/.config/systemd/user/default.target.wants/piano-volkeys.service"
 chroot "$ROOTFS" chown -R kali:kali /home/kali/.local || true
 install -Dm 0755 "$PROJECT/device/piano-privacy" "$ROOTFS/usr/libexec/piano-privacy"
-install -Dm 0755 "$PROJECT/device/sheng-privacy" "$ROOTFS/usr/bin/sheng-privacy"
+# sheng-tablet-controls 从 1.0-6 起自带 /usr/bin/sheng-privacy（python 前端，走
+# sheng-privacy@.service）。已经有包提供的版本时不要再拿我们的三行 shim 覆盖它，
+# 否则控制中心的隐私开关会指向旧的 /usr/libexec/piano-privacy 入口。
+if [[ ! -e "$ROOTFS/usr/bin/sheng-privacy" ]]; then
+    install -Dm 0755 "$PROJECT/device/sheng-privacy" "$ROOTFS/usr/bin/sheng-privacy"
+fi
 install -Dm 0440 "$PROJECT/device/50-piano-privacy.sudoers" "$ROOTFS/etc/sudoers.d/50-piano-privacy"
 printf '#!/bin/sh\nexit 0\n' > "$ROOTFS/usr/libexec/sheng-privacy-bpf"
 chmod 0755 "$ROOTFS/usr/libexec/sheng-privacy-bpf"
